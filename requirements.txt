@@ -1,0 +1,4 @@
+docker-py
+pytest
+steem
+secp256k1
