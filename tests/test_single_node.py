@@ -1,4 +1,8 @@
+import time
+
 from autoscorum.node import Node
+from autoscorum.genesis import Genesis
+from autoscorum.rpc_client import RpcClient
 from steembase.http_client import HttpClient
 
 
@@ -42,15 +46,50 @@ initdelegate_private_key = "5K8ZJUYs9SP47JgzUY97ogDw1da37yuLrSF5syj2Wr4GEvPWok6"
 
 def test_block_production():
     initdelegate = Node(genesis=default_genesis)
-    initdelegate.config['rpc-endpoint'] = '0.0.0.0:8090'
     initdelegate.config['witness'] = '"initdelegate"'
     initdelegate.config['private-key'] = initdelegate_private_key
-    initdelegate.run()
 
-    rpc = HttpClient([initdelegate.addr])
-    block = rpc.exec('get_block', '1')
-    assert block['witness'] == initdelegate.config['witness'][1:-1]
+    initdelegate.run()
+    rpc = RpcClient([initdelegate])
+    block = rpc.get_block(1)
     initdelegate.stop()
+
+    assert block['witness'] == initdelegate.config['witness'][1:-1]
+
+
+def test_genesis_block():
+    genesis = Genesis()
+    genesis["init_supply"] = 10000
+    genesis.add_account(acc_name="initdelegate",
+                        public_key="SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi",
+                        scr_amount=10000,
+                        witness=True)
+
+    print(genesis.dump())
+    node = Node(genesis=genesis.dump())
+    node.config['witness'] = '"initdelegate"'
+    node.config['private-key'] = initdelegate_private_key
+    node.run()
+    print(node.get_logs().decode())
+
+    rpc = RpcClient([node])
+    account = rpc.get_account("initdelegate")
+
+    node.stop()
+    print(account)
+
+    assert True
+
+
+def test_witness_reward():
+    witness = Node(genesis=default_genesis)
+    witness.config['witness'] = '"initdelegate"'
+    witness.config['private-key'] = initdelegate_private_key
+    witness.run()
+
+    rpc = HttpClient([witness.addr])
+
+
 
 
 

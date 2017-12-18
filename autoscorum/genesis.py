@@ -1,11 +1,15 @@
 import time
 import datetime
 import json
+import pytz
+
 
 class Genesis(object):
     def __init__(self):
         self.parms = {}
-        self["init_supply"] = 1000
+        self._set_timestamp()
+        self["init_supply"] = 0
+        self["init_rewards_supply"] = "1000000.000 SCORUM"
         self["accounts"] = []
         self["witness_candidates"] = []
 
@@ -24,7 +28,7 @@ class Genesis(object):
 
         self['accounts'].append(account)
         if witness:
-            self.add_witness(self, account["name"], account[public_key])
+            self.add_witness(account["name"], account["public_key"])
 
     def add_witness(self, name, signing_key):
         witness = {"owner_name": f"{name}",
@@ -35,5 +39,5 @@ class Genesis(object):
         return json.dumps(self.parms)
 
     def _set_timestamp(self):
-        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%dT%H:%M:%S')
+        timestamp = datetime.datetime.fromtimestamp(time.time(), tz=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
         self['initial_timestamp'] = f"{timestamp}"

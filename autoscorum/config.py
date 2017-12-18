@@ -1,6 +1,7 @@
 class Config(object):
-    def __init__(self, parms={}):
-        self.parms = parms
+    def __init__(self):
+        self.parms = {}
+        self['rpc-endpoint'] = '0.0.0.0:8090'
 
     def __getitem__(self, item):
         return self.parms[item]
@@ -17,7 +18,7 @@ class Config(object):
             result += f"{key} = {value}\n"
         return result
 
-    def get_rcp_port(self):
+    def get_rpc_port(self):
         return self['rpc-endpoint'].split(':', 1)[1]
 
 
@@ -30,7 +31,7 @@ def test_dump():
     assert config.dump() == expected_str
 
 
-def test_get_rcp_port():
+def test_get_rpc_port():
     config = Config()
     config['rpc-endpoint'] = '127.0.0.1:8090'
-    assert config.get_rcp_port() == '8090'
+    assert config.get_rpp_port() == '8090'

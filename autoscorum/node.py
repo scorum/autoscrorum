@@ -5,7 +5,6 @@ import io
 import tarfile
 import docker
 import os
-import time
 
 from docker.errors import ImageNotFound
 from contextlib import contextmanager
@@ -37,6 +36,7 @@ DOCKER_IMAGE_NAME = 'autonode'
 
 class Node(object):
     docker = docker.from_env()
+
     def __init__(self, config=Config(), genesis=None):
         self._bin_path = None
         self.config = config
@@ -49,9 +49,6 @@ class Node(object):
 
         assert self._bin_path.exists(), "scorumd does not exists"
         assert self._bin_path.is_file(), "scorumd is not a file"
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
 
     def _create_docker_image(self):
         with self._prepare_context() as context:
@@ -99,8 +96,6 @@ class Node(object):
                 self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
 
         self._container.start()
-        if self.config['witness'] == '"initdelegate"':
-            time.sleep(5)
         self._inspect_container()
 
     def _inspect_container(self):
