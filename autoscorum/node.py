@@ -92,7 +92,7 @@ class Node(object):
         with utils.write_to_tempfile(self.config.dump()) as config:
             self.put_to_container(src=config, dst=os.path.join(CONTAINER_DATADIR_PATH, 'config.ini'))
         if self._genesis:
-            with utils.write_to_tempfile(json.dumps(self._genesis)) as genesis:
+            with utils.write_to_tempfile(self._genesis.dump()) as genesis:
                 self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
 
         self._container.start()

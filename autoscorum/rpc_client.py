@@ -22,4 +22,21 @@ class RpcClient(object):
         return result
 
     def get_account(self, name):
-        return self._rpc.exec('get_account', name)
+        return self._rpc.exec('get_accounts', [name])
+
+    def get_info(self):
+        result = self._rpc.exec("get_dynamic_global_properties", [])
+
+        witness_schedule = self._rpc.exec("get_witness_schedule", [])
+        result.update(witness_schedule)
+
+        hardfork_version = self._rpc.exec("get_hardfork_version", [])
+        result['hardfork_version'] = hardfork_version
+
+        chain_properties = self._rpc.exec("get_chain_properties", [])
+        result.update(chain_properties)
+
+        reward_fund = self._rpc.exec("get_reward_fund", "post")
+        result['post_reward_fund'] = reward_fund
+
+        return result
