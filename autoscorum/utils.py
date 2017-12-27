@@ -1,7 +1,7 @@
 import os
 import tempfile
 from contextlib import contextmanager
-import secp256k1
+from steembase import account
 
 def which(file):
     for path in os.environ["PATH"].split(os.pathsep):
@@ -18,7 +18,9 @@ def write_to_tempfile(content):
 
 
 def generate_key(passphrase):
-    private_key = secp256k1.PrivateKey(bytes(passphrase.encode()))
+    sha = hashlib.sha256(passphrase.encode())
+    print(sha.hexdigest())
+    private_key = secp256k1.PrivateKey(sha.hexdigest()[32:].encode())
     print(private_key.serialize())
     public_key = None
     result = (private_key, public_key)
@@ -26,4 +28,4 @@ def generate_key(passphrase):
 
 
 def test_generator():
-    generate_key('sjrpfhtnfhsjnvbimnbjkaiwnghfnfrw')
+    generate_key('nitdelegate')

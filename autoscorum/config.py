@@ -26,7 +26,8 @@ def test_dump():
     config = Config()
     config['parm1'] = 'value'
     config['parm2'] = 'value'
-    expected_str = 'parm1 = value\n' \
+    expected_str = 'rpc-endpoint = 0.0.0.0:8090\n' \
+                   'parm1 = value\n' \
                    'parm2 = value\n'
     assert config.dump() == expected_str
 
@@ -34,4 +35,4 @@ def test_dump():
 def test_get_rpc_port():
     config = Config()
     config['rpc-endpoint'] = '127.0.0.1:8090'
-    assert config.get_rpp_port() == '8090'
+    assert config.get_rpc_port() == '8090'

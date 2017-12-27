@@ -1,15 +1,16 @@
-import json
 import shutil
 import tempfile
 import io
 import tarfile
 import docker
 import os
+import threading
 
 from docker.errors import ImageNotFound
 from contextlib import contextmanager
 from contextlib import closing
 from pathlib import Path
+from hashlib import sha256
 
 from autoscorum.config import Config
 from autoscorum import utils
@@ -36,14 +37,18 @@ DOCKER_IMAGE_NAME = 'autonode'
 
 class Node(object):
     docker = docker.from_env()
+    _chain_id = None
 
-    def __init__(self, config=Config(), genesis=None):
+    def __init__(self, config=Config(), genesis=None, logging=True):
         self._bin_path = None
         self.config = config
         self._container = None
         self._inspect_info = {}
-        self.addr = None
         self._genesis = genesis
+        self._logging = logging
+        self.logs = ""
+        self.addr = None
+
 
         self._bin_path = Path(utils.which(SCORUM_BIN))
 
@@ -77,11 +82,19 @@ class Node(object):
             self._create_docker_image()
         self._run_container(command)
 
-    def get_logs(self, stream=False):
-        return self._container.logs(stream=stream)
+    def get_chain_id(self):
+        if not self._chain_id:
+            for line in self.logs:
+                if "node chain ID:" in line:
+                    self._chain_id = line.split(" ")[-1]
+        return self._chain_id
 
     def stop(self):
         self._container.stop()
+
+    def _read_logs(self):
+        for line in self._container.logs(stream=True):
+            self.logs += line.decode("utf-8")
 
     def _run_container(self, command):
         self._container = self.docker.containers.create(image=DOCKER_IMAGE_NAME,
@@ -92,10 +105,16 @@ class Node(object):
         with utils.write_to_tempfile(self.config.dump()) as config:
             self.put_to_container(src=config, dst=os.path.join(CONTAINER_DATADIR_PATH, 'config.ini'))
         if self._genesis:
-            with utils.write_to_tempfile(self._genesis.dump()) as genesis:
+            g = self._genesis.dump()
+            with utils.write_to_tempfile(g) as genesis:
                 self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
+            self._chain_id = sha256(g.encode()).hexdigest()
 
         self._container.start()
+        if self._logging:
+            logs_thread = threading.Thread(target=self._read_logs)
+            logs_thread.daemon = True
+            logs_thread.start()
         self._inspect_container()
 
     def _inspect_container(self):
