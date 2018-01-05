@@ -17,6 +17,7 @@ class RpcClient(object):
             addrs.append(node.addr)
 
         self.chainid = chain_id
+        print(chain_id)
         self._keys = {}
         self._rpc = HttpClient(addrs, num_pools=1, retries=1, timeout=1)
 

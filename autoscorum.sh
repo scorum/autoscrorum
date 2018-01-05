@@ -116,6 +116,10 @@ setup()
 		Error "Could not setup autoscorum"; bRun=0; } }
 
 	[ $bRun -eq 1 ] && { 
+		bash -c "source \"${INSTALL_PATH}/venv/bin/activate\" && pip3.6 install git+git://github.com/scorum/scorum-python.git@develop" || {
+		Error "Could not setup scorum-python"; bRun=0; } }
+
+	[ $bRun -eq 1 ] && { 
 		cp -fs "${INSTALL_PATH}/venv/bin/activate.csh" "${INSTALL_PATH}/activate.csh" || {
 		Error "Could not create activate.csh symlink"; bRun=0; } }
 
