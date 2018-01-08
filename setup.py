@@ -8,5 +8,6 @@ setup(
     install_requires=['docker',
                       'steem',
                       'pytest',
+                      'pytest-timeout',
                       'secp256k1']
 )

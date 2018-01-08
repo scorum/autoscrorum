@@ -1,4 +1,5 @@
 docker-py
 pytest
+pytest-timeout
 steem
 secp256k1

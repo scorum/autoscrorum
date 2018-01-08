@@ -8,16 +8,16 @@ class Genesis(object):
     def __init__(self):
         self.parms = {}
         self._set_timestamp()
-        self["init_supply"] = 0
-        self["init_rewards_supply"] = "1000000.000 SCORUM"
+        self["init_accounts_supply"] = "0.00 SCR"
+        self["init_rewards_supply"] = "1000000.000 SCR"
 
         self["accounts"] = []
 
         self["witness_candidates"] = []
 
         self["registration_committee"] = []
-        self["registration_supply"] = "100.000 SCORUM"
-        self["registration_maximum_bonus"] = "0.100 SCORUM"
+        self["registration_supply"] = "100.000 SCR"
+        self["registration_bonus"] = "0.100 SCR"
         self["registration_schedule"] = [{"stage": 1,
                                           "users": 1,
                                           "bonus_percent": 100},
@@ -38,7 +38,7 @@ class Genesis(object):
     def __setitem__(self, key, value):
         self.parms[key] = value
 
-    def add_account(self, acc_name, public_key, recovery_account='', scr_amount=0, sp_amount=0,  witness=False, committee=False):
+    def add_account(self, acc_name, public_key, recovery_account='', scr_amount='0.000 SRC', sp_amount='0.000000 SP',  witness=False, committee=False):
         if len(self["registration_committee"]) < 1:
             committee = True
         account = {"name": f"{acc_name}",
