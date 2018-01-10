@@ -37,7 +37,13 @@ DOCKER_IMAGE_NAME = 'autonode'
 
 class Node(object):
     docker = docker.from_env()
-    _chain_id = None
+
+    chain_params = {"chain_id": None,
+                    "prefix": "SCR",
+                    "scorum_symbol": "SCR",
+                    "sp_symbol": "SP",
+                    "scorum_prec": 3,
+                    "sp_prec": 6}
 
     def __init__(self, config=Config(), genesis=None, logging=True):
         self._bin_path = None
@@ -83,11 +89,11 @@ class Node(object):
         self._run_container(command)
 
     def get_chain_id(self):
-        if not self._chain_id:
+        if not self.chain_params["chaind_id"]:
             for line in self.logs:
                 if "node chain ID:" in line:
-                    self._chain_id = line.split(" ")[-1]
-        return self._chain_id
+                    self.chain_params["chaind_id"] = line.split(" ")[-1]
+        return self.chain_params["chaind_id"]
 
     def stop(self):
         self._container.stop()
@@ -108,7 +114,7 @@ class Node(object):
             g = self._genesis.dump()
             with utils.write_to_tempfile(g) as genesis:
                 self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
-            self._chain_id = sha256(g.encode()).hexdigest()
+            self.chain_params["chaind_id"] = sha256(g.encode()).hexdigest()
 
         self._container.start()
         if self._logging:

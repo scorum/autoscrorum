@@ -8,6 +8,7 @@ setup(
     install_requires=['docker',
                       'steem',
                       'pytest',
+                      'websocket-client',
                       'pytest-timeout',
                       'secp256k1']
 )

@@ -1,5 +1,6 @@
 docker-py
 pytest
 pytest-timeout
+websocket-client
 steem
 secp256k1

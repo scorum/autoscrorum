@@ -13,7 +13,7 @@ acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
 acc_private_key = "5K8ZJUYs9SP47JgzUY97ogDw1da37yuLrSF5syj2Wr4GEvPWok6"
 
 
-@pytest.mark.timeout(20, method='signal')
+# @pytest.mark.timeout(20, method='signal')
 class TestSingleNode(unittest.TestCase):
     def setUp(self):
         self.genesis = Genesis()
@@ -68,7 +68,17 @@ class TestSingleNode(unittest.TestCase):
         self.wallet.commit.transfer(to='alice', amount=10000, asset='SCR', account=acc_name)
         alice = self.wallet.get_account('alice')
 
-
+    def test_websocket(self):
+        rpc = RpcClient(self.node, keys=[acc_private_key])
+        rpc.open_ws()
+        print(rpc.login("", ""))
+        print(rpc.get_api_by_name('network_broadcast_api'))
+        # acc = rpc.get_account('initdelegate')
+        # print(acc)
+        # rpc.transfer('initdelegate', 'alice', 10000)
+        # alice = rpc.get_account('alice')
+        # print(alice)
+        rpc.close_ws()
 
 
 
