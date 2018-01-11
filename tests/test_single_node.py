@@ -7,6 +7,7 @@ from autoscorum.node import Node
 from autoscorum.genesis import Genesis
 from autoscorum.rpc_client import RpcClient
 from steem import Steem
+from steembase.transactions import fmt_time_from_now
 
 acc_name = "initdelegate"
 acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
@@ -68,16 +69,40 @@ class TestSingleNode(unittest.TestCase):
         self.wallet.commit.transfer(to='alice', amount=10000, asset='SCR', account=acc_name)
         alice = self.wallet.get_account('alice')
 
+    def test_create_budget(self):
+        rpc = RpcClient(self.node, keys=[acc_private_key])
+        rpc.open_ws()
+
+        rpc.login("", "")
+        rpc.get_api_by_name('database_api')
+        rpc.get_api_by_name('network_broadcast_api')
+        time.sleep(10)
+
+        rpc.create_budget('initdelegate', 10000, fmt_time_from_now(300))
+
+        time.sleep(3)
+        print(rpc.get_account('initdelegate'))
+        rpc.close_ws()
+
+
     def test_websocket(self):
         rpc = RpcClient(self.node, keys=[acc_private_key])
         rpc.open_ws()
-        print(rpc.login("", ""))
-        print(rpc.get_api_by_name('network_broadcast_api'))
-        # acc = rpc.get_account('initdelegate')
-        # print(acc)
-        # rpc.transfer('initdelegate', 'alice', 10000)
-        # alice = rpc.get_account('alice')
-        # print(alice)
+        time.sleep(10)
+
+        print(rpc.get_account('initdelegate'))
+        print(rpc.get_account('alice'))
+
+        rpc.login("", "")
+        rpc.get_api_by_name('database_api')
+        rpc.get_api_by_name('network_broadcast_api')
+
+        # rpc.create_budget('initdelegate', 10000, fmt_time_from_now(120))
+        print(rpc.transfer('initdelegate', 'alice', 10000, ''))
+
+        print(rpc.get_account('initdelegate'))
+        print(rpc.get_account('alice'))
+
         rpc.close_ws()
 
 
