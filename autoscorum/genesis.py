@@ -63,4 +63,4 @@ class Genesis(object):
 
     def _set_timestamp(self):
         timestamp = datetime.datetime.fromtimestamp(time.time(), tz=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
-        self['initial_timestamp'] = f"{timestamp}"
+        self['initial_timestamp'] = '2018-01-11T13:55:58'
