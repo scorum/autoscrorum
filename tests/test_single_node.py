@@ -6,7 +6,6 @@ import unittest
 from autoscorum.node import Node
 from autoscorum.genesis import Genesis
 from autoscorum.rpc_client import RpcClient
-from steem import Steem
 from steembase.transactions import fmt_time_from_now
 
 acc_name = "initdelegate"
@@ -37,73 +36,52 @@ class TestSingleNode(unittest.TestCase):
 
         self.node.run()
 
-        self.wallet = Steem(chain_id=self.node.get_chain_id(),
-                            nodes=[self.node.addr],
-                            keys=[acc_private_key])
+        self.rpc = RpcClient(self.node, [acc_private_key])
+        self.rpc.open_ws()
+        self.rpc.login("", "")
+        self.rpc.get_api_by_name('database_api')
+        self.rpc.get_api_by_name('network_broadcast_api')
+        self.rpc.get_block(1, wait_for_block=True)
 
     def tearDown(self):
+        self.rpc.close_ws()
         self.node.stop()
         print(self.node.logs)
 
     def test_block_production(self):
-        block = self.wallet.get_block(1)
+        block = self.rpc.get_block(1)
 
         assert block['witness'] == self.node.config['witness'][1:-1]
 
     def test_genesis_block(self):
-        initdelegate = self.wallet.get_account("initdelegate")
-        alice = self.wallet.get_account("alice")
-        info = self.wallet.get_dynamic_global_properties()
+        initdelegate = self.rpc.get_account("initdelegate")
+        alice = self.rpc.get_account("alice")
+        info = self.rpc.get_dynamic_global_properties()
 
         assert info['total_supply'] == '1210100.000 SCR'
         assert initdelegate['balance'] == '110000.000 SCR'
         assert alice['balance'] == '100000.000 SCR'
 
     def test_transfer(self):
-        time.sleep(10)
-        # login = self.wallet.login(username="", password="")
-        # self.wallet.get_api_by_name("database_api")
-        # self.wallet.get_api_by_name("network_broadcast_api")
-        alice = self.wallet.get_account('alice')
-        print(self.wallet.get_account(acc_name))
-        self.wallet.commit.transfer(to='alice', amount=10000, asset='SCR', account=acc_name)
-        alice = self.wallet.get_account('alice')
+        amount = 10000
+
+        initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        alice_balance_before = float(self.rpc.get_account('alice')['balance'].split()[0])
+
+        self.rpc.transfer('initdelegate', 'alice', amount)
+
+        initdelegate_balance_after = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        alice_balance_after = float(self.rpc.get_account('alice')['balance'].split()[0])
+
+        assert initdelegate_balance_after == initdelegate_balance_before - amount
+        assert alice_balance_after == alice_balance_before + amount
+
 
     def test_create_budget(self):
-        rpc = RpcClient(self.node, keys=[acc_private_key])
-        rpc.open_ws()
+        print(self.rpc.create_budget('initdelegate', 10000, fmt_time_from_now(3600)))
 
-        rpc.login("", "")
-        rpc.get_api_by_name('database_api')
-        rpc.get_api_by_name('network_broadcast_api')
-        time.sleep(10)
+        print(self.rpc.get_account('initdelegate')['balance'])
 
-        rpc.create_budget('initdelegate', 10000, fmt_time_from_now(300))
-
-        time.sleep(3)
-        print(rpc.get_account('initdelegate'))
-        rpc.close_ws()
-
-
-    def test_websocket(self):
-        rpc = RpcClient(self.node, keys=[acc_private_key])
-        rpc.open_ws()
-        time.sleep(10)
-
-        print(rpc.get_account('initdelegate'))
-        print(rpc.get_account('alice'))
-
-        rpc.login("", "")
-        rpc.get_api_by_name('database_api')
-        rpc.get_api_by_name('network_broadcast_api')
-
-        # rpc.create_budget('initdelegate', 10000, fmt_time_from_now(120))
-        print(rpc.transfer('initdelegate', 'alice', 10000, ''))
-
-        print(rpc.get_account('initdelegate'))
-        print(rpc.get_account('alice'))
-
-        rpc.close_ws()
 
 
 

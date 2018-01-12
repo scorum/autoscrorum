@@ -1,27 +1,16 @@
-import hashlib
 import time
-import secp256k1
 import websocket
-import ast
-
+import json
 
 import _struct
 from binascii import unhexlify
-from collections import OrderedDict
 from steem import Steem
 
 
 from steem.wallet import Wallet
-from steembase.types import Signature
-from steembase.account import PrivateKey
 from steembase.http_client import HttpClient
 from steembase import operations
-from steembase.transactions import fmt_time_from_now
 from steem.transactionbuilder import TransactionBuilder
-from steembase.types import (
-               Int16, Uint16, Uint32, Uint64,
-               String, Bytes, Array, Set, PointInTime, Bool,
-               Optional, Map, Id, JsonObj, StaticVariant)
 
 
 class RpcClient(object):
@@ -49,27 +38,40 @@ class RpcClient(object):
 
     def get_dynamic_global_properties(self):
         self._ws.send(HttpClient.json_rpc_body('get_dynamic_global_properties', api='database_api'))
-        return ast.literal_eval(self._ws.recv())['result']
+        return json.loads(self._ws.recv())['result']
 
     def login(self, username: str, password: str):
         self._ws.send(HttpClient.json_rpc_body('login', username, password, api='login_api'))
-        return self._ws.recv()
+        return json.loads(self._ws.recv())['result']
 
     def get_api_by_name(self, api_name: str):
         self._ws.send(HttpClient.json_rpc_body('call', 1, 'get_api_by_name', [api_name]))
-        return self._ws.recv()
+        return json.loads(self._ws.recv())['result']
 
-    def get_block(self, num: int):
-        self._ws.send(HttpClient.json_rpc_body('get_block', num, api='database_api'))
-        return ast.literal_eval(self._ws.recv())['result']
+    def get_block(self, num: int, **kwargs):
+        request = lambda: self._ws.send(HttpClient.json_rpc_body('get_block', num, api='database_api'))
+        wait = kwargs.get('wait_for_block', False)
+
+        request()
+        block = json.loads(self._ws.recv())['result']
+        if wait and not block:
+            timer = 1
+            time_to_wait = kwargs.get('time_to_wait', 10)
+            while timer < time_to_wait and not block:
+                time.sleep(1)
+                timer += 1
+                request()
+                block = json.loads(self._ws.recv())['result']
+
+        return block
 
     def get_account(self, name: str):
         self._ws.send(HttpClient.json_rpc_body('get_accounts', [name]))
-        return self._ws.recv()
+        return json.loads(self._ws.recv())['result'][0]
 
     def create_budget(self, owner, balance, deadline, permlink="",):
         op = operations.CreateBudget(
-            **{'budget_owner': owner,
+            **{'owner': owner,
                'content_permlink': permlink,
                'balance': '{:.{prec}f} {asset}'.format(
                    float(balance),
