@@ -1,12 +1,22 @@
+import hashlib
+import json
 import time
+from binascii import unhexlify
+from collections import OrderedDict
 
 import pytest
 import unittest
 
+from steembase import operations
+from steembase.operations import GrapheneObject
 from autoscorum.node import Node
 from autoscorum.genesis import Genesis
 from autoscorum.rpc_client import RpcClient
 from steembase.transactions import fmt_time_from_now
+from steembase.types import (
+    Int16, Uint16, Uint32, Uint64, Set,
+    String, Bytes, Array, PointInTime, Bool,
+    Optional, Map, Id, JsonObj, StaticVariant)
 
 acc_name = "initdelegate"
 acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
@@ -73,15 +83,64 @@ class TestSingleNode(unittest.TestCase):
         initdelegate_balance_after = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
         alice_balance_after = float(self.rpc.get_account('alice')['balance'].split()[0])
 
+        print(self.rpc.list_accounts(100))
+
         assert initdelegate_balance_after == initdelegate_balance_before - amount
         assert alice_balance_after == alice_balance_before + amount
 
+    def test_transfer_invalid_amount(self):
+        amount = 120000
+
+        initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        alice_balance_before = float(self.rpc.get_account('alice')['balance'].split()[0])
+
+        response = self.rpc.transfer('initdelegate', 'alice', amount)
+
+        initdelegate_balance_after = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        alice_balance_after = float(self.rpc.get_account('alice')['balance'].split()[0])
+
+        assert initdelegate_balance_after == initdelegate_balance_before
+        assert alice_balance_after == alice_balance_before
+
+        assert 'Account does not have sufficient funds for transfer' in response['error']['message']
+
+    def test_create_account(self):
+        test_account_name = 'bob'
+        test_account_pub_key = 'SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p'
+
+        print(self.rpc.create_account('initdelegate', test_account_name, test_account_pub_key))
+
+        accounts = self.rpc.list_accounts()
+
+        print(accounts)
 
     def test_create_budget(self):
         print(self.rpc.create_budget('initdelegate', 10000, fmt_time_from_now(3600)))
 
         print(self.rpc.get_account('initdelegate')['balance'])
 
+    def test_sign(self):
+        data = OrderedDict()
+        data['ref_block_num'] = Uint16(3)
+        data['ref_block_prefix'] = Uint32(1486745422)
+        data['expiration'] = PointInTime('2018-01-17T09:08:06')
+        data['operations'] = Array([operations.Operation(operations.CreateBudget(**{'owner': 'initdelegate',
+                                                              'content_permlink': "",
+                                                              'balance': '{:.{prec}f} {asset}'.format(
+                                                                  float(10000),
+                                                                  prec=self.node.chain_params["scorum_prec"],
+                                                                  asset=self.node.chain_params["scorum_symbol"]),
+                                                              'deadline': '2018-01-17T10:07:06'
+                                                              }))])
+        data['extensions'] = Set([])
+        data['signatures'] = Array([])
+
+        object = GrapheneObject(data)
+
+        message = unhexlify(self.node.get_chain_id()) + bytes(object)
+        digest = hashlib.sha256(message).digest()
+
+        print(digest)
 
 
 

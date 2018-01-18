@@ -6,7 +6,6 @@ import _struct
 from binascii import unhexlify
 from steem import Steem
 
-
 from steem.wallet import Wallet
 from steembase.http_client import HttpClient
 from steembase import operations
@@ -48,6 +47,10 @@ class RpcClient(object):
         self._ws.send(HttpClient.json_rpc_body('call', 1, 'get_api_by_name', [api_name]))
         return json.loads(self._ws.recv())['result']
 
+    def list_accounts(self, limit: int=100):
+        self._ws.send(HttpClient.json_rpc_body('call', 0, 'lookup_accounts', ["", limit]))
+        return json.loads(self._ws.recv())['result']
+
     def get_block(self, num: int, **kwargs):
         request = lambda: self._ws.send(HttpClient.json_rpc_body('get_block', num, api='database_api'))
         wait = kwargs.get('wait_for_block', False)
@@ -69,7 +72,7 @@ class RpcClient(object):
         self._ws.send(HttpClient.json_rpc_body('get_accounts', [name]))
         return json.loads(self._ws.recv())['result'][0]
 
-    def create_budget(self, owner, balance, deadline, permlink="",):
+    def create_budget(self, owner, balance, deadline, permlink="", ):
         op = operations.CreateBudget(
             **{'owner': owner,
                'content_permlink': permlink,
@@ -89,8 +92,8 @@ class RpcClient(object):
         tx.sign()
 
         self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
-        return self._ws.recv()
-        
+        return json.loads(self._ws.recv())['error']
+
     def transfer(self, _from: str, to: str, amount: int, memo=""):
         op = operations.Transfer(
             **{"from": _from,
@@ -114,7 +117,35 @@ class RpcClient(object):
         print(tx.json())
 
         self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
-        return self._ws.recv()
+        return json.loads(self._ws.recv())
+
+    def create_account(self, creator: str, newname: str, owner_pub_key: str, **kwargs):
+        creation_fee = '{:.{prec}f} {asset}'.format(
+                   float(kwargs.get('fee', 0.030)),
+                   prec=self.node.chain_params["scorum_prec"],
+                   asset=self.node.chain_params["scorum_symbol"]
+               )
+        op = operations.AccountCreate(
+            **{'fee': creation_fee,
+               'creator': creator,
+               'new_account_name': newname,
+               'owner': [owner_pub_key],
+               'active': [kwargs.get("active_key", owner_pub_key)],
+               'posting': [kwargs.get('posting_key', owner_pub_key)],
+               'memo_key': [kwargs.get('memo_key', owner_pub_key)],
+               'json_metadata': kwargs.get('json_metadata', "")}
+        )
+
+        tx = TransactionBuilder(None,
+                                scorumd_instance=self.scorumd,
+                                wallet_instance=self.wallet)
+        tx.appendOps(op)
+
+        tx.appendSigner(creator, "active")
+        tx.sign()
+
+        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+        return json.loads(self._ws.recv())
 
     def get_ref_block_params(self):
         props = self.get_dynamic_global_properties()
