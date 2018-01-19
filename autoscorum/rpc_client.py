@@ -7,6 +7,7 @@ from binascii import unhexlify
 from steem import Steem
 
 from steem.wallet import Wallet
+from steembase.account import PublicKey
 from steembase.http_client import HttpClient
 from steembase import operations
 from steem.transactionbuilder import TransactionBuilder
@@ -119,21 +120,70 @@ class RpcClient(object):
         self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
         return json.loads(self._ws.recv())
 
-    def create_account(self, creator: str, newname: str, owner_pub_key: str, **kwargs):
+    def create_account(self,
+                       creator: str,
+                       newname: str,
+                       owner_pub_key: str,
+                       additional_owner_keys=[],
+                       additional_active_keys=[],
+                       additional_posting_keys=[],
+                       additional_owner_accounts=[],
+                       additional_active_accounts=[],
+                       additional_posting_accounts=[],
+                       **kwargs):
+
         creation_fee = '{:.{prec}f} {asset}'.format(
                    float(kwargs.get('fee', 0.030)),
                    prec=self.node.chain_params["scorum_prec"],
                    asset=self.node.chain_params["scorum_symbol"]
                )
+        owner_pubkey = PublicKey(owner_pub_key, prefix=self.scorumd.chain_params["prefix"])
+        active_pubkey = PublicKey(kwargs.get("active_key", owner_pub_key), prefix=self.scorumd.chain_params["prefix"])
+        posting_pubkey = PublicKey(kwargs.get('posting_key', owner_pub_key), prefix=self.scorumd.chain_params["prefix"])
+        memo_pubkey = PublicKey(kwargs.get('memo_key', owner_pub_key), prefix=self.scorumd.chain_params["prefix"])
+
+        owner = format(owner_pubkey, self.scorumd.chain_params["prefix"])
+        active = format(active_pubkey, self.scorumd.chain_params["prefix"])
+        posting = format(posting_pubkey, self.scorumd.chain_params["prefix"])
+        memo = format(memo_pubkey, self.scorumd.chain_params["prefix"])
+
+        owner_key_authority = [[owner, 1]]
+        active_key_authority = [[active, 1]]
+        posting_key_authority = [[posting, 1]]
+        owner_accounts_authority = []
+        active_accounts_authority = []
+        posting_accounts_authority = []
+
+        # additional authorities
+        for k in additional_owner_keys:
+            owner_key_authority.append([k, 1])
+        for k in additional_active_keys:
+            active_key_authority.append([k, 1])
+        for k in additional_posting_keys:
+            posting_key_authority.append([k, 1])
+
+        for k in additional_owner_accounts:
+            owner_accounts_authority.append([k, 1])
+        for k in additional_active_accounts:
+            active_accounts_authority.append([k, 1])
+        for k in additional_posting_accounts:
+            posting_accounts_authority.append([k, 1])
+
         op = operations.AccountCreate(
             **{'fee': creation_fee,
                'creator': creator,
                'new_account_name': newname,
-               'owner': [owner_pub_key],
-               'active': [kwargs.get("active_key", owner_pub_key)],
-               'posting': [kwargs.get('posting_key', owner_pub_key)],
-               'memo_key': [kwargs.get('memo_key', owner_pub_key)],
-               'json_metadata': kwargs.get('json_metadata', "")}
+               'owner': {'account_auths': owner_accounts_authority,
+                         'key_auths': owner_key_authority,
+                         'weight_threshold': 1},
+               'active': {'account_auths': active_accounts_authority,
+                          'key_auths': active_key_authority,
+                          'weight_threshold': 1},
+               'posting': {'account_auths': posting_accounts_authority,
+                           'key_auths': posting_key_authority,
+                           'weight_threshold': 1},
+               'memo_key': memo,
+               'json_metadata': kwargs.get('json_metadata', {})}
         )
 
         tx = TransactionBuilder(None,

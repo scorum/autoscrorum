@@ -108,7 +108,7 @@ class TestSingleNode(unittest.TestCase):
         test_account_name = 'bob'
         test_account_pub_key = 'SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p'
 
-        print(self.rpc.create_account('initdelegate', test_account_name, test_account_pub_key))
+        print(self.rpc.create_account('initdelegate', newname=test_account_name, owner_pub_key=test_account_pub_key))
 
         accounts = self.rpc.list_accounts()
 
