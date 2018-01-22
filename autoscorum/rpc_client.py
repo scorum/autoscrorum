@@ -73,6 +73,10 @@ class RpcClient(object):
         self._ws.send(HttpClient.json_rpc_body('get_accounts', [name]))
         return json.loads(self._ws.recv())['result'][0]
 
+    def list_proposals(self):
+        self._ws.send(HttpClient.json_rpc_body("call", 0, 'lookup_proposals', []))
+        return json.loads(self._ws.recv())['result']
+
     def create_budget(self, owner, balance, deadline, permlink="", ):
         op = operations.CreateBudget(
             **{'owner': owner,
@@ -93,7 +97,7 @@ class RpcClient(object):
         tx.sign()
 
         self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
-        return json.loads(self._ws.recv())['error']
+        return json.loads(self._ws.recv())
 
     def transfer(self, _from: str, to: str, amount: int, memo=""):
         op = operations.Transfer(
@@ -113,6 +117,27 @@ class RpcClient(object):
         tx.appendOps(op)
 
         tx.appendSigner(_from, "active")
+        tx.sign()
+
+        print(tx.json())
+
+        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+        return json.loads(self._ws.recv())
+
+    def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
+        op = operations.ProposalCreate(
+            **{'creator': inviter,
+               'data': invitee,
+               'action': 'invite',
+               'lifetime_sec': lifetime_sec}
+        )
+
+        tx = TransactionBuilder(None,
+                                scorumd_instance=self.scorumd,
+                                wallet_instance=self.wallet)
+        tx.appendOps(op)
+
+        tx.appendSigner(inviter, "active")
         tx.sign()
 
         print(tx.json())
@@ -174,13 +199,13 @@ class RpcClient(object):
                'creator': creator,
                'new_account_name': newname,
                'owner': {'account_auths': owner_accounts_authority,
-                         'key_auths': owner_key_authority,
+                         'key_auths': [[owner_pub_key, 1]],
                          'weight_threshold': 1},
                'active': {'account_auths': active_accounts_authority,
-                          'key_auths': active_key_authority,
+                          'key_auths': [[kwargs.get('active_pub_key', owner_pub_key), 1]],
                           'weight_threshold': 1},
                'posting': {'account_auths': posting_accounts_authority,
-                           'key_auths': posting_key_authority,
+                           'key_auths': [[kwargs.get('posting_pub_key', owner_pub_key), 1]],
                            'weight_threshold': 1},
                'memo_key': memo,
                'json_metadata': kwargs.get('json_metadata', {})}

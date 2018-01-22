@@ -73,6 +73,8 @@ class TestSingleNode(unittest.TestCase):
         assert alice['balance'] == '100000.000 SCR'
 
     def test_transfer(self):
+        print(self.genesis.dump())
+        print(self.node.config.dump())
         amount = 10000
 
         initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
@@ -82,8 +84,6 @@ class TestSingleNode(unittest.TestCase):
 
         initdelegate_balance_after = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
         alice_balance_after = float(self.rpc.get_account('alice')['balance'].split()[0])
-
-        print(self.rpc.list_accounts(100))
 
         assert initdelegate_balance_after == initdelegate_balance_before - amount
         assert alice_balance_after == alice_balance_before + amount
@@ -119,49 +119,7 @@ class TestSingleNode(unittest.TestCase):
 
         print(self.rpc.get_account('initdelegate')['balance'])
 
-    def test_sign(self):
-        data = OrderedDict()
-        data['ref_block_num'] = Uint16(3)
-        data['ref_block_prefix'] = Uint32(1486745422)
-        data['expiration'] = PointInTime('2018-01-17T09:08:06')
-        data['operations'] = Array([operations.Operation(operations.CreateBudget(**{'owner': 'initdelegate',
-                                                              'content_permlink': "",
-                                                              'balance': '{:.{prec}f} {asset}'.format(
-                                                                  float(10000),
-                                                                  prec=self.node.chain_params["scorum_prec"],
-                                                                  asset=self.node.chain_params["scorum_symbol"]),
-                                                              'deadline': '2018-01-17T10:07:06'
-                                                              }))])
-        data['extensions'] = Set([])
-        data['signatures'] = Array([])
+    def test_invite_member(self):
+        print(self.rpc.invite_member('initdelegate', 'alice', 86500))
 
-        object = GrapheneObject(data)
-
-        message = unhexlify(self.node.get_chain_id()) + bytes(object)
-        digest = hashlib.sha256(message).digest()
-
-        print(digest)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        print(self.rpc.list_proposals())
