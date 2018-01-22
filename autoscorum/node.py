@@ -53,7 +53,7 @@ class Node(object):
         self._genesis = genesis
         self._logging = logging
         self.logs = ""
-        self.addr = None
+        self.addr = '127.0.0.1:8090'
 
 
         self._bin_path = Path(utils.which(SCORUM_BIN))
@@ -74,6 +74,7 @@ class Node(object):
             yield docker_context
 
     def run(self, command=None):
+        return 0
         client = self.docker
         if not command:
             args = ['--enable-stale-production']
@@ -89,6 +90,7 @@ class Node(object):
         self._run_container(command)
 
     def get_chain_id(self):
+        return "f9ff83a1c168da969782cd54e3514f975e797bcd874a2f63323b3edebfbc367f"
         if not self.chain_params["chaind_id"]:
             for line in self.logs:
                 if "node chain ID:" in line:
@@ -96,6 +98,7 @@ class Node(object):
         return self.chain_params["chaind_id"]
 
     def stop(self):
+        return 0
         self._container.stop()
 
     def _read_logs(self):
