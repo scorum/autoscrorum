@@ -83,9 +83,7 @@ RemoveRecursively()
 
 clean()
 {
-	rm "${INSTALL_PATH}/activate" 2>&1 &> /dev/null
-	rm "${INSTALL_PATH}/activate.csh" 2>&1 &> /dev/null
-	rm -rf "${INSTALL_PATH}/venv" 2>&1 &> /dev/null
+	pipenv --rm
 
 	RemoveRecursively "${INSTALL_PATH}/tests" "\*.pyc"
 	RemoveRecursively "${INSTALL_PATH}/tests" "__pycache__"
@@ -103,29 +101,14 @@ setup()
     bRun=1
 	Info "Setup autoscorum environment ..."
 
-	[ $bRun -eq 1 ] && { 
-		${PYTHON_BIN} -m virtualenv "${INSTALL_PATH}/venv" || {
-			Error "Could not create virtualenv"; bRun=0; } }
 
 	[ $bRun -eq 1 ] && { 
-		bash -c "source \"${INSTALL_PATH}/venv/bin/activate\" && pip3.6 install -q -r \"${INSTALL_PATH}/requirements.txt\"" || {
-		Error "Could not insall requirements"; bRun=0; } }
+		bash -c "pipenv --python python3.6 install" || {
+		Error "Could not create virtualenv"; bRun=0; } }
 
 	[ $bRun -eq 1 ] && { 
-		bash -c "source \"${INSTALL_PATH}/venv/bin/activate\" && pip3.6 install -q -e \"${INSTALL_PATH}\"" || {
-		Error "Could not setup autoscorum"; bRun=0; } }
-
-	[ $bRun -eq 1 ] && { 
-		bash -c "source \"${INSTALL_PATH}/venv/bin/activate\" && pip3.6 install git+git://github.com/scorum/scorum-python.git@develop" || {
-		Error "Could not setup scorum-python"; bRun=0; } }
-
-	[ $bRun -eq 1 ] && { 
-		cp -fs "${INSTALL_PATH}/venv/bin/activate.csh" "${INSTALL_PATH}/activate.csh" || {
-		Error "Could not create activate.csh symlink"; bRun=0; } }
-
-	[ $bRun -eq 1 ] && { 
-		cp -fs "${INSTALL_PATH}/venv/bin/activate" "${INSTALL_PATH}/activate" || {
-		Error "Could not create activate symlink"; bRun=0; } }
+		bash -c "pipenv run pip install -e ." || {
+		Error "Could not install autoscorum"; bRun=0; } }
 
 	if [ ${bRun} -eq 0 ]; then
 		Error "Autoscorum installation failed."
@@ -134,19 +117,6 @@ setup()
 	else
 		Info "Autoscorum successfuly installed."
 		return 0
-	fi
-}
-
-switch_activator()
-{
-	default_bash=$1
-
-	if [[ "${default_bash}" != "bash" ]]; then
-		Info "activate  ->  venv/bin/activate.csh"
-		ln -fs "${INSTALL_PATH}/venv/bin/activate.csh" "${INSTALL_PATH}/activate"
-	else
-		Info "activate  ->  venv/bin/activate"
-		ln -fs "${INSTALL_PATH}/venv/bin/activate" "${INSTALL_PATH}/activate"
 	fi
 }
 
@@ -171,11 +141,6 @@ main()
 		
 		--uninstall)
 		    clean
-			return $?
-			;;
-
-		--use)
-			switch_activator $2
 			return $?
 			;;
 
