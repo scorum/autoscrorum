@@ -6,12 +6,12 @@ name = "pypi"
 
 [packages]
 
-docker = "*"
-docker-py = "*"
+docker = "<3.0.0"
+docker-py = "<1.10.6"
 pytest = "*"
 pytest-timeout = "*"
 websocket-client = "*"
-secp256k1 = "*""
+secp256k1 = "*"
 scorum-python = {git = "git://github.com/scorum/scorum-python.git"}
 
 
