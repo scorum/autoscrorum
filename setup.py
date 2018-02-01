@@ -1,14 +1,7 @@
-from setuptools import setup
-from setuptools import find_packages
+from distutils.core import setup
 
 setup(
     name='autoscorum',
     version='0.0.1',
     packages=['autoscorum'],
-    install_requires=['docker',
-                      'steem',
-                      'pytest',
-                      'websocket-client',
-                      'pytest-timeout',
-                      'secp256k1']
 )
