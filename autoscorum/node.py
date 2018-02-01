@@ -55,7 +55,6 @@ class Node(object):
         self.logs = ""
         self.addr = None
 
-
         self._bin_path = Path(utils.which(SCORUM_BIN))
 
         assert self._bin_path.exists(), "scorumd does not exists"

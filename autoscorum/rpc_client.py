@@ -53,7 +53,8 @@ class RpcClient(object):
         return json.loads(self._ws.recv())['result']
 
     def get_block(self, num: int, **kwargs):
-        request = lambda: self._ws.send(HttpClient.json_rpc_body('get_block', num, api='database_api'))
+        def request():
+            self._ws.send(HttpClient.json_rpc_body('get_block', num, api='database_api'))
         wait = kwargs.get('wait_for_block', False)
 
         request()

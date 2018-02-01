@@ -3,6 +3,7 @@ import tempfile
 from contextlib import contextmanager
 from steembase import account
 
+
 def which(file):
     for path in os.environ["PATH"].split(os.pathsep):
         if os.path.exists(os.path.join(path, file)):
