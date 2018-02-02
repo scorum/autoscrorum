@@ -3,11 +3,11 @@
 * python3.6
 
 # Installing
-``
+```
 git clone https://github.com/scorum/autoscrorum.git
 cd autoscorum
 ./autoscorum.sh --install
-``
+```
 
 # Running tests
 ```
