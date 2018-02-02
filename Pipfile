@@ -16,7 +16,6 @@ websocket-client = "*"
 scorum-python = {git = "git://github.com/scorum/scorum-python.git"}
 "pytest-pep8" = "*"
 pylama = "*"
-pylint = "*"
 
 
 [dev-packages]
