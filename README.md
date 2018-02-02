@@ -20,7 +20,6 @@ cd autoscorum
 ``
 pipenv --python python3.6
 pipenv run pip install -e .
-
 ``
 
 ### Runing testst with py.test
