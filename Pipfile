@@ -1,0 +1,27 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+
+docker = "<3.0.0"
+docker-py = "<1.10.6"
+pytest = "*"
+pytest-timeout = "*"
+websocket-client = "*"
+"secp256k1" = "*"
+scorum-python = {git = "git://github.com/scorum/scorum-python.git"}
+"pytest-pep8" = "*"
+pylama = "*"
+
+
+[dev-packages]
+
+
+
+[requires]
+
+python_version = "3.6"

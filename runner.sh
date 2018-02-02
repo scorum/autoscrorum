@@ -76,9 +76,7 @@ main()
 		args="$@"
 	fi
 
-	source "${RUNNER_PATH}/activate"
-
-	py.test --junitxml=result.xml ${args}
+	pipenv run py.test --pylama --junitxml=result.xml ${args}
 	return $?
 }
 
