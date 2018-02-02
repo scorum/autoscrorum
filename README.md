@@ -28,7 +28,7 @@ pipenv run py.test tests
 ``
 
 # Development installation
-``
+```
 git clone https://github.com/scorum/autoscrorum.git
 git clone https://github.com/scorum/scorum-python.git
 cd autoscorum
@@ -36,4 +36,4 @@ pipenv install
 cd ../scorum-python
 pipenv run pip install -e .
 cd ../autoscorum -e .
-``
+```
