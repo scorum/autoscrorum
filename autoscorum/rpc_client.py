@@ -165,7 +165,7 @@ class RpcClient(object):
                                                                  expiration=fmt_time_from_now(60),
                                                                  operations=[op])
 
-        stx.sign(self.keys, self.chain)
+        stx.sign(self.keys, self.chain["chain_id"])
 
         print(stx.json())
 
