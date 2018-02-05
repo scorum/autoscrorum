@@ -1,11 +1,9 @@
-import time
 import ecdsa
 import hashlib
 from binascii import hexlify, unhexlify
-import struct
 from collections import OrderedDict
 
-from .account import PrivateKey, PublicKey
+from .account import PublicKey
 from .types import (
     Array,
     Set,
@@ -33,7 +31,7 @@ except Exception:
               "    pip install secp256k1")
 
 
-class Signed_Transaction(GrapheneObject):
+class SignedTransaction(GrapheneObject):
     """ Create a signed transaction and offer method to create the
         signature
 
@@ -58,11 +56,7 @@ class Signed_Transaction(GrapheneObject):
                 kwargs["signatures"] = Array([Signature(unhexlify(a)) for a in kwargs["signatures"]])
 
             if "operations" in kwargs:
-                opklass = self.getOperationKlass()
-                if all([not isinstance(a, opklass) for a in kwargs["operations"]]):
-                    kwargs['operations'] = Array([opklass(a) for a in kwargs["operations"]])
-                else:
-                    kwargs['operations'] = Array(kwargs["operations"])
+                kwargs['operations'] = SignedTransaction.cast_operations_to_array_of_opklass(kwargs['operations'])
 
             super().__init__(OrderedDict([
                 ('ref_block_num', Uint16(kwargs['ref_block_num'])),
@@ -72,6 +66,31 @@ class Signed_Transaction(GrapheneObject):
                 ('extensions', kwargs['extensions']),
                 ('signatures', kwargs['signatures']),
             ]))
+
+    @staticmethod
+    def cast_operations_to_array_of_opklass(operations):
+        if all([not isinstance(a, Operation) for a in operations]):
+            result = Array([Operation(a) for a in operations])
+        else:
+            result = Array(operations)
+
+        return result
+
+    @staticmethod
+    def cast_str_public_keys_to_object(public_keys):
+        result = []
+
+        for k in public_keys:
+            if not isinstance(k, PublicKey):
+
+                if not isinstance(k, str):
+                    raise Exception("")
+
+                result.append(PublicKey(k))
+            else:
+                result.append(k)
+
+        return result
 
     @property
     def id(self):
@@ -91,39 +110,8 @@ class Signed_Transaction(GrapheneObject):
         # Return properly truncated tx hash
         return hexlify(h[:20]).decode("ascii")
 
-    def getOperationKlass(self):
-        return Operation
-
-    def derSigToHexSig(self, s):
-        """ Format DER to HEX signature
-        """
-        s, junk = ecdsa.der.remove_sequence(unhexlify(s))
-        if junk:
-            log.debug('JUNK: %s', hexlify(junk).decode('ascii'))
-        assert(junk == b'')
-        x, s = ecdsa.der.remove_integer(s)
-        y, s = ecdsa.der.remove_integer(s)
-        return '%064x%064x' % (x, y)
-
-    def getKnownChains(self):
-        return known_chains
-
-    def getChainParams(self, chain):
-        # Which network are we on:
-        chains = self.getKnownChains()
-        if isinstance(chain, str) and chain in chains:
-            chain_params = chains[chain]
-        elif isinstance(chain, dict):
-            chain_params = chain
-        else:
-            raise Exception("sign() only takes a string or a dict as chain!")
-        if "chain_id" not in chain_params:
-            raise Exception("sign() needs a 'chain_id' in chain params!")
-        return chain_params
-
-    def deriveDigest(self, chain_id):
-        # Chain ID
-        self.chain_id = chain_id
+    def derive_digest(self, chain_id):
+        # self.chain_id = chain_id
 
         # Do not serialize signatures
         sigs = self.data["signatures"]
@@ -132,17 +120,17 @@ class Signed_Transaction(GrapheneObject):
         # Get message to sign
         #   bytes(self) will give the wire formated data according to
         #   GrapheneObject and the data given in __init__()
-        self.message = unhexlify(self.chain_id) + bytes(self)
+        self.message = unhexlify(chain_id) + bytes(self)
         self.digest = hashlib.sha256(self.message).digest()
 
         # restore signatures
         self.data["signatures"] = sigs
 
-    def verify(self, pubkeys=[], chain=None):
-        if not chain:
-            raise
-        chain_params = self.getChainParams(chain)
-        self.deriveDigest(chain)
+    def verify(self, pubkeys=[], chain_id=None):
+        if not chain_id:
+            raise Exception("Chain needs to be provided!")
+
+        self.derive_digest(chain_id)
         signatures = self.data["signatures"].data
         pubKeysFound = []
 
@@ -154,6 +142,8 @@ class Signed_Transaction(GrapheneObject):
             phex = hexlify(p).decode('ascii')
             pubKeysFound.append(phex)
 
+        pubkeys = SignedTransaction.cast_str_public_keys_to_object(pubkeys)
+
         for pubkey in pubkeys:
             if not isinstance(pubkey, PublicKey):
                 raise Exception("Pubkeys must be array of 'PublicKey'")
@@ -161,30 +151,35 @@ class Signed_Transaction(GrapheneObject):
             k = pubkey.unCompressed()[2:]
             if k not in pubKeysFound and repr(pubkey) not in pubKeysFound:
                 k = PublicKey(PublicKey(k).compressed())
-                f = format(k, chain_params["prefix"])
-                raise Exception("Signature for %s missing!" % f)
+                raise Exception("Signature for %s missing!" % str(k))
+
         return pubKeysFound
 
     def sign(self, wifkeys, chain_id=None):
         """ Sign the transaction with the provided private keys.
 
-            :param array wifkeys: Array of wif keys
-            :param str chain: identifier for the chain
+            :param list wifkeys: Array of wif keys
+            :param str chain_id: identifier for the chain
 
         """
+        if len(wifkeys) == 0:
+            raise Exception("wifkeys should't be empty!")
+
         if not chain_id:
             raise Exception("Chain needs to be provided!")
-        self.deriveDigest(chain_id)
+
+        self.derive_digest(chain_id)
 
         # Get Unique private keys
-        self.privkeys = []
-        [self.privkeys.append(item) for item in wifkeys if item not in self.privkeys]
+        private_keys = []
+
+        [private_keys.append(item) for item in wifkeys if item not in private_keys]
 
         # Sign the message with every private key given!
-        sigs = []
-        for wif in self.privkeys:
+        signatures = []
+        for wif in private_keys:
             signature = sign_message(self.message, wif)
-            sigs.append(Signature(signature))
+            signatures.append(Signature(signature))
 
-        self.data["signatures"] = Array(sigs)
+        self.data["signatures"] = Array(signatures)
         return self

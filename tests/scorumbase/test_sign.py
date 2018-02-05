@@ -6,6 +6,8 @@ from graphenebase.ecdsa import sign_message, verify_message
 from graphenebase.account import PublicKey
 from graphenebase.types import String
 
+from graphenebase import operations
+from graphenebase.signedtransactions import SignedTransaction
 
 def test_sha256_hash():
     text = String("text text text")
@@ -31,5 +33,30 @@ def test_sign_message():
     k = verify_message("text text text", signature)
 
     p = PublicKey(hexlify(k).decode('ascii'))
+
+    assert(str(p) == "SCR5bgzuweaHx231escVuPVxgudSyUWdKAH7fKgxZfp3nKSirzFRa")
+
+
+def test_signed_transaction():
+    chain_id = "95e4b20f5e669fab5fdaa2fc9f691192118f72900f9906f13b1883e2fb57aa43"
+    op = operations.Transfer(
+        **{"from": "alice",
+           "to": "bob",
+           "amount": '0.001 SCR',
+           "memo": "for food"
+           })
+
+    tx = SignedTransaction(ref_block_num=11105,
+                           ref_block_prefix=4052692508,
+                           expiration="2018-01-29T08:37:12",
+                           operations=[op])
+
+    tx.sign(["5JCvGL2GVVpjDrKzbKWPHEvuwFs5HdEGwr4brp8RQiwrpEFcZNP"], chain_id)
+
+    public_keys = tx.verify(["SCR5bgzuweaHx231escVuPVxgudSyUWdKAH7fKgxZfp3nKSirzFRa"], chain_id)
+
+    assert(len(public_keys) == 1)
+
+    p = PublicKey(public_keys[0])
 
     assert(str(p) == "SCR5bgzuweaHx231escVuPVxgudSyUWdKAH7fKgxZfp3nKSirzFRa")

@@ -9,6 +9,8 @@ from binascii import unhexlify
 from graphenebase import operations
 from graphenebase.objects import Operation
 
+from graphenebase.signedtransactions import SignedTransaction
+
 from graphenebase.account import PublicKey
 from graphenebase.types import (
     Array,
@@ -155,10 +157,10 @@ class RpcClient(object):
                })
 
         ref_block_num, ref_block_prefix = self.get_ref_block_params()
-        stx = graphenebase.signedtransactions.Signed_Transaction(ref_block_num=ref_block_num,
-                                                                 ref_block_prefix=ref_block_prefix,
-                                                                 expiration=fmt_time_from_now(60),
-                                                                 operations=[op])
+        stx = SignedTransaction(ref_block_num=ref_block_num,
+                                ref_block_prefix=ref_block_prefix,
+                                expiration=fmt_time_from_now(60),
+                                operations=[op])
 
         stx.sign(self.keys, self.chain_id)
 
@@ -258,10 +260,10 @@ class RpcClient(object):
 
         ref_block_num, ref_block_prefix = self.get_ref_block_params()
 
-        stx = graphenebase.signedtransactions.Signed_Transaction(ref_block_num=ref_block_num,
-                                                                 ref_block_prefix=ref_block_prefix,
-                                                                 expiration=fmt_time_from_now(60),
-                                                                 operations=ops)
+        stx = graphenebase.signedtransactions.SignedTransaction(ref_block_num=ref_block_num,
+                                                                ref_block_prefix=ref_block_prefix,
+                                                                expiration=fmt_time_from_now(60),
+                                                                operations=ops)
 
         chain = {
             "chain_id": self.node.get_chain_id(),

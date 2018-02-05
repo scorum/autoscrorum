@@ -8,7 +8,7 @@ import time
 
 from .account import PublicKey
 from .chains import known_chains
-from .signedtransactions import Signed_Transaction
+from .signedtransactions import SignedTransaction
 from .operations import Operation
 from .objects import GrapheneObject, isArgsThisClass
 
