@@ -7,11 +7,25 @@ from binascii import unhexlify
 from steem import Steem
 
 from steem.wallet import Wallet
-from steembase.account import PublicKey
 from steembase.http_client import HttpClient
-from steembase import operations
-from steem.transactionbuilder import TransactionBuilder
+from steembase.transactions import fmt_time_from_now
 
+from graphenebase import operations
+
+from graphenebase.objects import Operation
+import graphenebase
+
+
+from steembase.account import PublicKey
+
+from graphenebase.types import (
+    Array,
+    Set,
+    Signature,
+    PointInTime,
+    Uint16,
+    Uint32,
+)
 
 class RpcClient(object):
     def __init__(self, node, keys=[]):
@@ -78,27 +92,34 @@ class RpcClient(object):
         self._ws.send(HttpClient.json_rpc_body("call", 0, 'lookup_proposals', []))
         return json.loads(self._ws.recv())['result']
 
-    def create_budget(self, owner, balance, deadline, permlink="", ):
-        op = operations.CreateBudget(
-            **{'owner': owner,
-               'content_permlink': permlink,
-               'balance': '{:.{prec}f} {asset}'.format(
-                   float(balance),
-                   prec=self.node.chain_params["scorum_prec"],
-                   asset=self.node.chain_params["scorum_symbol"]),
-               'deadline': deadline
-               }
-        )
-        tx = TransactionBuilder(None,
-                                scorumd_instance=self.scorumd,
-                                wallet_instance=self.wallet)
-        tx.appendOps(op)
+    # def create_budget(self, owner, balance, deadline, permlink="", ):
+    #     op = operations.CreateBudget(
+    #         **{'owner': owner,
+    #            'content_permlink': permlink,
+    #            'balance': '{:.{prec}f} {asset}'.format(
+    #                float(balance),
+    #                prec=self.node.chain_params["scorum_prec"],
+    #                asset=self.node.chain_params["scorum_symbol"]),
+    #            'deadline': deadline
+    #            }
+    #     )
+    #     tx = TransactionBuilder(None,
+    #                             scorumd_instance=self.scorumd,
+    #                             wallet_instance=self.wallet)
+    #     tx.appendOps(op)
+    #
+    #     tx.appendSigner(owner, "active")
+    #     tx.sign()
+    #
+    #     self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+    #     return json.loads(self._ws.recv())
 
-        tx.appendSigner(owner, "active")
-        tx.sign()
-
-        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
-        return json.loads(self._ws.recv())
+    def get_ref_block_params(self):
+        props = self.get_dynamic_global_properties()
+        ref_block_num = props['head_block_number'] - 1 & 0xFFFF
+        ref_block = self.get_block(props['head_block_number'])
+        ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
+        return ref_block_num, ref_block_prefix
 
     def transfer(self, _from: str, to: str, amount: int, memo=""):
         op = operations.Transfer(
@@ -112,39 +133,49 @@ class RpcClient(object):
                "memo": memo
                })
 
-        tx = TransactionBuilder(None,
-                                scorumd_instance=self.scorumd,
-                                wallet_instance=self.wallet)
-        tx.appendOps(op)
+        ops = [Operation(op)]
 
-        tx.appendSigner(_from, "active")
-        tx.sign()
+        ref_block_num, ref_block_prefix = self.get_ref_block_params()
 
-        print(tx.json())
+        stx = graphenebase.signedtransactions.Signed_Transaction(ref_block_num=ref_block_num,
+                                                                 ref_block_prefix=ref_block_prefix,
+                                                                 expiration=fmt_time_from_now(60),
+                                                                 operations=ops)
 
-        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+        chain = {
+            "chain_id": self.node.get_chain_id(),
+            "prefix": "SCR",
+            "steem_symbol": "SCR",
+            "vests_symbol": "SP",
+        }
+
+        stx.sign(self.keys, chain)
+
+        print(stx.json())
+
+        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [stx.json()]))
         return json.loads(self._ws.recv())
 
-    def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
-        op = operations.ProposalCreate(
-            **{'creator': inviter,
-               'data': invitee,
-               'action': 'invite',
-               'lifetime_sec': lifetime_sec}
-        )
-
-        tx = TransactionBuilder(None,
-                                scorumd_instance=self.scorumd,
-                                wallet_instance=self.wallet)
-        tx.appendOps(op)
-
-        tx.appendSigner(inviter, "active")
-        tx.sign()
-
-        print(tx.json())
-
-        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
-        return json.loads(self._ws.recv())
+    # def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
+    #     op = operations.ProposalCreate(
+    #         **{'creator': inviter,
+    #            'data': invitee,
+    #            'action': 'invite',
+    #            'lifetime_sec': lifetime_sec}
+    #     )
+    #
+    #     tx = TransactionBuilder(None,
+    #                             scorumd_instance=self.scorumd,
+    #                             wallet_instance=self.wallet)
+    #     tx.appendOps(op)
+    #
+    #     tx.appendSigner(inviter, "active")
+    #     tx.sign()
+    #
+    #     print(tx.json())
+    #
+    #     self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+    #     return json.loads(self._ws.recv())
 
     def create_account(self,
                        creator: str,
@@ -212,23 +243,30 @@ class RpcClient(object):
                'json_metadata': kwargs.get('json_metadata', {})}
         )
 
-        tx = TransactionBuilder(None,
-                                scorumd_instance=self.scorumd,
-                                wallet_instance=self.wallet)
-        tx.appendOps(op)
+        ops = [Operation(op)]
 
-        tx.appendSigner(creator, "active")
-        tx.sign()
+        ref_block_num, ref_block_prefix = self.get_ref_block_params()
 
-        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+        stx = graphenebase.signedtransactions.Signed_Transaction(ref_block_num=ref_block_num,
+                                                                 ref_block_prefix=ref_block_prefix,
+                                                                 expiration=fmt_time_from_now(60),
+                                                                 operations=ops)
+
+        chain = {
+            "chain_id": self.node.get_chain_id(),
+            "prefix": "SCR",
+            "steem_symbol": "SCR",
+            "vests_symbol": "SP",
+        }
+
+        stx.sign(self.keys, chain)
+
+        print(stx.json())
+
+        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [stx.json()]))
         return json.loads(self._ws.recv())
 
-    def get_ref_block_params(self):
-        props = self.get_dynamic_global_properties()
-        ref_block_num = props['head_block_number'] - 3 & 0xFFFF
-        ref_block = self.get_block(props['head_block_number'] - 2)
-        ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
-        return Uint16(ref_block_num), Uint32(ref_block_prefix)
+
 
     # def _sign(self, transaction, keys):
     #     sigs = []
