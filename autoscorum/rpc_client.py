@@ -25,12 +25,7 @@ class RpcClient(object):
         self.node = node
         self._ws = None
         self.keys = keys
-        self.chain = {
-                      "chain_id": self.node.get_chain_id(),
-                      "prefix": "SCR",
-                      "steem_symbol": "SCR",
-                      "vests_symbol": "SP",
-                      }
+        self.chain_id = self.node.get_chain_id()
 
     def open_ws(self):
         addr = self.node.addr
@@ -165,7 +160,7 @@ class RpcClient(object):
                                                                  expiration=fmt_time_from_now(60),
                                                                  operations=[op])
 
-        stx.sign(self.keys, self.chain["chain_id"])
+        stx.sign(self.keys, self.chain_id)
 
         print(stx.json())
 

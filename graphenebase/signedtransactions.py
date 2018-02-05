@@ -121,9 +121,9 @@ class Signed_Transaction(GrapheneObject):
             raise Exception("sign() needs a 'chain_id' in chain params!")
         return chain_params
 
-    def deriveDigest(self, chainid):
+    def deriveDigest(self, chain_id):
         # Chain ID
-        self.chainid = chainid
+        self.chain_id = chain_id
 
         # Do not serialize signatures
         sigs = self.data["signatures"]
@@ -132,7 +132,7 @@ class Signed_Transaction(GrapheneObject):
         # Get message to sign
         #   bytes(self) will give the wire formated data according to
         #   GrapheneObject and the data given in __init__()
-        self.message = unhexlify(self.chainid) + bytes(self)
+        self.message = unhexlify(self.chain_id) + bytes(self)
         self.digest = hashlib.sha256(self.message).digest()
 
         # restore signatures
@@ -165,16 +165,16 @@ class Signed_Transaction(GrapheneObject):
                 raise Exception("Signature for %s missing!" % f)
         return pubKeysFound
 
-    def sign(self, wifkeys, chainid=None):
+    def sign(self, wifkeys, chain_id=None):
         """ Sign the transaction with the provided private keys.
 
             :param array wifkeys: Array of wif keys
             :param str chain: identifier for the chain
 
         """
-        if not chainid:
+        if not chain_id:
             raise Exception("Chain needs to be provided!")
-        self.deriveDigest(chainid)
+        self.deriveDigest(chain_id)
 
         # Get Unique private keys
         self.privkeys = []
