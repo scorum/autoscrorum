@@ -100,6 +100,9 @@ class TestSingleNode(unittest.TestCase):
 
         print(accounts)
 
+    # def test_vote_for_witness(self):
+
+
     def test_create_budget(self):
         print(self.rpc.create_budget('initdelegate', 10000, fmt_time_from_now(3600)))
 

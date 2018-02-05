@@ -88,11 +88,11 @@ class Node(object):
         self._run_container(command)
 
     def get_chain_id(self):
-        if not self.chain_params["chaind_id"]:
+        if not self.chain_params["chain_id"]:
             for line in self.logs:
                 if "node chain ID:" in line:
-                    self.chain_params["chaind_id"] = line.split(" ")[-1]
-        return self.chain_params["chaind_id"]
+                    self.chain_params["chain_id"] = line.split(" ")[-1]
+        return self.chain_params["chain_id"]
 
     def stop(self):
         self._container.stop()
@@ -113,7 +113,7 @@ class Node(object):
             g = self._genesis.dump()
             with utils.write_to_tempfile(g) as genesis:
                 self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
-            self.chain_params["chaind_id"] = sha256(g.encode()).hexdigest()
+            self.chain_params["chain_id"] = sha256(g.encode()).hexdigest()
 
         self._container.start()
         if self._logging:

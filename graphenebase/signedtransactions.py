@@ -111,8 +111,6 @@ class SignedTransaction(GrapheneObject):
         return hexlify(h[:20]).decode("ascii")
 
     def derive_digest(self, chain_id):
-        # self.chain_id = chain_id
-
         # Do not serialize signatures
         sigs = self.data["signatures"]
         self.data["signatures"] = []

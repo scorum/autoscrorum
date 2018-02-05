@@ -1,18 +1,10 @@
-#: Operation ids
-# operations = {}
-# operations["demooepration"] = 0
-# operations["transfer"] = 1
-
 op_names = [
     'vote',
     'comment',
     'transfer',
     'transfer_to_vesting',
     'withdraw_vesting',
-    'limit_order_create',
-    'limit_order_cancel',
-    'feed_publish',
-    'convert',
+    'account_create_by_committee',
     'account_create',
     'account_update',
     'witness_update',

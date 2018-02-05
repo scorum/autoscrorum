@@ -9,6 +9,7 @@ from graphenebase.types import String
 from graphenebase import operations
 from graphenebase.signedtransactions import SignedTransaction
 
+
 def test_sha256_hash():
     text = String("text text text")
 
@@ -60,3 +61,6 @@ def test_signed_transaction():
     p = PublicKey(public_keys[0])
 
     assert(str(p) == "SCR5bgzuweaHx231escVuPVxgudSyUWdKAH7fKgxZfp3nKSirzFRa")
+
+
+def test_sign_create_account():

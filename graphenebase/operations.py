@@ -47,6 +47,7 @@ class Amount:
             self.asset
         )
 
+
 class Permission(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
@@ -71,18 +72,17 @@ class Permission(GrapheneObject):
             )
 
             accountAuths = Map([
-                [String(e[0]), Uint16(e[1])]
-                for e in kwargs["account_auths"]
+                [String(e[0]), Uint16(e[1])] for e in kwargs["account_auths"]
             ])
             keyAuths = Map([
-                [PublicKey(e[0], prefix=prefix), Uint16(e[1])]
-                for e in kwargs["key_auths"]
+                [PublicKey(e[0], prefix=prefix), Uint32(int(1))] for e in kwargs["key_auths"]
             ])
             super().__init__(OrderedDict([
                 ('weight_threshold', Uint32(int(kwargs["weight_threshold"]))),
                 ('account_auths', accountAuths),
                 ('key_auths', keyAuths),
             ]))
+
 
 class Demooepration(GrapheneObject):
     def __init__(self, *args, **kwargs):
