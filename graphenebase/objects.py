@@ -22,13 +22,13 @@ class Operation():
         if isinstance(op, list) and len(op) == 2:
             if isinstance(op[0], int):
                 self.opId = op[0]
-                name = self.getOperationNameForId(self.opId)
+                name = self.get_operation_name_for_id(self.opId)
             else:
                 self.opId = self.operations().get(op[0], None)
                 name = op[0]
                 if self.opId is None:
                     raise ValueError("Unknown operation")
-            self.name = name[0].upper() + name[1:]  # klassname
+            self.name = name[0].upper() + name[1:]  # class_name
             try:
                 klass = self._getklass(self.name)
             except Exception:
@@ -45,29 +45,18 @@ class Operation():
         """ Take a name of a class, like FeedPublish and turn it into method name like feed_publish. """
         # words = re.findall('[A-Z][^A-Z]*', class_name)
         # return '_'.join(map(str.lower, words))
-        return "transfer"
+        return 'transfer'
 
     def operations(self):
         return operations
 
-    def getOperationNameForId(self, i):
+    @staticmethod
+    def get_operation_name_for_id(_id: int):
         """ Convert an operation id into the corresponding string
         """
         for key, value in operations.items():
-            if value == int(i):
+            if value == int(_id):
                 return key
-        # for key in operations:
-        #     if int(operations[key]) is int(i):
-        #         return key
-        # return "Unknown Operation ID %d" % i
-
-    # @staticmethod
-    # def get_operation_name_for_id(_id: int):
-    #     """ Convert an operation id into the corresponding string
-    #     """
-    #     for key, value in operations.items():
-    #         if value == int(_id):
-    #             return key
 
     def _getklass(self, name):
         module = __import__("graphenebase.operations", fromlist=["operations"])
@@ -78,7 +67,7 @@ class Operation():
         return bytes(Id(self.opId)) + bytes(self.op)
 
     def __str__(self):
-        return json.dumps([self.opId, self.op.toJson()])
+        return json.dumps([self.get_operation_name_for_id(self.opId), self.op.toJson()])
 
 
 class GrapheneObject(object):
