@@ -1,22 +1,9 @@
-import hashlib
-import json
-import time
-from binascii import unhexlify
-from collections import OrderedDict
-
-import pytest
 import unittest
 
-from steembase import operations
-from steembase.operations import GrapheneObject
 from autoscorum.node import Node
 from autoscorum.genesis import Genesis
 from autoscorum.rpc_client import RpcClient
-from steembase.transactions import fmt_time_from_now
-from steembase.types import (
-    Int16, Uint16, Uint32, Uint64, Set,
-    String, Bytes, Array, PointInTime, Bool,
-    Optional, Map, Id, JsonObj, StaticVariant)
+from autoscorum.utils import fmt_time_from_now
 
 acc_name = "initdelegate"
 acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
