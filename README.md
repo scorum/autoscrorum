@@ -28,3 +28,8 @@ pipenv run pip install -e .
 ```bash
 pipenv run py.test tests
 ```
+
+### Runing testst with runner.sh
+```bash
+./runner.sh {py_test_args_if_nedded} tests
+```
