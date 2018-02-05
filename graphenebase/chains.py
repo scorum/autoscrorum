@@ -7,6 +7,6 @@ known_chains = {"GPH": {"chain_id": "b8d1603965b3eb1acba27e62ff59f74efa3154d43a4
                          "core_symbol": "TEST",
                          "prefix": "TEST"},
                 "SCR": {"chain_id": "39f5e2ede1f8bc1a3a54a7914414e3779e33193f1f5693510e73cb7a87617447",
-                         "core_symbol": "SCR",
-                         "prefix": "SCR"}
+                        "core_symbol": "SCR",
+                        "prefix": "SCR"}
                 }

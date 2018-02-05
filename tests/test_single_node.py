@@ -75,9 +75,9 @@ class TestSingleNode(unittest.TestCase):
     def test_transfer(self):
         print(self.genesis.dump())
         print(self.node.config.dump())
-        amount = 10000
 
         initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        amount = int(initdelegate_balance_before - 100)
         alice_balance_before = float(self.rpc.get_account('alice')['balance'].split()[0])
 
         print(self.rpc.transfer('initdelegate', 'alice', amount))
@@ -89,9 +89,8 @@ class TestSingleNode(unittest.TestCase):
         assert alice_balance_after == alice_balance_before + amount
 
     def test_transfer_invalid_amount(self):
-        amount = 120000
-
         initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        amount = int(initdelegate_balance_before + 1)
         alice_balance_before = float(self.rpc.get_account('alice')['balance'].split()[0])
 
         response = self.rpc.transfer('initdelegate', 'alice', amount)

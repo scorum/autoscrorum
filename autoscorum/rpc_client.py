@@ -1,19 +1,13 @@
-import time
-import websocket
 import json
-
+import time
 import _struct
-from binascii import unhexlify
-from steem import Steem
-
-from steem.wallet import Wallet
-from steembase.http_client import HttpClient
-from steembase.transactions import fmt_time_from_now
-
-from graphenebase import operations
-
-from graphenebase.objects import Operation
+import websocket
 import graphenebase
+
+from autoscorum.utils import fmt_time_from_now
+from binascii import unhexlify
+from graphenebase import operations
+from graphenebase.objects import Operation
 
 from graphenebase.account import PublicKey
 from graphenebase.types import (
@@ -25,13 +19,18 @@ from graphenebase.types import (
     Uint32,
 )
 
+
 class RpcClient(object):
     def __init__(self, node, keys=[]):
-        self.scorumd = Steem(chain_id=node.get_chain_id(), nodes=[node.addr], keys=keys)
-        self.wallet = Wallet(self.scorumd)
         self.node = node
         self._ws = None
         self.keys = keys
+        self.chain = {
+                      "chain_id": self.node.get_chain_id(),
+                      "prefix": "SCR",
+                      "steem_symbol": "SCR",
+                      "vests_symbol": "SP",
+                      }
 
     def open_ws(self):
         addr = self.node.addr
@@ -48,25 +47,54 @@ class RpcClient(object):
         if self._ws:
             self._ws.shutdown()
 
+    @staticmethod
+    def json_rpc_body(name, *args, api=None, as_json=True, _id=0, kwargs=None):
+        """ Build request body for scorum RPC requests.
+
+        Args:
+            name (str): Name of a method we are trying to call. (ie: `get_accounts`)
+            args: A list of arguments belonging to the calling method.
+            api (None, str): If api is provided (ie: `follow_api`),
+             we generate a body that uses `call` method appropriately.
+            as_json (bool): Should this function return json as dictionary or string.
+            _id (int): This is an arbitrary number that can be used for request/response tracking in multi-threaded
+             scenarios.
+
+        Returns:
+            (dict,str): If `as_json` is set to `True`, we get json formatted as a string.
+            Otherwise, a Python dictionary is returned.
+        """
+        headers = {"jsonrpc": "2.0", "id": _id}
+        if kwargs is not None:
+            body_dict = {**headers, "method": "call", "params": [api, name, kwargs]}
+        elif api:
+            body_dict = {**headers, "method": "call", "params": [api, name, args]}
+        else:
+            body_dict = {**headers, "method": name, "params": args}
+        if as_json:
+            return json.dumps(body_dict, ensure_ascii=False).encode('utf8')
+        else:
+            return body_dict
+
     def get_dynamic_global_properties(self):
-        self._ws.send(HttpClient.json_rpc_body('get_dynamic_global_properties', api='database_api'))
+        self._ws.send(self.json_rpc_body('get_dynamic_global_properties', api='database_api'))
         return json.loads(self._ws.recv())['result']
 
     def login(self, username: str, password: str):
-        self._ws.send(HttpClient.json_rpc_body('login', username, password, api='login_api'))
+        self._ws.send(self.json_rpc_body('login', username, password, api='login_api'))
         return json.loads(self._ws.recv())['result']
 
     def get_api_by_name(self, api_name: str):
-        self._ws.send(HttpClient.json_rpc_body('call', 1, 'get_api_by_name', [api_name]))
+        self._ws.send(self.json_rpc_body('call', 1, 'get_api_by_name', [api_name]))
         return json.loads(self._ws.recv())['result']
 
     def list_accounts(self, limit: int=100):
-        self._ws.send(HttpClient.json_rpc_body('call', 0, 'lookup_accounts', ["", limit]))
+        self._ws.send(self.json_rpc_body('call', 0, 'lookup_accounts', ["", limit]))
         return json.loads(self._ws.recv())['result']
 
     def get_block(self, num: int, **kwargs):
         def request():
-            self._ws.send(HttpClient.json_rpc_body('get_block', num, api='database_api'))
+            self._ws.send(self.json_rpc_body('get_block', num, api='database_api'))
         wait = kwargs.get('wait_for_block', False)
 
         request()
@@ -83,11 +111,11 @@ class RpcClient(object):
         return block
 
     def get_account(self, name: str):
-        self._ws.send(HttpClient.json_rpc_body('get_accounts', [name]))
+        self._ws.send(self.json_rpc_body('get_accounts', [name]))
         return json.loads(self._ws.recv())['result'][0]
 
     def list_proposals(self):
-        self._ws.send(HttpClient.json_rpc_body("call", 0, 'lookup_proposals', []))
+        self._ws.send(self.json_rpc_body("call", 0, 'lookup_proposals', []))
         return json.loads(self._ws.recv())['result']
 
     # def create_budget(self, owner, balance, deadline, permlink="", ):
@@ -109,7 +137,7 @@ class RpcClient(object):
     #     tx.appendSigner(owner, "active")
     #     tx.sign()
     #
-    #     self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+    #     self._ws.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
     #     return json.loads(self._ws.recv())
 
     def get_ref_block_params(self):
@@ -131,27 +159,17 @@ class RpcClient(object):
                "memo": memo
                })
 
-        ops = [Operation(op)]
-
         ref_block_num, ref_block_prefix = self.get_ref_block_params()
-
         stx = graphenebase.signedtransactions.Signed_Transaction(ref_block_num=ref_block_num,
                                                                  ref_block_prefix=ref_block_prefix,
                                                                  expiration=fmt_time_from_now(60),
-                                                                 operations=ops)
+                                                                 operations=[op])
 
-        chain = {
-            "chain_id": self.node.get_chain_id(),
-            "prefix": "SCR",
-            "steem_symbol": "SCR",
-            "vests_symbol": "SP",
-        }
-
-        stx.sign(self.keys, chain)
+        stx.sign(self.keys, self.chain)
 
         print(stx.json())
 
-        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [stx.json()]))
+        self._ws.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [stx.json()]))
         return json.loads(self._ws.recv())
 
     # def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
@@ -172,7 +190,7 @@ class RpcClient(object):
     #
     #     print(tx.json())
     #
-    #     self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+    #     self._ws.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
     #     return json.loads(self._ws.recv())
 
     def create_account(self,
@@ -261,10 +279,8 @@ class RpcClient(object):
 
         print(stx.json())
 
-        self._ws.send(HttpClient.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [stx.json()]))
+        self._ws.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [stx.json()]))
         return json.loads(self._ws.recv())
-
-
 
     # def _sign(self, transaction, keys):
     #     sigs = []
