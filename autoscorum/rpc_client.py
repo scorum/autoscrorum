@@ -15,9 +15,7 @@ from graphenebase import operations
 from graphenebase.objects import Operation
 import graphenebase
 
-
-from steembase.account import PublicKey
-
+from graphenebase.account import PublicKey
 from graphenebase.types import (
     Array,
     Set,

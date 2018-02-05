@@ -80,7 +80,7 @@ class TestSingleNode(unittest.TestCase):
         initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
         alice_balance_before = float(self.rpc.get_account('alice')['balance'].split()[0])
 
-        self.rpc.transfer('initdelegate', 'alice', amount)
+        print(self.rpc.transfer('initdelegate', 'alice', amount))
 
         initdelegate_balance_after = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
         alice_balance_after = float(self.rpc.get_account('alice')['balance'].split()[0])

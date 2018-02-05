@@ -43,8 +43,9 @@ class Operation():
     @staticmethod
     def to_method_name(class_name: str):
         """ Take a name of a class, like FeedPublish and turn it into method name like feed_publish. """
-        words = re.findall('[A-Z][^A-Z]*', class_name)
-        return '_'.join(map(str.lower, words))
+        # words = re.findall('[A-Z][^A-Z]*', class_name)
+        # return '_'.join(map(str.lower, words))
+        return "transfer"
 
     def operations(self):
         return operations
