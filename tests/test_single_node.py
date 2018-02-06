@@ -102,6 +102,18 @@ class TestSingleNode(unittest.TestCase):
         # assert alice_sp_balance_after == alice_sp_balance_before + amount
         assert alice_sp_balance_after == 0.416666
 
+    def test_vote_for_witness(self):
+        self.rpc.transfer_to_vesting('initdelegate', 'alice', 1)
+        alice_sp = float(self.rpc.get_account('alice')['vesting_shares'].split()[0])
+
+        votes_before = self.rpc.get_witness('initdelegate')['votes']
+
+        print(self.rpc.vote_for_witness('alice', 'initdelegate', True))
+
+        votes_after = self.rpc.get_witness('initdelegate')['votes']
+
+        assert votes_after == votes_before + alice_sp
+
     def test_create_account(self):
         test_account_name = 'bob'
         test_account_pub_key = 'SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p'
