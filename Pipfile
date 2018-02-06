@@ -14,9 +14,9 @@ websocket-client = "*"
 "secp256k1" = "*"
 "pytest-pep8" = "*"
 pylama = "*"
-ecdsa = "*"
-pycrypto = "*"
-pylibscrypt = "*"
+ecdsa = "==0.13"
+pycrypto = "==2.6.1"
+scrypt = "==0.8.0"
 pytz = "*"
 
 
