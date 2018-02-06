@@ -26,7 +26,7 @@ class TestSingleNode(unittest.TestCase):
                                  scr_amount="100000.000 SCR")
 
         self.node = Node(genesis=self.genesis)
-        self.node.config['witness'] = f'"{acc_name}"'
+        self.node.config['witness'] = '"{acc_name}"'.format(acc_name=acc_name)
         self.node.config['private-key'] = acc_private_key
         self.node.config['public-api'] = "database_api login_api account_by_key_api"
         self.node.config['enable-plugin'] = 'witness account_history account_by_key'

@@ -30,11 +30,11 @@ class RpcClient(object):
         self.chain_id = self.node.get_chain_id()
 
     def open_ws(self):
-        addr = self.node.addr
+
         retries = 0
         while retries < 10:
             try:
-                self._ws = websocket.create_connection(f'ws://{addr}')
+                self._ws = websocket.create_connection("ws://{addr}".format(addr=self.node.addr))
                 break
             except ConnectionRefusedError:
                 retries += 1

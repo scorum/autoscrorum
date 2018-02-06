@@ -19,7 +19,7 @@ SCORUM_BIN = 'scorumd'
 
 CONTAINER_DATADIR_PATH = '/usr/local/src/scorum/witness_node_data_dir'
 CONTAINER_BIN_PATH = '/usr/local/src/scorum'
-DOCKERFILE = f'''FROM phusion/baseimage:0.9.19
+DOCKERFILE = '''FROM phusion/baseimage:0.9.19
 CMD ['/sbin/my_init']
 
 RUN mkdir {CONTAINER_BIN_PATH}
@@ -31,7 +31,7 @@ RUN chown -R root:root ./scorumd
 RUN chmod 0755 ./scorumd
 
 EXPOSE 8090
-'''
+'''.format(CONTAINER_BIN_PATH=CONTAINER_BIN_PATH, CONTAINER_DATADIR_PATH=CONTAINER_DATADIR_PATH)
 DOCKER_IMAGE_NAME = 'autonode'
 
 
@@ -129,7 +129,7 @@ class Node(object):
         ip = inspect_info['NetworkSettings']['IPAddress']
         port = inspect_info['NetworkSettings']['Ports']
         port = list(port.keys())[0].split("/", 1)[0]
-        self.addr = f'{ip}:{port}'
+        self.addr = "{ip}:{port}".format(ip=ip, port=port)
 
     def put_to_container(self, src, dst):
         with closing(io.BytesIO()) as tarstream:
@@ -141,5 +141,5 @@ class Node(object):
 
     @staticmethod
     def get_run_command(*args):
-        command = f'./{SCORUM_BIN} ' + ' '.join(args)
+        command = "./{bin} ".format(bin=SCORUM_BIN) + " ".join(args)
         return command

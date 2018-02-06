@@ -15,7 +15,7 @@ class Config(object):
     def dump(self):
         result = ''
         for key, value in self.parms.items():
-            result += f"{key} = {value}\n"
+            result += "{key} = {value}\n".format(key=key, value=value)
         return result
 
     def get_rpc_port(self):
