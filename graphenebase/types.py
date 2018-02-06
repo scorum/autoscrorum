@@ -283,7 +283,16 @@ class Static_variant():
         return json.dumps([self.type_id, self.data.json()])
 
 
-class Map():
+def is_integer_type(i):
+    t = type(i)
+
+    if t in [Uint8, Uint16, Uint32, Uint64]:
+        return True
+    else:
+        return False
+
+
+class Map:
     def __init__(self, data):
         self.data = data
 
@@ -297,7 +306,14 @@ class Map():
     def __str__(self):
         r = []
         for e in self.data:
-            r.append([str(e[0]), str(e[1])])
+            first = str(e[0])
+
+            if is_integer_type(e[1]):
+                second = int(str(e[1]))
+            else:
+                second = str(e[1])
+
+            r.append([first, second])
         return json.dumps(r)
 
 
