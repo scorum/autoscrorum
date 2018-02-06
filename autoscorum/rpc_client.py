@@ -89,6 +89,10 @@ class RpcClient(object):
         self._ws.send(self.json_rpc_body('call', 0, 'lookup_accounts', ["", limit]))
         return json.loads(self._ws.recv())['result']
 
+    def list_witnesses(self, limit: int=100):
+        self._ws.send(self.json_rpc_body('call', 0, 'lookup_witness_accounts', ["", limit]))
+        return json.loads(self._ws.recv())['result']
+
     def get_block(self, num: int, **kwargs):
         def request():
             self._ws.send(self.json_rpc_body('get_block', num, api='database_api'))
@@ -110,6 +114,10 @@ class RpcClient(object):
     def get_account(self, name: str):
         self._ws.send(self.json_rpc_body('get_accounts', [name]))
         return json.loads(self._ws.recv())['result'][0]
+
+    def get_witness(self, name: str):
+        self._ws.send(self.json_rpc_body('call', 0, 'get_witness_by_account', [name]))
+        return json.loads(self._ws.recv())['result']
 
     def list_proposals(self):
         self._ws.send(self.json_rpc_body("call", 0, 'lookup_proposals', []))
@@ -147,6 +155,28 @@ class RpcClient(object):
                ),
                "memo": memo
                })
+
+        return self.broadcast_transaction_synchronous([op])
+
+    def transfer_to_vesting(self, _from: str, to: str, amount: int):
+        op = operations.TransferToVesting(
+            **{'from': _from,
+               'to': to,
+               'amount': '{:.{prec}f} {asset}'.format(
+                   float(amount),
+                   prec=self.node.chain_params["scorum_prec"],
+                   asset=self.node.chain_params["scorum_symbol"]
+               )
+               })
+
+        return self.broadcast_transaction_synchronous([op])
+
+    def vote_for_witness(self, account: str, witness: str, approve: bool):
+        op = operations.AccountWitnessVote(
+            **{'account': account,
+               'witness': witness,
+               'approve': approve}
+        )
 
         return self.broadcast_transaction_synchronous([op])
 

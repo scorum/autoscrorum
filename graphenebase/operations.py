@@ -113,6 +113,22 @@ class Transfer(GrapheneObject):
                 ('memo', String(kwargs["memo"])),
             ]))
 
+
+class TransferToVesting(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('from', String(kwargs["from"])),
+                    ('to', String(kwargs["to"])),
+                    ('amount', Amount(kwargs["amount"])),
+                ]))
+
+
 class AccountCreate(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
@@ -140,3 +156,18 @@ class AccountCreate(GrapheneObject):
                 ('memo_key', PublicKey(kwargs["memo_key"], prefix=prefix)),
                 ('json_metadata', String(meta)),
             ]))
+
+
+class AccountWitnessVote(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('account', String(kwargs["account"])),
+                    ('witness', String(kwargs["witness"])),
+                    ('approve', Bool(bool(kwargs["approve"]))),
+                ]))
