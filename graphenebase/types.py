@@ -292,6 +292,30 @@ def is_integer_type(i):
         return False
 
 
+# class Map:
+#     def __init__(self, data):
+#         self.data = data
+#
+#     def __bytes__(self):
+#         b = b""
+#         b += varint(len(self.data))
+#         for e in self.data:
+#             b += bytes(e[0]) + bytes(e[1])
+#         return b
+#
+#     def __str__(self):
+#         r = []
+#         for e in self.data:
+#             first = str(e[0])
+#
+#             if is_integer_type(e[1]):
+#                 second = int(str(e[1]))
+#             else:
+#                 second = str(e[1])
+#
+#             r.append([first, second])
+#         return json.dumps(r)
+
 class Map:
     def __init__(self, data):
         self.data = data
@@ -306,16 +330,8 @@ class Map:
     def __str__(self):
         r = []
         for e in self.data:
-            first = str(e[0])
-
-            if is_integer_type(e[1]):
-                second = int(str(e[1]))
-            else:
-                second = str(e[1])
-
-            r.append([first, second])
+            r.append([str(e[0]), str(e[1])])
         return json.dumps(r)
-
 
 class Id():
     def __init__(self, d):

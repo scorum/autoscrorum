@@ -75,7 +75,7 @@ class Permission(GrapheneObject):
                 [String(e[0]), Uint16(e[1])] for e in kwargs["account_auths"]
             ])
             keyAuths = Map([
-                [PublicKey(e[0], prefix=prefix), Uint32(int(1))] for e in kwargs["key_auths"]
+                [PublicKey(e[0], prefix=prefix), Uint16(e[1])] for e in kwargs["key_auths"]
             ])
             super().__init__(OrderedDict([
                 ('weight_threshold', Uint32(int(kwargs["weight_threshold"]))),
