@@ -150,6 +150,19 @@ class RpcClient(object):
 
         return self.broadcast_transaction_synchronous([op])
 
+    def transfer_to_vesting(self, _from: str, to: str, amount: int):
+        op = operations.TransferToVesting(
+            **{'from': _from,
+               'to': to,
+               'amount': '{:.{prec}f} {asset}'.format(
+                   float(amount),
+                   prec=self.node.chain_params["scorum_prec"],
+                   asset=self.node.chain_params["scorum_symbol"]
+               )
+               })
+
+        return self.broadcast_transaction_synchronous([op])
+
     def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
         op = operations.ProposalCreate(
             **{'creator': inviter,

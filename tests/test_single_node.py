@@ -60,9 +60,6 @@ class TestSingleNode(unittest.TestCase):
         assert alice['balance'] == '100000.000 SCR'
 
     def test_transfer(self):
-        print(self.genesis.dump())
-        print(self.node.config.dump())
-
         initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
         amount = int(initdelegate_balance_before - 100)
         alice_balance_before = float(self.rpc.get_account('alice')['balance'].split()[0])
@@ -90,6 +87,21 @@ class TestSingleNode(unittest.TestCase):
 
         assert 'Account does not have sufficient funds for transfer' in response['error']['message']
 
+    def test_transfer_to_vesting(self):
+        initdelegate_scr_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        alice_sp_balance_before = float(self.rpc.get_account('alice')['vesting_shares'].split()[0])
+
+        amount = 1
+
+        self.rpc.transfer_to_vesting('initdelegate', 'alice', amount)
+
+        initdelegate_scr_balance_after = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
+        alice_sp_balance_after = float(self.rpc.get_account('alice')['vesting_shares'].split()[0])
+
+        assert initdelegate_scr_balance_after == initdelegate_scr_balance_before - amount
+        # assert alice_sp_balance_after == alice_sp_balance_before + amount
+        assert alice_sp_balance_after == 0.416666
+
     def test_create_account(self):
         test_account_name = 'bob'
         test_account_pub_key = 'SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p'
@@ -99,9 +111,6 @@ class TestSingleNode(unittest.TestCase):
         accounts = self.rpc.list_accounts()
 
         print(accounts)
-
-    # def test_vote_for_witness(self):
-
 
     def test_create_budget(self):
         print(self.rpc.create_budget('initdelegate', 10000, fmt_time_from_now(3600)))
