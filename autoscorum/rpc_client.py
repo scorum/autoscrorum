@@ -263,10 +263,6 @@ class RpcClient(object):
 
         tx.sign(self.keys, self.chain_id)
 
-        public_keys = tx.verify(["SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"], self.chain_id)
-
-        assert (len(public_keys) == 1)
-
         print(tx.json())
 
         self._ws.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))

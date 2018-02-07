@@ -6,7 +6,7 @@ op_names = [
     'withdraw_vesting',
     'account_create_by_committee',
     'account_create',
-    'account_create_with_delegation_operation'
+    'account_create_with_delegation_operation',
     'account_update',
     'witness_update',
     'account_witness_vote',
