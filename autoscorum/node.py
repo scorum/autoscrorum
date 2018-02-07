@@ -42,8 +42,8 @@ class Node(object):
                     "prefix": "SCR",
                     "scorum_symbol": "SCR",
                     "sp_symbol": "SP",
-                    "scorum_prec": 3,
-                    "sp_prec": 6}
+                    "scorum_prec": 9,
+                    "sp_prec": 9}
 
     def __init__(self, config=Config(), genesis=None, logging=True):
         self._bin_path = None

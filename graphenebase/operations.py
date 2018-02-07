@@ -15,8 +15,8 @@ from .objects import Operation
 from .operationids import operations
 
 asset_precision = {
-    "SCR": 3,
-    "SP": 6,
+    "SCR": 9,
+    "SP": 9,
 }
 
 

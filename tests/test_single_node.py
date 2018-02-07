@@ -1,5 +1,3 @@
-import unittest
-
 from autoscorum.node import Node
 from autoscorum.genesis import Genesis
 from autoscorum.rpc_client import RpcClient
@@ -11,19 +9,19 @@ acc_private_key = "5K8ZJUYs9SP47JgzUY97ogDw1da37yuLrSF5syj2Wr4GEvPWok6"
 
 
 # @pytest.mark.timeout(20, method='signal')
-class TestSingleNode(unittest.TestCase):
-    def setUp(self):
+class TestSingleNode:
+    def setup_method(self):
         self.genesis = Genesis()
-        self.genesis["init_rewards_supply"] = "1000000.000 SCR"
-        self.genesis["init_accounts_supply"] = "210000.000 SCR"
+        self.genesis["init_rewards_supply"] = "1000000.000000000 SCR"
+        self.genesis["init_accounts_supply"] = "210000.000000000 SCR"
         self.genesis.add_account(acc_name=acc_name,
                                  public_key=acc_public_key,
-                                 scr_amount="110000.000 SCR",
+                                 scr_amount="110000.000000000 SCR",
                                  witness=True)
 
         self.genesis.add_account(acc_name='alice',
                                  public_key="SCR8TBVkvbJ79L1A4e851LETG8jurXFPzHPz87obyQQFESxy8pmdx",
-                                 scr_amount="100000.000 SCR")
+                                 scr_amount="100000.000000000 SCR")
 
         self.node = Node(genesis=self.genesis)
         self.node.config['witness'] = '"{acc_name}"'.format(acc_name=acc_name)
@@ -40,7 +38,7 @@ class TestSingleNode(unittest.TestCase):
         self.rpc.get_api_by_name('network_broadcast_api')
         self.rpc.get_block(1, wait_for_block=True)
 
-    def tearDown(self):
+    def teardown_method(self):
         self.rpc.close_ws()
         self.node.stop()
         print(self.node.logs)
@@ -55,9 +53,9 @@ class TestSingleNode(unittest.TestCase):
         alice = self.rpc.get_account("alice")
         info = self.rpc.get_dynamic_global_properties()
 
-        assert info['total_supply'] == '1210100.000 SCR'
-        assert initdelegate['balance'] == '110000.000 SCR'
-        assert alice['balance'] == '100000.000 SCR'
+        assert info['total_supply'] == '1210100.000000000 SCR'
+        assert initdelegate['balance'] == '110000.000000000 SCR'
+        assert alice['balance'] == '100000.000000000 SCR'
 
     def test_transfer(self):
         initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
@@ -100,7 +98,19 @@ class TestSingleNode(unittest.TestCase):
 
         assert initdelegate_scr_balance_after == initdelegate_scr_balance_before - amount
         # assert alice_sp_balance_after == alice_sp_balance_before + amount
-        assert alice_sp_balance_after == 0.416666
+        assert alice_sp_balance_after == 1.0
+
+    def test_create_account(self):
+        test_account_name = 'bob'
+        test_account_pub_key = 'SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p'
+
+        print(self.rpc.create_account('initdelegate', newname=test_account_name, owner_pub_key=test_account_pub_key))
+
+        accounts = self.rpc.list_accounts()
+
+        assert(len(accounts) == 3)
+
+        assert(test_account_name in accounts)
 
     def test_vote_for_witness(self):
         self.rpc.transfer_to_vesting('initdelegate', 'alice', 1)
@@ -114,22 +124,12 @@ class TestSingleNode(unittest.TestCase):
 
         assert votes_after == votes_before + alice_sp
 
-    def test_create_account(self):
-        test_account_name = 'bob'
-        test_account_pub_key = 'SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p'
-
-        print(self.rpc.create_account('initdelegate', newname=test_account_name, owner_pub_key=test_account_pub_key))
-
-        accounts = self.rpc.list_accounts()
-
-        print(accounts)
-
-    def test_create_budget(self):
-        print(self.rpc.create_budget('initdelegate', 10000, fmt_time_from_now(3600)))
-
-        print(self.rpc.get_account('initdelegate')['balance'])
-
-    def test_invite_member(self):
-        print(self.rpc.invite_member('initdelegate', 'alice', 86500))
-
-        print(self.rpc.list_proposals())
+    # def test_create_budget(self):
+    #     print(self.rpc.create_budget('initdelegate', 10000, fmt_time_from_now(3600)))
+    #
+    #     print(self.rpc.get_account('initdelegate')['balance'])
+    #
+    # def test_invite_member(self):
+    #     print(self.rpc.invite_member('initdelegate', 'alice', 86500))
+    #
+    #     print(self.rpc.list_proposals())
