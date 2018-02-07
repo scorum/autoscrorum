@@ -1,5 +1,10 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
 .idea
 .cache
 .pytest_cache
-autoscorum.egg-info/
-*/__pycache__
+
+*.egg-info/
