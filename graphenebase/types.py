@@ -333,6 +333,7 @@ class Map:
             r.append([str(e[0]), str(e[1])])
         return json.dumps(r)
 
+
 class Id():
     def __init__(self, d):
         self.data = Varint32(d)

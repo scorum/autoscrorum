@@ -146,6 +146,7 @@ class AccountCreate(GrapheneObject):
                     meta = json.dumps(kwargs["json_metadata"])
                 else:
                     meta = kwargs["json_metadata"]
+            print(kwargs)
             super().__init__(OrderedDict([
                 ('fee', Amount(kwargs["fee"])),
                 ('creator', String(kwargs["creator"])),
@@ -171,11 +172,3 @@ class AccountWitnessVote(GrapheneObject):
                     ('witness', String(kwargs["witness"])),
                     ('approve', Bool(bool(kwargs["approve"]))),
                 ]))
-
-
-def account_witness_vote_operation(account, witness, approve):
-    return operations.AccountWitnessVote(
-        **{'account': account,
-           'witness': witness,
-           'approve': approve}
-    )

@@ -2,24 +2,15 @@ import json
 import time
 import _struct
 import websocket
-import graphenebase
+import autoscorum.operations_fabric as operations
 
 from autoscorum.utils import fmt_time_from_now
 from binascii import unhexlify
-from graphenebase import operations
-from graphenebase.objects import Operation
+
 
 from graphenebase.signedtransactions import SignedTransaction
 
 from graphenebase.account import PublicKey
-from graphenebase.types import (
-    Array,
-    Set,
-    Signature,
-    PointInTime,
-    Uint16,
-    Uint32,
-)
 
 
 class RpcClient(object):
@@ -30,15 +21,15 @@ class RpcClient(object):
         self.chain_id = self.node.get_chain_id()
 
     def open_ws(self):
-
         retries = 0
         while retries < 10:
             try:
                 self._ws = websocket.create_connection("ws://{addr}".format(addr=self.node.addr))
-                break
-            except ConnectionRefusedError:
+                return
+            except ConnectionRefusedError as e:
                 retries += 1
                 time.sleep(1)
+        raise e
 
     def close_ws(self):
         if self._ws:
@@ -145,30 +136,11 @@ class RpcClient(object):
         return self.broadcast_transaction_synchronous([op])
 
     def transfer(self, _from: str, to: str, amount: int, memo=""):
-        op = operations.Transfer(
-            **{"from": _from,
-               "to": to,
-               "amount": '{:.{prec}f} {asset}'.format(
-                   float(amount),
-                   prec=self.node.chain_params["scorum_prec"],
-                   asset=self.node.chain_params["scorum_symbol"]
-               ),
-               "memo": memo
-               })
-
+        op = operations.transfer_operation(_from, to, amount, memo)
         return self.broadcast_transaction_synchronous([op])
 
     def transfer_to_vesting(self, _from: str, to: str, amount: int):
-        op = operations.TransferToVesting(
-            **{'from': _from,
-               'to': to,
-               'amount': '{:.{prec}f} {asset}'.format(
-                   float(amount),
-                   prec=self.node.chain_params["scorum_prec"],
-                   asset=self.node.chain_params["scorum_symbol"]
-               )
-               })
-
+        op = operations.transfer_to_vesting_operation(_from, to, amount)
         return self.broadcast_transaction_synchronous([op])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):
@@ -193,63 +165,33 @@ class RpcClient(object):
     def create_account(self,
                        creator: str,
                        newname: str,
-                       owner_pub_key: str,
+                       owner: str,
+                       active: str=None,
+                       posting: str=None,
+                       fee: float=None,
+                       memo=None,
+                       json_meta={},
                        additional_owner_keys=[],
                        additional_active_keys=[],
                        additional_posting_keys=[],
                        additional_owner_accounts=[],
                        additional_active_accounts=[],
-                       additional_posting_accounts=[],
-                       **kwargs):
+                       additional_posting_accounts=[]):
 
-        creation_fee = '{:.{prec}f} {asset}'.format(
-                   float(kwargs.get('fee', 0.030)),
-                   prec=self.node.chain_params["scorum_prec"],
-                   asset=self.node.chain_params["scorum_symbol"])
-
-        owner_pubkey = PublicKey(owner_pub_key)
-        active_pubkey = PublicKey(kwargs.get("active_key", owner_pub_key))
-        posting_pubkey = PublicKey(kwargs.get('posting_key', owner_pub_key))
-        memo_pubkey = PublicKey(kwargs.get('memo_key', owner_pub_key))
-
-        owner_key_authority = [[str(owner_pubkey), 1]]
-        active_key_authority = [[str(active_pubkey), 1]]
-        posting_key_authority = [[str(posting_pubkey), 1]]
-        owner_accounts_authority = []
-        active_accounts_authority = []
-        posting_accounts_authority = []
-
-        # additional authorities
-        for k in additional_owner_keys:
-            owner_key_authority.append([k, 1])
-        for k in additional_active_keys:
-            active_key_authority.append([k, 1])
-        for k in additional_posting_keys:
-            posting_key_authority.append([k, 1])
-
-        for k in additional_owner_accounts:
-            owner_accounts_authority.append([k, 1])
-        for k in additional_active_accounts:
-            active_accounts_authority.append([k, 1])
-        for k in additional_posting_accounts:
-            posting_accounts_authority.append([k, 1])
-
-        op = operations.AccountCreate(
-            **{'fee': creation_fee,
-               'creator': creator,
-               'new_account_name': newname,
-               'owner': {'account_auths': owner_accounts_authority,
-                         'key_auths': [[owner_pub_key, 1]],
-                         'weight_threshold': 1},
-               'active': {'account_auths': active_accounts_authority,
-                          'key_auths': [[kwargs.get('active_pub_key', owner_pub_key), 1]],
-                          'weight_threshold': 1},
-               'posting': {'account_auths': posting_accounts_authority,
-                           'key_auths': [[kwargs.get('posting_pub_key', owner_pub_key), 1]],
-                           'weight_threshold': 1},
-               'memo_key': str(memo_pubkey),
-               'json_metadata': kwargs.get('json_metadata', {})}
-        )
+        op = operations.account_create_operation(creator,
+                                                 fee if fee else 0.000000750,
+                                                 newname,
+                                                 owner,
+                                                 active if active else owner,
+                                                 posting if posting else owner,
+                                                 memo if memo else owner,
+                                                 json_meta,
+                                                 additional_owner_accounts,
+                                                 additional_active_accounts,
+                                                 additional_posting_accounts,
+                                                 additional_owner_keys,
+                                                 additional_active_keys,
+                                                 additional_posting_keys)
 
         return self.broadcast_transaction_synchronous([op])
 
