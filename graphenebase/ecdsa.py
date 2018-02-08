@@ -3,17 +3,15 @@ import ecdsa
 import hashlib
 import struct
 import logging
-from .keys import PrivateKey, PublicKey
-
+from binascii import hexlify, unhexlify
+from .account import PrivateKey, PublicKey
 log = logging.getLogger(__name__)
 
 try:
     import secp256k1
     USE_SECP256K1 = True
     log.debug("Loaded secp256k1 binding.")
-    print("XXXX")
 except Exception:
-    print("YYYY")
     USE_SECP256K1 = False
     log.debug("To speed up transactions signing install \n"
               "    pip install secp256k1")

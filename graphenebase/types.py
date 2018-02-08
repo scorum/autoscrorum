@@ -1,30 +1,11 @@
 import json
 import struct
 import time
-from binascii import hexlify, unhexlify
 from calendar import timegm
-
-object_type = {
-    "dynamic_global_property": 0,
-    "reserved0": 1,
-    "account": 2,
-    "witness": 3,
-    "transaction": 4,
-    "block_summary": 5,
-    "chain_property": 6,
-    "witness_schedule": 7,
-    "comment": 8,
-    "category": 9,
-    "comment_vote": 10,
-    "vote": 11,
-    "witness_vote": 12,
-    "limit_order": 13,
-    "feed_history": 14,
-    "convert_request": 15,
-    "liquidity_reward_balance": 16,
-    "operation": 17,
-    "account_history": 18,
-}
+from datetime import datetime
+from binascii import hexlify, unhexlify
+from collections import OrderedDict
+from .objecttypes import object_type
 
 timeformat = '%Y-%m-%dT%H:%M:%S%Z'
 
@@ -63,19 +44,12 @@ def variable_buffer(s):
 def JsonObj(data):
     """ Returns json object from data
     """
-    try:
-        return json.loads(str(data))
-    except:
-        try:
-            return data.__str__()
-        except:
-            raise ValueError('JsonObj could not parse %s:\n%s' %
-                             (type(data).__name__, data.__class__))
+    return json.loads(str(data))
 
 
-class Uint8:
+class Uint8():
     def __init__(self, d):
-        self.data = d
+        self.data = int(d)
 
     def __bytes__(self):
         return struct.pack("<B", self.data)
@@ -84,7 +58,7 @@ class Uint8:
         return '%d' % self.data
 
 
-class Int16:
+class Int16():
     def __init__(self, d):
         self.data = int(d)
 
@@ -95,7 +69,7 @@ class Int16:
         return '%d' % self.data
 
 
-class Uint16:
+class Uint16():
     def __init__(self, d):
         self.data = int(d)
 
@@ -106,7 +80,7 @@ class Uint16:
         return '%d' % self.data
 
 
-class Uint32:
+class Uint32():
     def __init__(self, d):
         self.data = int(d)
 
@@ -117,7 +91,7 @@ class Uint32:
         return '%d' % self.data
 
 
-class Uint64:
+class Uint64():
     def __init__(self, d):
         self.data = int(d)
 
@@ -128,9 +102,9 @@ class Uint64:
         return '%d' % self.data
 
 
-class Varint32:
+class Varint32():
     def __init__(self, d):
-        self.data = d
+        self.data = int(d)
 
     def __bytes__(self):
         return varint(self.data)
@@ -139,9 +113,9 @@ class Varint32:
         return '%d' % self.data
 
 
-class Int64:
+class Int64():
     def __init__(self, d):
-        self.data = d
+        self.data = int(d)
 
     def __bytes__(self):
         return struct.pack("<q", self.data)
@@ -150,7 +124,7 @@ class Int64:
         return '%d' % self.data
 
 
-class String:
+class String():
     def __init__(self, d):
         self.data = d
 
@@ -179,14 +153,14 @@ class String:
                 r.append("f")
             elif o == 13:
                 r.append("\r")
-            elif 13 < o < 32:
+            elif o > 13 and o < 32:
                 r.append("u%04x" % o)
             else:
                 r.append(s)
         return bytes("".join(r), "utf-8")
 
 
-class Bytes:
+class Bytes():
     def __init__(self, d, length=None):
         self.data = d
         if length:
@@ -203,7 +177,7 @@ class Bytes:
         return str(self.data)
 
 
-class Void:
+class Void():
     def __init__(self):
         pass
 
@@ -214,7 +188,7 @@ class Void:
         return ""
 
 
-class Array:
+class Array():
     def __init__(self, d):
         self.data = d
         self.length = Varint32(len(self.data))
@@ -225,29 +199,25 @@ class Array:
     def __str__(self):
         r = []
         for a in self.data:
-            if isinstance(a, ObjectId):
-                r.append(str(a))
-            elif isinstance(a, VoteId):
-                r.append(str(a))
-            elif isinstance(a, String):
-                r.append(str(a))
-            else:
+            try:
                 r.append(JsonObj(a))
+            except Exception:
+                r.append(str(a))
         return json.dumps(r)
 
 
-class PointInTime:
+class PointInTime():
     def __init__(self, d):
         self.data = d
 
     def __bytes__(self):
-        return struct.pack("<I", timegm(time.strptime((self.data + "UTC"), timeformat)))
+        return struct.pack("<i", timegm(time.strptime((self.data + "UTC"), timeformat)))
 
     def __str__(self):
         return self.data
 
 
-class Signature:
+class Signature():
     def __init__(self, d):
         self.data = d
 
@@ -263,7 +233,7 @@ class Bool(Uint8):  # Bool = Uint8
         super().__init__(d)
 
     def __str__(self):
-        return True if self.data else False
+        return json.dumps(True) if self.data else json.dumps(False)
 
 
 class Set(Array):  # Set = Array
@@ -271,7 +241,7 @@ class Set(Array):  # Set = Array
         super().__init__(d)
 
 
-class FixedArray:
+class Fixed_array():
     def __init__(self, d):
         raise NotImplementedError
 
@@ -282,7 +252,7 @@ class FixedArray:
         raise NotImplementedError
 
 
-class Optional:
+class Optional():
     def __init__(self, d):
         self.data = d
 
@@ -301,7 +271,7 @@ class Optional:
         return not bool(bytes(self.data))
 
 
-class StaticVariant:
+class Static_variant():
     def __init__(self, d, type_id):
         self.data = d
         self.type_id = type_id
@@ -312,6 +282,39 @@ class StaticVariant:
     def __str__(self):
         return json.dumps([self.type_id, self.data.json()])
 
+
+def is_integer_type(i):
+    t = type(i)
+
+    if t in [Uint8, Uint16, Uint32, Uint64]:
+        return True
+    else:
+        return False
+
+
+# class Map:
+#     def __init__(self, data):
+#         self.data = data
+#
+#     def __bytes__(self):
+#         b = b""
+#         b += varint(len(self.data))
+#         for e in self.data:
+#             b += bytes(e[0]) + bytes(e[1])
+#         return b
+#
+#     def __str__(self):
+#         r = []
+#         for e in self.data:
+#             first = str(e[0])
+#
+#             if is_integer_type(e[1]):
+#                 second = int(str(e[1]))
+#             else:
+#                 second = str(e[1])
+#
+#             r.append([first, second])
+#         return json.dumps(r)
 
 class Map:
     def __init__(self, data):
@@ -330,8 +333,7 @@ class Map:
             r.append([str(e[0]), str(e[1])])
         return json.dumps(r)
 
-
-class Id:
+class Id():
     def __init__(self, d):
         self.data = Varint32(d)
 
@@ -342,7 +344,7 @@ class Id:
         return str(self.data)
 
 
-class VoteId:
+class VoteId():
     def __init__(self, vote):
         parts = vote.split(":")
         assert len(parts) == 2
@@ -357,10 +359,9 @@ class VoteId:
         return "%d:%d" % (self.type, self.instance)
 
 
-class ObjectId:
-    """ Encodes object/protocol ids
+class ObjectId():
+    """ Encodes protocol ids - serializes to the *instance* only!
     """
-
     def __init__(self, object_str, type_verify=None):
         if len(object_str.split(".")) == 3:
             space, type, id = object_str.split(".")
@@ -369,9 +370,9 @@ class ObjectId:
             self.instance = Id(int(id))
             self.Id = object_str
             if type_verify:
-                assert object_type[type_verify] == int(type), \
-                    "Object id does not match object type! " + \
-                    "Excpected %d, got %d" % \
+                assert object_type[type_verify] == int(type),\
+                    "Object id does not match object type! " +\
+                    "Excpected %d, got %d" %\
                     (object_type[type_verify], int(type))
         else:
             raise Exception("Object id is invalid")
@@ -381,3 +382,41 @@ class ObjectId:
 
     def __str__(self):
         return self.Id
+
+
+class FullObjectId():
+    """ Encodes object ids - serializes to a full object id
+    """
+    def __init__(self, object_str):
+        if len(object_str.split(".")) == 3:
+            space, type, id = object_str.split(".")
+            self.space = int(space)
+            self.type = int(type)
+            self.id = int(id)
+            self.instance = Id(int(id))
+            self.Id = object_str
+        else:
+            raise Exception("Object id is invalid")
+
+    def __bytes__(self):
+        return (
+            self.space << 56 | self.type << 48 | self.id
+        ).to_bytes(8, byteorder="little", signed=False)
+
+    def __str__(self):
+        return self.Id
+
+
+class Enum8(Uint8):
+    def __init__(self, selection):
+        assert selection in self.options or \
+            isinstance(selection, int) and len(self.options) < selection, \
+            "Options are %s. Given '%s'" % (
+                self.options, selection)
+        if selection in self.options:
+            super(Enum8, self).__init__(self.options.index(selection))
+        else:
+            super(Enum8, self).__init__(selection)
+
+    def __str__(self):
+        return str(self.options[self.data])

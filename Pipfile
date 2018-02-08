@@ -7,21 +7,18 @@ name = "pypi"
 
 [packages]
 
-docker = "<3.0.0"
-docker-py = "<1.10.6"
+docker = "==3.0.0"
 pytest = "*"
 pytest-timeout = "*"
 websocket-client = "*"
 "secp256k1" = "*"
-scorum-python = {git = "git://github.com/scorum/scorum-python.git"}
 "pytest-pep8" = "*"
 pylama = "*"
+ecdsa = "==0.13"
+pycrypto = "==2.6.1"
+scrypt = "==0.8.0"
+pytz = "*"
 
 
 [dev-packages]
 
-
-
-[requires]
-
-python_version = "3.6"

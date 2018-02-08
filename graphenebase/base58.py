@@ -13,7 +13,6 @@ PREFIX = "SCR"
 
 known_prefixes = [
     PREFIX,
-    "TST",
 ]
 
 

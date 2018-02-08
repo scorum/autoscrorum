@@ -8,16 +8,16 @@ class Genesis(object):
     def __init__(self):
         self.parms = {}
         self._set_timestamp()
-        self["init_accounts_supply"] = "0.00 SCR"
-        self["init_rewards_supply"] = "1000000.000 SCR"
+        self["init_accounts_supply"] = "1000.000000000 SCR"
+        self["init_rewards_supply"] = "100.000000000 SCR"
 
         self["accounts"] = []
 
         self["witness_candidates"] = []
 
         self["registration_committee"] = []
-        self["registration_supply"] = "100.000 SCR"
-        self["registration_bonus"] = "0.100 SCR"
+        self["registration_supply"] = "100.000000000 SCR"
+        self["registration_bonus"] = "0.000000005 SCR"
         self["registration_schedule"] = [{"stage": 1,
                                           "users": 1,
                                           "bonus_percent": 100},
@@ -38,12 +38,12 @@ class Genesis(object):
     def __setitem__(self, key, value):
         self.parms[key] = value
 
-    def add_account(self, acc_name, public_key, recovery_account='', scr_amount='0.000 SRC', sp_amount='0.000000 SP',  witness=False, committee=False):
+    def add_account(self, acc_name, public_key, recovery_account="", scr_amount='0.000000000 SRC', sp_amount='0.000000000 SP',  witness=False, committee=False):
         if len(self["registration_committee"]) < 1:
             committee = True
-        account = {"name": f"{acc_name}",
-                   "recovery_account": f"{recovery_account}",
-                   "public_key": f"{public_key}",
+        account = {"name": acc_name,
+                   "recovery_account": recovery_account,
+                   "public_key": public_key,
                    "scr_amount": scr_amount,
                    "sp_amount": sp_amount}
 
@@ -54,8 +54,8 @@ class Genesis(object):
             self["registration_committee"].append(account['name'])
 
     def add_witness(self, name, signing_key):
-        witness = {"owner_name": f"{name}",
-                   "block_signing_key": f"{signing_key}"}
+        witness = {"owner_name": name,
+                   "block_signing_key": signing_key}
         self["witness_candidates"].append(witness)
 
     def dump(self):

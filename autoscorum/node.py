@@ -19,7 +19,7 @@ SCORUM_BIN = 'scorumd'
 
 CONTAINER_DATADIR_PATH = '/usr/local/src/scorum/witness_node_data_dir'
 CONTAINER_BIN_PATH = '/usr/local/src/scorum'
-DOCKERFILE = f'''FROM phusion/baseimage:0.9.19
+DOCKERFILE = '''FROM phusion/baseimage:0.9.19
 CMD ['/sbin/my_init']
 
 RUN mkdir {CONTAINER_BIN_PATH}
@@ -31,7 +31,7 @@ RUN chown -R root:root ./scorumd
 RUN chmod 0755 ./scorumd
 
 EXPOSE 8090
-'''
+'''.format(CONTAINER_BIN_PATH=CONTAINER_BIN_PATH, CONTAINER_DATADIR_PATH=CONTAINER_DATADIR_PATH)
 DOCKER_IMAGE_NAME = 'autonode'
 
 
@@ -42,8 +42,8 @@ class Node(object):
                     "prefix": "SCR",
                     "scorum_symbol": "SCR",
                     "sp_symbol": "SP",
-                    "scorum_prec": 3,
-                    "sp_prec": 6}
+                    "scorum_prec": 9,
+                    "sp_prec": 9}
 
     def __init__(self, config=Config(), genesis=None, logging=True):
         self._bin_path = None
@@ -88,11 +88,11 @@ class Node(object):
         self._run_container(command)
 
     def get_chain_id(self):
-        if not self.chain_params["chaind_id"]:
+        if not self.chain_params["chain_id"]:
             for line in self.logs:
                 if "node chain ID:" in line:
-                    self.chain_params["chaind_id"] = line.split(" ")[-1]
-        return self.chain_params["chaind_id"]
+                    self.chain_params["chain_id"] = line.split(" ")[-1]
+        return self.chain_params["chain_id"]
 
     def stop(self):
         self._container.stop()
@@ -113,7 +113,7 @@ class Node(object):
             g = self._genesis.dump()
             with utils.write_to_tempfile(g) as genesis:
                 self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
-            self.chain_params["chaind_id"] = sha256(g.encode()).hexdigest()
+            self.chain_params["chain_id"] = sha256(g.encode()).hexdigest()
 
         self._container.start()
         if self._logging:
@@ -129,7 +129,7 @@ class Node(object):
         ip = inspect_info['NetworkSettings']['IPAddress']
         port = inspect_info['NetworkSettings']['Ports']
         port = list(port.keys())[0].split("/", 1)[0]
-        self.addr = f'{ip}:{port}'
+        self.addr = "{ip}:{port}".format(ip=ip, port=port)
 
     def put_to_container(self, src, dst):
         with closing(io.BytesIO()) as tarstream:
@@ -141,5 +141,5 @@ class Node(object):
 
     @staticmethod
     def get_run_command(*args):
-        command = f'./{SCORUM_BIN} ' + ' '.join(args)
+        command = "./{bin} ".format(bin=SCORUM_BIN) + " ".join(args)
         return command

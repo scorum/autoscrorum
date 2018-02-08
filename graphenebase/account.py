@@ -1,12 +1,15 @@
-import hashlib
-import os
-import re
-from binascii import hexlify, unhexlify
-
 import ecdsa
+import hashlib
+from binascii import hexlify, unhexlify
+import sys
+import re
+import os
 
 from .base58 import ripemd160, Base58
 from .dictionary import words as BrainKeyDictionary
+
+""" This class and the methods require python3 """
+assert sys.version_info[0] == 3, "graphenelib requires python3"
 
 
 class PasswordKey(object):
@@ -135,7 +138,6 @@ class Address(object):
            Address("GPHFN9r6VYzBK8EKtMewfNbfiGCr56pHDBFi")
 
     """
-
     def __init__(self, address=None, pubkey=None, prefix="SCR"):
         self.prefix = prefix
         if pubkey is not None:
@@ -192,7 +194,7 @@ class Address(object):
             return bytes(self._address)
 
 
-class PublicKey(object):
+class PublicKey(Address):
     """ This class deals with Public Keys and inherits ``Address``.
 
         :param str pk: Base58 encoded public key
@@ -209,7 +211,6 @@ class PublicKey(object):
                       PublicKey("xxxxx").unCompressed()
 
     """
-
     def __init__(self, pk, prefix="SCR"):
         self.prefix = prefix
         self._pk = Base58(pk, prefix=prefix)
@@ -235,7 +236,7 @@ class PublicKey(object):
         x_str = ecdsa.util.number_to_string(p.x(), order)
         # y_str = ecdsa.util.number_to_string(p.y(), order)
         compressed = hexlify(bytes(chr(2 + (p.y() & 1)), 'ascii') + x_str).decode('ascii')
-        return (compressed)
+        return(compressed)
 
     def unCompressed(self):
         """ Derive uncompressed key """
@@ -273,7 +274,7 @@ class PublicKey(object):
         return bytes(self._pk)
 
 
-class PrivateKey(object):
+class PrivateKey(PublicKey):
     """ Derives the compressed and uncompressed public keys and
         constructs two instances of ``PublicKey``:
 
@@ -296,7 +297,6 @@ class PrivateKey(object):
             Instance of ``Address`` using uncompressed key.
 
     """
-
     def __init__(self, wif=None, prefix="SCR"):
         if wif is None:
             import os
@@ -321,7 +321,7 @@ class PrivateKey(object):
         y_str = ecdsa.util.number_to_string(p.y(), order)
         compressed = hexlify(bytes(chr(2 + (p.y() & 1)), 'ascii') + x_str).decode('ascii')
         uncompressed = hexlify(bytes(chr(4), 'ascii') + x_str + y_str).decode('ascii')
-        return [compressed, uncompressed]
+        return([compressed, uncompressed])
 
     def __format__(self, _format):
         """ Formats the instance of:doc:`Base58 <base58>` according to

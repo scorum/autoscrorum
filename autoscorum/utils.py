@@ -1,7 +1,9 @@
+import time
 import os
 import tempfile
 from contextlib import contextmanager
-from steembase import account
+
+from datetime import datetime
 
 
 def which(file):
@@ -16,6 +18,11 @@ def write_to_tempfile(content):
         with open(file.name, 'w') as f:
             f.write(content)
         yield file.name
+
+
+def fmt_time_from_now(secs=0):
+    time_format = '%Y-%m-%dT%H:%M:%S%Z'
+    return datetime.utcfromtimestamp(time.time() + int(secs)).strftime(time_format)
 
 
 def generate_key(passphrase):
