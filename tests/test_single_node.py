@@ -1,3 +1,5 @@
+import pytest
+
 from autoscorum.node import Node
 from autoscorum.genesis import Genesis
 from autoscorum.rpc_client import RpcClient
@@ -57,7 +59,7 @@ class TestSingleNode:
         assert initdelegate['balance'] == '110000.000000000 SCR'
         assert alice['balance'] == '100000.000000000 SCR'
 
-    def test_transfer(self):
+    def test_transfer(self, image):
         initdelegate_balance_before = float(self.rpc.get_account('initdelegate')['balance'].split()[0])
         amount = int(initdelegate_balance_before - 100)
         alice_balance_before = float(self.rpc.get_account('alice')['balance'].split()[0])
@@ -111,6 +113,8 @@ class TestSingleNode:
 
         assert(test_account_name in accounts)
 
+    def test_fixture(self, image):
+        print(image)
     # def test_vote_for_witness(self):
     #     self.rpc.transfer_to_vesting('initdelegate', 'alice', 1)
     #     alice_sp = float(self.rpc.get_account('alice')['vesting_shares'].split()[0])
