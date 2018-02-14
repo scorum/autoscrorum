@@ -10,8 +10,6 @@ from binascii import unhexlify
 
 from graphenebase.signedtransactions import SignedTransaction
 
-from graphenebase.account import PublicKey
-
 
 class RpcClient(object):
     def __init__(self, node, keys=[]):
@@ -22,14 +20,16 @@ class RpcClient(object):
 
     def open_ws(self):
         retries = 0
+        error = None
         while retries < 10:
             try:
                 self._ws = websocket.create_connection("ws://{addr}".format(addr=self.node.addr))
                 return
             except ConnectionRefusedError as e:
+                error = e
                 retries += 1
                 time.sleep(1)
-        raise e
+        raise error
 
     def close_ws(self):
         if self._ws:

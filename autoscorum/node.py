@@ -1,39 +1,43 @@
 import shutil
 import tempfile
-import io
-import tarfile
 import docker
 import os
 import threading
 
 from docker.errors import ImageNotFound
 from contextlib import contextmanager
-from contextlib import closing
 from pathlib import Path
 from hashlib import sha256
 
 from autoscorum.config import Config
 from autoscorum import utils
+from tests.conftest import TEST_TEMP_DIR
+
 
 SCORUM_BIN = 'scorumd'
 
-CONTAINER_DATADIR_PATH = '/usr/local/src/scorum/witness_node_data_dir'
-CONTAINER_BIN_PATH = '/usr/local/src/scorum'
+CONFIG_DIR = '/var/lib/scorumd'
 DOCKERFILE = '''FROM phusion/baseimage:0.9.19
-CMD ['/sbin/my_init']
+ADD ./scorumd /usr/local/bin
 
-RUN mkdir {CONTAINER_BIN_PATH}
-RUN mkdir {CONTAINER_DATADIR_PATH}
-ADD ./scorumd {CONTAINER_BIN_PATH}
 
-WORKDIR {CONTAINER_BIN_PATH}
-RUN chown -R root:root ./scorumd
-RUN chmod 0755 ./scorumd
+ENV HOME '{CONFIG_DIR}'
+WORKDIR {CONFIG_DIR}
+RUN useradd -s /bin/bash -m -d {CONFIG_DIR} scorumd
+RUN chown scorumd:scorumd -R {CONFIG_DIR}
+RUN chown scorumd:scorumd /usr/local/bin/scorumd
+RUN chmod 0755 /usr/local/bin/scorumd
+
+VOLUME ["{CONFIG_DIR}"]
 
 EXPOSE 8090
-'''.format(CONTAINER_BIN_PATH=CONTAINER_BIN_PATH, CONTAINER_DATADIR_PATH=CONTAINER_DATADIR_PATH)
+EXPOSE 2001
 
+USER scorumd
+ENTRYPOINT ["/usr/local/bin/scorumd"]
+CMD ["--config-file", "{CONFIG_DIR}/config.ini"]
 
+'''.format(CONFIG_DIR=CONFIG_DIR)
 
 chain_params = {"chain_id": None,
                 "prefix": "SCR",
@@ -46,48 +50,19 @@ chain_params = {"chain_id": None,
 class Node(object):
     docker = docker.from_env()
 
-    def __init__(self, config=Config(), genesis=None, logging=True, container=None):
+    def __init__(self, config=Config(), genesis=None, logging=True):
         self._bin_path = None
         self.config = config
-        self._container = container
-        self._inspect_info = {}
         self._genesis = genesis
-        self._logging = logging
+        self.logging = logging
         self.logs = ""
-        self.addr = None
+        self.rpc_endpoint = None
 
-        self._bin_path = Path(utils.which(SCORUM_BIN))
-
-        assert self._bin_path.exists(), "scorumd does not exists"
-        assert self._bin_path.is_file(), "scorumd is not a file"
-
-    def _create_docker_image(self):
-        with self._prepare_context() as context:
-            self.docker.images.build(path=context, tag=DOCKER_IMAGE_NAME)
-
-    @contextmanager
-    def _prepare_context(self):
-        with tempfile.TemporaryDirectory() as docker_context:
-            shutil.copyfile(utils.which(SCORUM_BIN), os.path.join(docker_context, SCORUM_BIN))
-            with open(os.path.join(docker_context, 'Dockerfile'), 'w') as file:
-                file.write(DOCKERFILE)
-            yield docker_context
-
-    def run(self, command=None):
-        if not command:
-            args = ['--enable-stale-production']
-            if self._genesis:
-                args.append('-g genesis.json')
-                pass
-            command = self.get_run_command(*args)
-        if self._container:
-            
-
-        try:
-            client.images.get(DOCKER_IMAGE_NAME)
-        except ImageNotFound:
-            self._create_docker_image()
-        self._run_container(command)
+    @staticmethod
+    def check_binaries():
+        bin_path = Path(utils.which(SCORUM_BIN))
+        assert bin_path.exists(), "scorumd does not exists"
+        assert bin_path.is_file(), "scorumd is not a file"
 
     def get_chain_id(self):
         if not chain_params["chain_id"]:
@@ -96,75 +71,56 @@ class Node(object):
                     chain_params["chain_id"] = line.split(" ")[-1]
         return chain_params["chain_id"]
 
-    def stop(self):
-        self._container.stop()
+    @contextmanager
+    def setup(self):
+        genesis_path = os.path.join(TEST_TEMP_DIR, 'genesis.json')
+        config_path = os.path.join(TEST_TEMP_DIR, 'config.ini')
 
-    def _read_logs(self):
-        for line in self._container.logs(stream=True):
-            self.logs += line.decode("utf-8")
-
-    def _run_container(self, command):
-        self._container = self.docker.containers.create(image=DOCKER_IMAGE_NAME,
-                                                        command=command,
-                                                        detach=True,
-                                                        auto_remove=True)
-
-        with utils.write_to_tempfile(self.config.dump()) as config:
-            self.put_to_container(src=config, dst=os.path.join(CONTAINER_DATADIR_PATH, 'config.ini'))
-        if self._genesis:
+        with open(genesis_path, 'w') as genesis:
             g = self._genesis.dump()
-            with utils.write_to_tempfile(g) as genesis:
-                self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
+            genesis.write(g)
             chain_params["chain_id"] = sha256(g.encode()).hexdigest()
+        with open(config_path, 'w') as config:
+            self.config['data-dir'] = os.path.join(CONFIG_DIR, self.config['witness'][1:-1])
+            config.write(self.config.dump())
 
-        self._container.start()
-        if self._logging:
-            logs_thread = threading.Thread(target=self._read_logs)
-            logs_thread.daemon = True
-            logs_thread.start()
-        self._inspect_container()
+        yield
 
-    def _inspect_container(self):
-        low_api = docker.APIClient()
-        inspect_info = low_api.inspect_container(self._container.id)
-        self._inspect_info = inspect_info
-        ip = inspect_info['NetworkSettings']['IPAddress']
-        port = inspect_info['NetworkSettings']['Ports']
-        port = list(port.keys())[0].split("/", 1)[0]
-        self.addr = "{ip}:{port}".format(ip=ip, port=port)
-
-    def put_to_container(self, src, dst):
-        with closing(io.BytesIO()) as tarstream:
-            with closing(tarfile.TarFile(fileobj=tarstream, mode='w')) as tar:
-                tar.add(src, arcname=os.path.basename(dst))
-
-            tarstream.seek(0)
-            self._container.put_archive(os.path.dirname(dst), tarstream)
-
-    @staticmethod
-    def get_run_command(*args):
-        command = "./{bin} ".format(bin=SCORUM_BIN) + " ".join(args)
-        return command
+        os.remove(genesis_path)
+        os.remove(config_path)
 
 
-class Container:
-    def __init__(self, command, image):
+class DockerController:
+    def __init__(self, image):
         self.docker = docker.from_env()
-        self._image = image
-        self.container = None
+        self._image = None
 
+        self.set_image(image)
+
+    def run_node(self, node: Node):
+        with node.setup():
+            container = self.docker.containers.create(self._image,
+                                                      # detach=True,
+                                                      # auto_remove=True,
+                                                      volumes={TEST_TEMP_DIR: {'bind': '/var/lib/scorumd', 'mode': 'rw'}})
+
+            node.rpc_endpoint = "{ip}:{port}".format(ip=self.get_ip(container),
+                                                     port=node.config['rpc-endpoint'].split(':')[1])
+        return container
+
+    def set_image(self, image: str):
         from tests.conftest import DEFAULT_IMAGE_NAME as DEFAULT
+        self._image = image  
+        try:
+            self.docker.images.get(image)
+        except ImageNotFound:
+            if image is DEFAULT:
+                Node.check_binaries()
+                self._create_default_image()
+            else:
+                self.docker.images.pull(image)
 
-        if self._image is DEFAULT:
-            try:
-                self.docker.images.get(self._image)
-            except ImageNotFound:
-                self._create_docker_image()
-            self.create_container(command)
-        else:
-            self.docker.images.pull(self._image)
-
-    def _create_docker_image(self):
+    def _create_default_image(self):
         with self._prepare_context() as context:
             self.docker.images.build(path=context, tag=self._image)
 
@@ -176,26 +132,22 @@ class Container:
                 file.write(DOCKERFILE)
             yield docker_context
 
-    def put_to_container(self, src, dst):
-        with closing(io.BytesIO()) as tarstream:
-            with closing(tarfile.TarFile(fileobj=tarstream, mode='w')) as tar:
-                tar.add(src, arcname=os.path.basename(dst))
+    @staticmethod
+    def read_node_logs(container, node):
+        for line in container.logs(stream=True):
+            node.logs += line.decode("utf-8")
 
-            tarstream.seek(0)
-            self.container.put_archive(os.path.dirname(dst), tarstream)
-
-    def _inspect_container(self):
+    @staticmethod
+    def inspect_container(container):
         low_api = docker.APIClient()
-        inspect_info = low_api.inspect_container(self.container.id)
-        self._inspect_info = inspect_info
-        ip = inspect_info['NetworkSettings']['IPAddress']
-        port = inspect_info['NetworkSettings']['Ports']
-        port = list(port.keys())[0].split("/", 1)[0]
-        self.addr = "{ip}:{port}".format(ip=ip, port=port)
+        return low_api.inspect_container(container.id)
 
-    def create_container(self, command):
-        self.container = self.docker.containers.create(image=DOCKER_IMAGE_NAME,
-                                                       command=command,
-                                                       detach=True,
-                                                       auto_remove=True)
+    @staticmethod
+    def stop(container):
+        container.stop()
 
+    @staticmethod
+    def get_ip(container):
+        info = DockerController.inspect_container(container)
+        ip = info['NetworkSettings']['IPAddress']
+        return ip
