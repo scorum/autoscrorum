@@ -23,7 +23,7 @@ class RpcClient(object):
         error = None
         while retries < 10:
             try:
-                self._ws = websocket.create_connection("ws://{addr}".format(addr=self.node.addr))
+                self._ws = websocket.create_connection("ws://{addr}".format(addr=self.node.rpc_endpoint))
                 return
             except ConnectionRefusedError as e:
                 error = e

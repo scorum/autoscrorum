@@ -4,6 +4,7 @@ class Config(object):
         self['rpc-endpoint'] = '0.0.0.0:8090'
         self['genesis-json'] = 'genesis.json'
         self['enable-stale-production'] = 'true'
+        self['shared-file-size'] = '1G'
 
     def __getitem__(self, item):
         return self.parms[item]

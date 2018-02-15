@@ -2,7 +2,6 @@ import shutil
 import tempfile
 import docker
 import os
-import threading
 
 from docker.errors import ImageNotFound
 from contextlib import contextmanager
@@ -71,24 +70,24 @@ class Node(object):
                     chain_params["chain_id"] = line.split(" ")[-1]
         return chain_params["chain_id"]
 
-    @contextmanager
     def setup(self):
-        genesis_path = os.path.join(TEST_TEMP_DIR, 'genesis.json')
-        config_path = os.path.join(TEST_TEMP_DIR, 'config.ini')
+        dir_name = os.path.basename(tempfile.mktemp(self.config['witness'][1:-1]))
+
+        genesis_path = os.path.join(TEST_TEMP_DIR, dir_name, 'genesis.json')
+        config_path = os.path.join(TEST_TEMP_DIR, dir_name, 'config.ini')
+
+        if not os.path.exists(os.path.dirname(genesis_path)):
+            os.makedirs(os.path.dirname(genesis_path))
+
 
         with open(genesis_path, 'w') as genesis:
             g = self._genesis.dump()
             genesis.write(g)
             chain_params["chain_id"] = sha256(g.encode()).hexdigest()
         with open(config_path, 'w') as config:
-            self.config['data-dir'] = os.path.join(CONFIG_DIR, self.config['witness'][1:-1])
             config.write(self.config.dump())
 
-        yield
-
-        os.remove(genesis_path)
-        os.remove(config_path)
-
+        return os.path.dirname(genesis_path)
 
 class DockerController:
     def __init__(self, image):
@@ -98,14 +97,15 @@ class DockerController:
         self.set_image(image)
 
     def run_node(self, node: Node):
-        with node.setup():
-            container = self.docker.containers.create(self._image,
-                                                      # detach=True,
-                                                      # auto_remove=True,
-                                                      volumes={TEST_TEMP_DIR: {'bind': '/var/lib/scorumd', 'mode': 'rw'}})
+        volume_src = node.setup()
 
-            node.rpc_endpoint = "{ip}:{port}".format(ip=self.get_ip(container),
-                                                     port=node.config['rpc-endpoint'].split(':')[1])
+        container = self.docker.containers.run(self._image,
+                                               detach=True,
+                                               auto_remove=True,
+                                               volumes={volume_src: {'bind': '/var/lib/scorumd', 'mode': 'rw'}})
+
+        node.rpc_endpoint = "{ip}:{port}".format(ip=self.get_ip(container),
+                                                 port=node.config['rpc-endpoint'].split(':')[1])
         return container
 
     def set_image(self, image: str):

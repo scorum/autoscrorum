@@ -4,14 +4,15 @@ from autoscorum.node import Node, DockerController
 from autoscorum.genesis import Genesis
 from autoscorum.rpc_client import RpcClient
 
+
 acc_name = "initdelegate"
 acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
 acc_private_key = "5K8ZJUYs9SP47JgzUY97ogDw1da37yuLrSF5syj2Wr4GEvPWok6"
 
 
-# @pytest.mark.timeout(20, method='signal')
+@pytest.mark.usefixtures('image')
 class TestSingleNode:
-    def setup(self):
+    def setup(self, image):
         self.genesis = Genesis()
         self.genesis["init_rewards_supply"] = "1000000.000000000 SCR"
         self.genesis["init_accounts_supply"] = "210000.000000000 SCR"
@@ -30,7 +31,7 @@ class TestSingleNode:
         self.node.config['public-api'] = "database_api login_api account_by_key_api"
         self.node.config['enable-plugin'] = 'witness account_history account_by_key'
 
-        self.docker = DockerController('autonode')
+        self.docker = DockerController(image)
         self.container = self.docker.run_node(self.node)
 
         self.rpc = RpcClient(self.node, [acc_private_key])
@@ -113,8 +114,6 @@ class TestSingleNode:
 
         assert(test_account_name in accounts)
 
-    def test_fixture(self, image):
-        print(image)
     # def test_vote_for_witness(self):
     #     self.rpc.transfer_to_vesting('initdelegate', 'alice', 1)
     #     alice_sp = float(self.rpc.get_account('alice')['vesting_shares'].split()[0])
