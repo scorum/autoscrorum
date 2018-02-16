@@ -2,6 +2,10 @@ import os
 import shutil
 import pytest
 
+from autoscorum.genesis import Genesis
+from autoscorum.node import Node
+from autoscorum.node import DockerController
+from autoscorum.rpc_client import RpcClient
 
 DEFAULT_IMAGE_NAME = 'autonode'
 TEST_TEMP_DIR = '/tmp/autoscorum'
@@ -34,3 +38,50 @@ def temp_dir():
         shutil.rmtree(TEST_TEMP_DIR)
     except FileNotFoundError:
         pass
+
+
+@pytest.fixture()
+def genesis():
+    g = Genesis()
+    g["init_rewards_supply"] = "1000000.000000000 SCR"
+    g["init_accounts_supply"] = "210000.000000000 SCR"
+    g.add_account(acc_name=acc_name,
+                  public_key=acc_public_key,
+                  scr_amount="110000.000000000 SCR",
+                  witness=True)
+
+    g.add_account(acc_name='alice',
+                  public_key="SCR8TBVkvbJ79L1A4e851LETG8jurXFPzHPz87obyQQFESxy8pmdx",
+                  scr_amount="100000.000000000 SCR")
+    return g
+
+
+@pytest.fixture()
+def node(genesis):
+    n = Node(genesis=genesis)
+    n.config['witness'] = '"{acc_name}"'.format(acc_name=acc_name)
+    n.config['private-key'] = acc_private_key
+    n.config['public-api'] = "database_api login_api account_by_key_api"
+    n.config['enable-plugin'] = 'witness account_history account_by_key'
+
+    return n
+
+
+@pytest.fixture(scope='module')
+def docker(image):
+    d = DockerController(image)
+    yield d
+    d.stop_all()
+
+
+@pytest.fixture()
+def rpc(node, docker):
+    docker.run_node(node)
+    client = RpcClient(node, [acc_private_key])
+    client.open_ws()
+    client.login("", "")
+    client.get_api_by_name('database_api')
+    client.get_api_by_name('network_broadcast_api')
+    client.get_block(1, wait_for_block=True)
+    yield client
+    client.close_ws()

@@ -10,9 +10,9 @@ from hashlib import sha256
 
 from autoscorum.config import Config
 from autoscorum import utils
-from tests.conftest import TEST_TEMP_DIR
 
 
+TEST_TEMP_DIR = '/tmp/autoscorum'
 SCORUM_BIN = 'scorumd'
 
 CONFIG_DIR = '/var/lib/scorumd'
@@ -89,10 +89,12 @@ class Node(object):
 
         return os.path.dirname(genesis_path)
 
+
 class DockerController:
     def __init__(self, image):
         self.docker = docker.from_env()
         self._image = None
+        self._started_containers = []
 
         self.set_image(image)
 
@@ -103,6 +105,7 @@ class DockerController:
                                                detach=True,
                                                auto_remove=True,
                                                volumes={volume_src: {'bind': '/var/lib/scorumd', 'mode': 'rw'}})
+        self._started_containers.append(container)
 
         node.rpc_endpoint = "{ip}:{port}".format(ip=self.get_ip(container),
                                                  port=node.config['rpc-endpoint'].split(':')[1])
@@ -142,9 +145,13 @@ class DockerController:
         low_api = docker.APIClient()
         return low_api.inspect_container(container.id)
 
-    @staticmethod
-    def stop(container):
+    def stop(self, container):
         container.stop()
+        self._started_containers.remove(container)
+
+    def stop_all(self):
+        for cont in self._started_containers:
+            self.stop(cont)
 
     @staticmethod
     def get_ip(container):
