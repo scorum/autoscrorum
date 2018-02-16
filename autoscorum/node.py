@@ -90,10 +90,13 @@ class Node(object):
 
     def get_chain_id(self):
         if not chain_params["chain_id"]:
-            for line in self.logs:
-                if "node chain ID:" in line:
-                    chain_params["chain_id"] = line.split(" ")[-1]
+            self._get_chain_id_from_logs()
         return chain_params["chain_id"]
+
+    def _get_chain_id_from_logs(self):
+        for line in self.logs:
+            if "node chain ID:" in line:
+                chain_params["chain_id"] = line.split(" ")[-1]
 
     def stop(self):
         self._container.stop()
