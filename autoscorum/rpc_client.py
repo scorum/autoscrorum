@@ -4,7 +4,7 @@ import _struct
 import websocket
 import autoscorum.operations_fabric as operations
 
-from autoscorum.utils import fmt_time_from_now
+from .utils import fmt_time_from_now
 from binascii import unhexlify
 
 

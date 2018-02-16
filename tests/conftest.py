@@ -4,11 +4,11 @@ import pytest
 
 from autoscorum.genesis import Genesis
 from autoscorum.node import Node
-from autoscorum.node import DockerController
+from autoscorum.docker_controller import DockerController
 from autoscorum.rpc_client import RpcClient
 
-DEFAULT_IMAGE_NAME = 'autonode'
-TEST_TEMP_DIR = '/tmp/autoscorum'
+from autoscorum.node import TEST_TEMP_DIR
+from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
 
 acc_name = "initdelegate"
 acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
