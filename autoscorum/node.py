@@ -35,15 +35,16 @@ EXPOSE 8090
 DOCKER_IMAGE_NAME = 'autonode'
 
 
+chain_params = {"chain_id": None,
+                "prefix": "SCR",
+                "scorum_symbol": "SCR",
+                "sp_symbol": "SP",
+                "scorum_prec": 9,
+                "sp_prec": 9}
+
+
 class Node(object):
     docker = docker.from_env()
-
-    chain_params = {"chain_id": None,
-                    "prefix": "SCR",
-                    "scorum_symbol": "SCR",
-                    "sp_symbol": "SP",
-                    "scorum_prec": 9,
-                    "sp_prec": 9}
 
     def __init__(self, config=Config(), genesis=None, logging=True):
         self._bin_path = None
@@ -88,11 +89,14 @@ class Node(object):
         self._run_container(command)
 
     def get_chain_id(self):
-        if not self.chain_params["chain_id"]:
-            for line in self.logs:
-                if "node chain ID:" in line:
-                    self.chain_params["chain_id"] = line.split(" ")[-1]
-        return self.chain_params["chain_id"]
+        if not chain_params["chain_id"]:
+            self._get_chain_id_from_logs()
+        return chain_params["chain_id"]
+
+    def _get_chain_id_from_logs(self):
+        for line in self.logs:
+            if "node chain ID:" in line:
+                chain_params["chain_id"] = line.split(" ")[-1]
 
     def stop(self):
         self._container.stop()
@@ -113,7 +117,7 @@ class Node(object):
             g = self._genesis.dump()
             with utils.write_to_tempfile(g) as genesis:
                 self.put_to_container(src=genesis, dst=os.path.join(CONTAINER_BIN_PATH, 'genesis.json'))
-            self.chain_params["chain_id"] = sha256(g.encode()).hexdigest()
+            chain_params["chain_id"] = sha256(g.encode()).hexdigest()
 
         self._container.start()
         if self._logging:

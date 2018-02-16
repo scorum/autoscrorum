@@ -171,11 +171,3 @@ class AccountWitnessVote(GrapheneObject):
                     ('witness', String(kwargs["witness"])),
                     ('approve', Bool(bool(kwargs["approve"]))),
                 ]))
-
-
-def account_witness_vote_operation(account, witness, approve):
-    return operations.AccountWitnessVote(
-        **{'account': account,
-           'witness': witness,
-           'approve': approve}
-    )
