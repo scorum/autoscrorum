@@ -146,7 +146,6 @@ class AccountCreate(GrapheneObject):
                     meta = json.dumps(kwargs["json_metadata"])
                 else:
                     meta = kwargs["json_metadata"]
-            print(kwargs)
             super().__init__(OrderedDict([
                 ('fee', Amount(kwargs["fee"])),
                 ('creator', String(kwargs["creator"])),
