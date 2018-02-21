@@ -14,9 +14,23 @@ def test_genesis_block(rpc):
     alice = rpc.get_account("alice")
     info = rpc.get_dynamic_global_properties()
 
-    assert info['total_supply'] == '1210100.000000000 SCR'
+    assert info['total_supply'] == '1210600.100000000 SCR'
     assert initdelegate['balance'] == '110000.000000000 SCR'
     assert alice['balance'] == '100000.000000000 SCR'
+
+
+def test_transfer(rpc):
+    initdelegate_balance_before = float(rpc.get_account('initdelegate')['balance'].split()[0])
+    amount = int(initdelegate_balance_before - 100)
+    alice_balance_before = float(rpc.get_account('alice')['balance'].split()[0])
+
+    print(rpc.transfer('initdelegate', 'alice', amount))
+
+    initdelegate_balance_after = float(rpc.get_account('initdelegate')['balance'].split()[0])
+    alice_balance_after = float(rpc.get_account('alice')['balance'].split()[0])
+
+    assert initdelegate_balance_after == initdelegate_balance_before - amount
+    assert alice_balance_after == alice_balance_before + amount
 
 
 def test_transfer_invalid_amount(rpc):
@@ -51,13 +65,13 @@ def test_transfer_to_vesting(rpc):
 
 
 def test_create_account(rpc):
-    test_account_name = 'bob'
-    test_account_pub_key = 'SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p'
+    test_account_name = 'joe'
+    test_account_pub_key = 'SCR4tp1i6hGuefvYWSdPXPC3f959XLgLiXtBpbfQCkTK9sjcA4qWZ'
 
     rpc.create_account('initdelegate', newname=test_account_name, owner=test_account_pub_key)
 
     accounts = rpc.list_accounts()
 
-    assert(len(accounts) == 3)
+    assert(len(accounts) == 4)
 
     assert(test_account_name in accounts)

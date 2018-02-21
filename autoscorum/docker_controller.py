@@ -1,4 +1,5 @@
 import os
+
 import docker
 import shutil
 import tempfile
@@ -6,10 +7,10 @@ from docker.errors import ImageNotFound
 from contextlib import contextmanager
 
 from .node import Node
+from .node import SCORUM_BIN
 from . import utils
 
 DEFAULT_IMAGE_NAME = 'autonode'
-SCORUM_BIN = 'scorumd'
 CONFIG_DIR = '/var/lib/scorumd'
 DOCKERFILE = '''FROM phusion/baseimage:0.9.19
 ADD ./scorumd /usr/local/bin
@@ -42,21 +43,23 @@ class DockerController:
 
         self.set_image(image)
 
-    def run_node(self, node: Node):
+    def run_node(self, node: Node, image: str=None):
+        if image:
+            self.set_image(image)
         volume_src = node.setup()
 
         container = self.docker.containers.run(self._image,
                                                detach=True,
                                                auto_remove=True,
                                                volumes={volume_src: {'bind': '/var/lib/scorumd', 'mode': 'rw'}})
-        self._started_containers.append(container)
 
         node.rpc_endpoint = "{ip}:{port}".format(ip=self.get_ip(container),
                                                  port=node.config['rpc-endpoint'].split(':')[1])
+
+        self._started_containers.append(container)
         return container
 
     def set_image(self, image: str):
-
         self._image = image
         try:
             self.docker.images.get(image)
@@ -80,21 +83,17 @@ class DockerController:
             yield docker_context
 
     @staticmethod
-    def read_node_logs(container, node):
-        for line in container.logs(stream=True):
-            node.logs += line.decode("utf-8")
-
-    @staticmethod
     def inspect_container(container):
         low_api = docker.APIClient()
         return low_api.inspect_container(container.id)
 
-    def stop(self, container):
-        container.stop()
-        self._started_containers.remove(container)
+    @staticmethod
+    def stop(container):
+        container.remove(force=True, v=False)
 
     def stop_all(self):
         for cont in self._started_containers:
+            self._started_containers.remove(cont)
             self.stop(cont)
 
     @staticmethod
@@ -102,8 +101,3 @@ class DockerController:
         info = DockerController.inspect_container(container)
         ip = info['NetworkSettings']['IPAddress']
         return ip
-
-
-def test_1():
-    print('hello!')
-    node = Node()

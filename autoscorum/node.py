@@ -9,6 +9,8 @@ from . import utils
 
 
 TEST_TEMP_DIR = '/tmp/autoscorum'
+SCORUM_BIN = 'scorumd'
+
 
 chain_params = {"chain_id": None,
                 "prefix": "SCR",
@@ -26,6 +28,7 @@ class Node(object):
         self.logging = logging
         self.logs = ""
         self.rpc_endpoint = None
+        self._dir_name = None
 
     @staticmethod
     def check_binaries():
@@ -40,11 +43,17 @@ class Node(object):
                     chain_params["chain_id"] = line.split(" ")[-1]
         return chain_params["chain_id"]
 
-    def setup(self):
-        dir_name = os.path.basename(tempfile.mktemp(self.config['witness'][1:-1]))
+    def read_logs(self):
+        log_file = os.path.join(TEST_TEMP_DIR, self._dir_name, 'logs/current')
+        with open(log_file, 'r') as logs:
+            for line in logs:
+                self.logs += line
 
-        genesis_path = os.path.join(TEST_TEMP_DIR, dir_name, 'genesis.json')
-        config_path = os.path.join(TEST_TEMP_DIR, dir_name, 'config.ini')
+    def setup(self):
+        self._dir_name = os.path.basename(tempfile.mktemp(self.config['witness'][1:-1]))
+
+        genesis_path = os.path.join(TEST_TEMP_DIR, self._dir_name, 'genesis.json')
+        config_path = os.path.join(TEST_TEMP_DIR, self._dir_name, 'config.ini')
 
         if not os.path.exists(os.path.dirname(genesis_path)):
             os.makedirs(os.path.dirname(genesis_path))
