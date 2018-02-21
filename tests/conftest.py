@@ -24,7 +24,7 @@ def image(request):
     return request.config.getoption('--image')
 
 
-@pytest.fixture(scope='module', autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 def temp_dir():
     try:
         os.mkdir(TEST_TEMP_DIR)

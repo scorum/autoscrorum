@@ -44,16 +44,16 @@ class Node(object):
         return chain_params["chain_id"]
 
     def read_logs(self):
-        log_file = os.path.join(TEST_TEMP_DIR, self._dir_name, 'logs/current')
+        log_file = os.path.join(self._dir_name, 'logs/current')
         with open(log_file, 'r') as logs:
             for line in logs:
                 self.logs += line
 
     def setup(self):
-        self._dir_name = os.path.basename(tempfile.mktemp(self.config['witness'][1:-1]))
+        self._dir_name = tempfile.mkdtemp(self.config['witness'][1:-1], dir=TEST_TEMP_DIR)
 
-        genesis_path = os.path.join(TEST_TEMP_DIR, self._dir_name, 'genesis.json')
-        config_path = os.path.join(TEST_TEMP_DIR, self._dir_name, 'config.ini')
+        genesis_path = os.path.join(self._dir_name, 'genesis.json')
+        config_path = os.path.join(self._dir_name, 'config.ini')
 
         if not os.path.exists(os.path.dirname(genesis_path)):
             os.makedirs(os.path.dirname(genesis_path))

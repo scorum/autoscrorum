@@ -28,7 +28,7 @@ class RpcClient(object):
             except ConnectionRefusedError as e:
                 error = e
                 retries += 1
-                time.sleep(1)
+                time.sleep(0.5)
         raise error
 
     def close_ws(self):

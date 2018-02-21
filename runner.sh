@@ -56,7 +56,7 @@ CheckPython()
 	version=$("${PYTHON_BIN}" -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
 
 	if [[ "${version}" != "3.5" ]]; then
-		Error "Incorrect version of python $version detected. Python 3.5 is required to run tests."
+		Error "Python 3.5 is required to run tests."
 		return 1
 	fi
 
