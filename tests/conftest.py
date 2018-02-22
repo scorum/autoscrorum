@@ -5,7 +5,7 @@ import pytest
 from autoscorum.genesis import Genesis
 from autoscorum.node import Node
 from autoscorum.docker_controller import DockerController
-from autoscorum.rpc_client import RpcClient
+from autoscorum.wallet import Wallet
 
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
@@ -93,12 +93,10 @@ def docker(image):
 
 
 @pytest.fixture(scope='function')
-def rpc(node):
-    client = RpcClient(node, [acc_private_key])
-    client.open_ws()
-    client.login("", "")
-    client.get_api_by_name('database_api')
-    client.get_api_by_name('network_broadcast_api')
-    client.get_block(1, wait_for_block=True)
-    yield client
-    client.close_ws()
+def wallet(node):
+    with Wallet(node, [acc_private_key]) as w:
+        w.login("", "")
+        w.get_api_by_name('database_api')
+        w.get_api_by_name('network_broadcast_api')
+        w.get_block(1, wait_for_block=True)
+        yield w

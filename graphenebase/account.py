@@ -131,7 +131,7 @@ class Address(object):
 
         :param str address: Base58 encoded address (defaults to ``None``)
         :param str pubkey: Base58 encoded pubkey (defaults to ``None``)
-        :param str prefix: Network prefix (defaults to ``GPH``)
+        :param str prefix: Network prefix (defaults to ``SCR``)
 
         Example::
 
@@ -198,11 +198,11 @@ class PublicKey(Address):
     """ This class deals with Public Keys and inherits ``Address``.
 
         :param str pk: Base58 encoded public key
-        :param str prefix: Network prefix (defaults to ``GPH``)
+        :param str prefix: Network prefix (defaults to ``SCR``)
 
         Example:::
 
-           PublicKey("GPH6UtYWWs3rkZGV8JA86qrgkG6tyFksgECefKE1MiH4HkLD8PFGL")
+           PublicKey("SCR6UtYWWs3rkZGV8JA86qrgkG6tyFksgECefKE1MiH4HkLD8PFGL")
 
         .. note:: By default, graphene-based networks deal with **compressed**
                   public keys. If an **uncompressed** key is required, the
@@ -279,7 +279,7 @@ class PrivateKey(PublicKey):
         constructs two instances of ``PublicKey``:
 
         :param str wif: Base58check-encoded wif key
-        :param str prefix: Network prefix (defaults to ``GPH``)
+        :param str prefix: Network prefix (defaults to ``SCR``)
 
         Example:::
 
