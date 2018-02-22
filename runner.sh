@@ -47,7 +47,7 @@ Die()
 
 SetPythonBin()
 {
-	PYTHON_BIN=$(which python3.6)
+	PYTHON_BIN=$(which python3.5)
 }
 
 CheckPython()
@@ -55,8 +55,8 @@ CheckPython()
 	"${PYTHON_BIN}" --version > /dev/null 2>&1 || { Info "Python is not installed"; return 1; }
 	version=$("${PYTHON_BIN}" -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
 
-	if [[ "${version}" != "3.6" ]]; then
-		Error "Incorrect version of python $version detected. Python 3.6 is required to run tests."
+	if [[ "${version}" != "3.5" ]]; then
+		Error "Python 3.5 is required to run tests."
 		return 1
 	fi
 

@@ -4,13 +4,11 @@ import _struct
 import websocket
 import autoscorum.operations_fabric as operations
 
-from autoscorum.utils import fmt_time_from_now
+from .utils import fmt_time_from_now
 from binascii import unhexlify
 
 
 from graphenebase.signedtransactions import SignedTransaction
-
-from graphenebase.account import PublicKey
 
 
 class RpcClient(object):
@@ -22,14 +20,16 @@ class RpcClient(object):
 
     def open_ws(self):
         retries = 0
+        error = None
         while retries < 10:
             try:
-                self._ws = websocket.create_connection("ws://{addr}".format(addr=self.node.addr))
+                self._ws = websocket.create_connection("ws://{addr}".format(addr=self.node.rpc_endpoint))
                 return
             except ConnectionRefusedError as e:
+                error = e
                 retries += 1
-                time.sleep(1)
-        raise e
+                time.sleep(0.5)
+        raise error
 
     def close_ws(self):
         if self._ws:

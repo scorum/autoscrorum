@@ -58,7 +58,7 @@ Die()
 
 SetPythonBin()
 {
-	PYTHON_BIN=$(which python3.6)
+	PYTHON_BIN=$(which python3.5)
 }
 
 CheckPython()
@@ -66,8 +66,8 @@ CheckPython()
 	${PYTHON_BIN} --version > /dev/null 2>&1 || { Info "Python is not installed"; return 1; }
 	version=$(${PYTHON_BIN} -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
 
-	if [[ ${version} != "3.6" ]]; then
-		Error "Incorrect version of python $version detected. Python 3.6 is required to run autoscorum."
+	if [[ ${version} != "3.5" ]]; then
+		Error "Python 3.5 is required to run autoscorum."
 		return 1
 	fi
 
@@ -97,13 +97,13 @@ clean()
 
 setup()
 {
-    PYTHON_BIN=$(which python3.6)
+    PYTHON_BIN=$(which python3.5)
     bRun=1
 	Info "Setup autoscorum environment ..."
 
 
 	[ $bRun -eq 1 ] && { 
-		bash -c "pipenv --python python3.6 install" || {
+		bash -c "pipenv --python python3.5 install" || {
 		Error "Could not create virtualenv"; bRun=0; } }
 
 	[ $bRun -eq 1 ] && { 

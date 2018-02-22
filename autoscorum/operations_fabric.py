@@ -1,6 +1,6 @@
 from graphenebase import operations
 from graphenebase.account import PublicKey
-from autoscorum.node import chain_params
+from .node import chain_params
 
 
 def transfer_operation(_from, to, amount, memo):

@@ -2,6 +2,9 @@ class Config(object):
     def __init__(self):
         self.parms = {}
         self['rpc-endpoint'] = '0.0.0.0:8090'
+        self['genesis-json'] = 'genesis.json'
+        self['enable-stale-production'] = 'true'
+        self['shared-file-size'] = '1G'
 
     def __getitem__(self, item):
         return self.parms[item]
@@ -10,7 +13,9 @@ class Config(object):
         self.parms[key] = value
 
     def __copy__(self):
-        return Config(self.parms)
+        new = Config()
+        new.parms = self.parms
+        return new
 
     def dump(self):
         result = ''

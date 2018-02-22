@@ -8,16 +8,22 @@ class Genesis(object):
     def __init__(self):
         self.parms = {}
         self._set_timestamp()
-        self["init_accounts_supply"] = "1000.000000000 SCR"
-        self["init_rewards_supply"] = "100.000000000 SCR"
+        self["accounts_supply"] = "1000.000000000 SCR"
+        self["rewards_supply"] = "100.000000000 SCR"
 
         self["accounts"] = []
 
         self["witness_candidates"] = []
 
+        self["founders_supply"] = "100.000000000 SP"
+        self["founders"] = []
+
+        self["steemit_bounty_accounts_supply"] = "0.000000000 SP"
+        self["steemit_bounty_accounts"] = []
+
         self["registration_committee"] = []
         self["registration_supply"] = "100.000000000 SCR"
-        self["registration_bonus"] = "0.000000005 SCR"
+        self["registration_bonus"] = "0.000000100 SCR"
         self["registration_schedule"] = [{"stage": 1,
                                           "users": 1,
                                           "bonus_percent": 100},
@@ -54,7 +60,7 @@ class Genesis(object):
             self["registration_committee"].append(account['name'])
 
     def add_witness(self, name, signing_key):
-        witness = {"owner_name": name,
+        witness = {"name": name,
                    "block_signing_key": signing_key}
         self["witness_candidates"].append(witness)
 
