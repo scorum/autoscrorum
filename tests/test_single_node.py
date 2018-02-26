@@ -206,14 +206,9 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
 
 
 def test_create_budget(wallet: Wallet):
-    print(wallet.get_account_scr_balance(account_name))
-    print(wallet.get_account_sp_balance(account_name))
-    print(wallet.create_budget(account_name, Amount("0.000000004 SP"), fmt_time_from_now(30)))
-    print(wallet.get_account_scr_balance(account_name))
-    print(wallet.get_account_sp_balance(account_name))
+    wallet.create_budget(account_name, Amount("10000.00000000 SCR"), fmt_time_from_now(30))
 
     budget = wallet.get_budgets(account_name)[0]
-    print(budget)
 
     assert account_name in wallet.list_buddget_owners()
     assert budget['per_block'] == '937500000000'
