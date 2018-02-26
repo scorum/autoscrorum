@@ -1,6 +1,7 @@
 from graphenebase import operations
 from graphenebase.account import PublicKey
 from .node import chain_params
+from graphenebase.amount import Amount
 
 
 def transfer_operation(_from, to, amount, memo):
@@ -95,4 +96,17 @@ def account_witness_vote_operation(account, witness, approve):
         **{'account': account,
            'witness': witness,
            'approve': approve}
+    )
+
+
+def create_budget_operation(owner, permlink, balance, deadline):
+    return operations.CreateBudget(
+        **{'owner': owner,
+           'content_permlink': permlink,
+           'balance': '{:.{prec}f} {asset}'.format(
+               float(balance),
+               prec=chain_params["scorum_prec"],
+               asset=chain_params["scorum_symbol"]),
+           'deadline': deadline
+           }
     )

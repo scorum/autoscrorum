@@ -69,6 +69,10 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_accounts', ["", limit]))
         return response['result']
 
+    def list_buddget_owners(self, limit: int=100):
+        response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_budget_owners', ["", limit]))
+        return response['result']
+
     def list_witnesses(self, limit: int=100):
         response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_witness_accounts', ["", limit]))
         return response['result']
@@ -92,6 +96,10 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('get_accounts', [name]))
         return response['result'][0]
 
+    def get_budgets(self, owner_name: str):
+        response = self.rpc.send(self.json_rpc_body('call', 0, 'get_budgets', [[owner_name]]))
+        return response['result']
+
     def get_witness(self, name: str):
         response = self.rpc.send(self.json_rpc_body('call', 0, 'get_witness_by_account', [name]))
         return response['result']
@@ -108,17 +116,7 @@ class Wallet(object):
         return ref_block_num, ref_block_prefix
 
     def create_budget(self, owner, balance, deadline, permlink="", ):
-        op = operations.CreateBudget(
-            **{'owner': owner,
-               'content_permlink': permlink,
-               'balance': '{:.{prec}f} {asset}'.format(
-                   float(balance),
-                   prec=self.node.chain_params["scorum_prec"],
-                   asset=self.node.chain_params["scorum_symbol"]),
-               'deadline': deadline
-               }
-        )
-
+        op = operations.create_budget_operation(owner, permlink, balance, deadline)
         return self.broadcast_transaction_synchronous([op])
 
     def transfer(self, _from: str, to: str, amount: int, memo=""):
