@@ -51,7 +51,6 @@ class Amount(dict):
     def __add__(self, other):
         a = Amount(self)
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             a["amount"] += other["amount"]
         else:
             a["amount"] += float(other)
@@ -60,7 +59,6 @@ class Amount(dict):
     def __sub__(self, other):
         a = Amount(self)
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             a["amount"] -= other["amount"]
         else:
             a["amount"] -= float(other)
@@ -108,7 +106,6 @@ class Amount(dict):
 
     def __iadd__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             self["amount"] += other["amount"]
         else:
             self["amount"] += other
@@ -116,7 +113,6 @@ class Amount(dict):
 
     def __isub__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             self["amount"] -= other["amount"]
         else:
             self["amount"] -= other
@@ -172,7 +168,7 @@ class Amount(dict):
     def __eq__(self, other):
         if isinstance(other, Amount):
             assert other["asset"] == self["asset"]
-            return self["amount"] == other["amount"]
+            return str(self) == str(other)
         else:
             return self["amount"] == float(other or 0)
 

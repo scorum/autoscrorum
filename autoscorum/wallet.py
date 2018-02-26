@@ -3,6 +3,7 @@ import time
 import _struct
 from binascii import unhexlify
 
+from graphenebase.amount import Amount
 from graphenebase.signedtransactions import SignedTransaction
 from .rpc_client import RpcClient
 from .utils import fmt_time_from_now
@@ -96,6 +97,21 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('get_accounts', [name]))
         return response['result'][0]
 
+    def get_account_scr_balance(self, name: str):
+        return Amount(self.get_account(name)['balance'])
+
+    def get_account_sp_balance(self, name: str):
+        return Amount(self.get_account(name)['vesting_shares'])
+
+    def get_account_keys_auths(self, name: str):
+        result = {}
+        account = self.get_account(name)
+        result['owner'] = account['owner']['key_auths'][0][0]
+        result['posting'] = account['posting']['key_auths'][0][0]
+        result['active'] = account['active']['key_auths'][0][0]
+        result['memo'] = account['memo_key']
+        return result
+
     def get_budgets(self, owner_name: str):
         response = self.rpc.send(self.json_rpc_body('call', 0, 'get_budgets', [[owner_name]]))
         return response['result']
@@ -106,6 +122,10 @@ class Wallet(object):
 
     def list_proposals(self):
         response = self.rpc.send(self.json_rpc_body("call", 0, 'lookup_proposals', []))
+        return response['result']
+
+    def get_account_by_key(self, pub_key: str):
+        response = self.rpc.send(self.json_rpc_body("call", 2, 'get_key_references', [[pub_key]]))
         return response['result']
 
     def get_ref_block_params(self):
@@ -178,6 +198,38 @@ class Wallet(object):
                                                  additional_posting_keys)
 
         return self.broadcast_transaction_synchronous([op])
+
+    def create_account_by_committee(self,
+                                    creator: str,
+                                    newname: str,
+                                    owner: str,
+                                    active: str=None,
+                                    posting: str=None,
+                                    memo=None,
+                                    json_meta={},
+                                    additional_owner_keys=[],
+                                    additional_active_keys=[],
+                                    additional_posting_keys=[],
+                                    additional_owner_accounts=[],
+                                    additional_active_accounts=[],
+                                    additional_posting_accounts=[]):
+
+        op = operations.account_create_by_committee_operation(creator,
+                                                              newname,
+                                                              owner,
+                                                              active if active else owner,
+                                                              posting if posting else owner,
+                                                              memo if memo else owner,
+                                                              json_meta,
+                                                              additional_owner_accounts,
+                                                              additional_active_accounts,
+                                                              additional_posting_accounts,
+                                                              additional_owner_keys,
+                                                              additional_active_keys,
+                                                              additional_posting_keys)
+
+        return self.broadcast_transaction_synchronous([op])
+
 
     def broadcast_transaction_synchronous(self, ops):
         ref_block_num, ref_block_prefix = self.get_ref_block_params()
