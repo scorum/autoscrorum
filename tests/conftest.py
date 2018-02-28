@@ -40,11 +40,11 @@ def temp_dir():
         pass
 
 
-@pytest.fixture()
+@pytest.fixture(scope='function')
 def genesis():
     g = Genesis()
     g["accounts_supply"] = "210100.000000000 SCR"
-    g["rewards_supply"] = "1000000.000000000 SCR"
+    g["rewards_supply"] = "0.420480000 SCR"
 
     g.add_account(acc_name=acc_name,
                   public_key=acc_public_key,

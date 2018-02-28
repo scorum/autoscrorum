@@ -211,3 +211,47 @@ def test_create_budget(wallet: Wallet):
     assert account_name in wallet.list_buddget_owners()
     assert budget['per_block'] == '1000000000000'
     assert budget['owner'] == account_name
+
+
+def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
+    def get_reward_per_block():
+        last_confirmed_block = wallet.get_witness(account_name)['last_confirmed_block_num']
+        sp_balance_before_block_confirm = wallet.get_account_sp_balance(account_name)
+        circulating_capital_before = wallet.get_circulating_capital()
+
+        new_confirmed_block = last_confirmed_block
+        while new_confirmed_block == last_confirmed_block:
+            new_confirmed_block = wallet.get_witness(account_name)['last_confirmed_block_num']
+
+        witness_reward = wallet.get_account_sp_balance(account_name) - sp_balance_before_block_confirm
+        full_content_reward = wallet.get_circulating_capital() - circulating_capital_before
+
+        activity_content_reward = full_content_reward*95/100
+        assert witness_reward == full_content_reward - activity_content_reward
+        return full_content_reward
+
+    blocks_per_month = 864000
+    expected_content_reward_per_block_on_start = (Amount(genesis['rewards_supply'])*30/730)/blocks_per_month
+
+    '''
+    content reward before balancer decrease it
+    '''
+    content_reward_on_start = get_reward_per_block()
+    assert expected_content_reward_per_block_on_start == content_reward_on_start
+
+    '''
+    wait for balancer decrease content reward
+    '''
+    wallet.get_block(20, wait_for_block=True, time_to_wait=70)
+
+    content_reward_after_balancer_decrease = get_reward_per_block()
+    assert content_reward_after_balancer_decrease < content_reward_on_start
+
+    '''
+    open budget with large amount and short lifetime to instantly increase reward pool which enforce balancer to
+    increase content reward
+    '''
+    wallet.create_budget(account_name, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
+
+    content_reward_after_budget_open = get_reward_per_block()
+    assert content_reward_after_budget_open > content_reward_after_balancer_decrease
