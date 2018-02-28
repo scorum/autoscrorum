@@ -58,6 +58,9 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('get_dynamic_global_properties', api='database_api'))
         return response['result']
 
+    def get_circulating_capital(self):
+        return Amount(self.get_dynamic_global_properties()['circulating_capital'])
+
     def login(self, username: str, password: str):
         response = self.rpc.send(self.json_rpc_body('login', username, password, api='login_api'))
         return response['result']
@@ -135,15 +138,15 @@ class Wallet(object):
         ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
         return ref_block_num, ref_block_prefix
 
-    def create_budget(self, owner, balance, deadline, permlink="", ):
+    def create_budget(self, owner, balance: Amount, deadline, permlink="", ):
         op = operations.create_budget_operation(owner, permlink, balance, deadline)
         return self.broadcast_transaction_synchronous([op])
 
-    def transfer(self, _from: str, to: str, amount: int, memo=""):
+    def transfer(self, _from: str, to: str, amount: Amount, memo=""):
         op = operations.transfer_operation(_from, to, amount, memo)
         return self.broadcast_transaction_synchronous([op])
 
-    def transfer_to_vesting(self, _from: str, to: str, amount: int):
+    def transfer_to_vesting(self, _from: str, to: str, amount: Amount):
         op = operations.transfer_to_vesting_operation(_from, to, amount)
         return self.broadcast_transaction_synchronous([op])
 
@@ -172,7 +175,7 @@ class Wallet(object):
                        owner: str,
                        active: str=None,
                        posting: str=None,
-                       fee: float=None,
+                       fee: Amount=None,
                        memo=None,
                        json_meta={},
                        additional_owner_keys=[],
@@ -183,7 +186,7 @@ class Wallet(object):
                        additional_posting_accounts=[]):
 
         op = operations.account_create_operation(creator,
-                                                 fee if fee else 0.000000750,
+                                                 fee if fee else Amount('0.000000750 SCR'),
                                                  newname,
                                                  owner,
                                                  active if active else owner,
@@ -229,7 +232,6 @@ class Wallet(object):
                                                               additional_posting_keys)
 
         return self.broadcast_transaction_synchronous([op])
-
 
     def broadcast_transaction_synchronous(self, ops):
         ref_block_num, ref_block_prefix = self.get_ref_block_params()

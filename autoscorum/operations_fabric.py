@@ -1,36 +1,27 @@
 from graphenebase import operations
 from graphenebase.account import PublicKey
-from .node import chain_params
 from graphenebase.amount import Amount
 
 
-def transfer_operation(_from, to, amount, memo):
+def transfer_operation(_from, to, amount: Amount, memo):
     return operations.Transfer(
         **{"from": _from,
            "to": to,
-           "amount": '{:.{prec}f} {asset}'.format(
-               float(amount),
-               prec=chain_params["scorum_prec"],
-               asset=chain_params["scorum_symbol"]
-           ),
+           "amount": str(amount),
            "memo": memo
            })
 
 
-def transfer_to_vesting_operation(_from, to, amount):
+def transfer_to_vesting_operation(_from, to, amount: Amount):
     return operations.TransferToVesting(
         **{'from': _from,
            'to': to,
-           'amount': '{:.{prec}f} {asset}'.format(
-               float(amount),
-               prec=chain_params["scorum_prec"],
-               asset=chain_params["scorum_symbol"]
-           )
+           'amount': str(amount)
            })
 
 
 def account_create_operation(creator: str,
-                             fee: float,
+                             fee: Amount,
                              name: str,
                              owner: str,
                              active: str,
@@ -43,10 +34,7 @@ def account_create_operation(creator: str,
                              additional_owner_keys,
                              additional_active_keys,
                              additional_posting_keys):
-    creation_fee = '{:.{prec}f} {asset}'.format(
-                   float(fee if fee else 0.000000750),
-                   prec=chain_params["scorum_prec"],
-                   asset=chain_params["scorum_symbol"])
+    creation_fee = str(fee)
 
     owner_pubkey = PublicKey(owner)
     active_pubkey = PublicKey(active if active else owner)
@@ -155,14 +143,11 @@ def account_witness_vote_operation(account, witness, approve):
     )
 
 
-def create_budget_operation(owner, permlink, balance, deadline):
+def create_budget_operation(owner, permlink, balance: Amount, deadline):
     return operations.CreateBudget(
         **{'owner': owner,
            'content_permlink': permlink,
-           'balance': '{:.{prec}f} {asset}'.format(
-               float(balance),
-               prec=chain_params["scorum_prec"],
-               asset=chain_params["scorum_symbol"]),
+           'balance': str(balance),
            'deadline': deadline
            }
     )
