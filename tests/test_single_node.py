@@ -213,6 +213,7 @@ def test_create_budget(wallet: Wallet):
     assert budget['owner'] == account_name
 
 
+@pytest.mark.parametrize('genesis', ('0.420480000 SCR',), indirect=True)
 def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     def get_reward_per_block():
         last_confirmed_block = wallet.get_witness(account_name)['last_confirmed_block_num']
@@ -227,25 +228,31 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
         full_content_reward = wallet.get_circulating_capital() - circulating_capital_before
 
         activity_content_reward = full_content_reward*95/100
-        assert witness_reward == full_content_reward - activity_content_reward
+        assert witness_reward == full_content_reward - activity_content_reward, 'witness reward per block != expected'
         return full_content_reward
 
-    blocks_per_month = 864000
-    expected_content_reward_per_block_on_start = (Amount(genesis['rewards_supply'])*30/730)/blocks_per_month
+    def calculate_rewards_from_genesis():
+        blocks_per_month = 864000
+        days_in_month = 30
+        days_in_2_years = 730
+        rewards_supply = Amount(genesis['rewards_supply'])
+        rewards_per_block = rewards_supply*days_in_month/days_in_2_years/blocks_per_month
+        return rewards_per_block
 
     '''
     content reward before balancer decrease it
     '''
+    expected_content_reward_on_start = calculate_rewards_from_genesis()
     content_reward_on_start = get_reward_per_block()
-    assert expected_content_reward_per_block_on_start == content_reward_on_start
+    assert expected_content_reward_on_start == content_reward_on_start, 'content reward on start != expected'
 
     '''
     wait for balancer decrease content reward
     '''
-    wallet.get_block(20, wait_for_block=True, time_to_wait=70)
+    wallet.get_block(20, wait_for_block=True, time_to_wait=60)
 
     content_reward_after_balancer_decrease = get_reward_per_block()
-    assert content_reward_after_balancer_decrease < content_reward_on_start
+    assert content_reward_after_balancer_decrease < content_reward_on_start, 'content reward not decreased by balancer'
 
     '''
     open budget with large amount and short lifetime to instantly increase reward pool which enforce balancer to
@@ -254,4 +261,4 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     wallet.create_budget(account_name, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
 
     content_reward_after_budget_open = get_reward_per_block()
-    assert content_reward_after_budget_open > content_reward_after_balancer_decrease
+    assert content_reward_after_budget_open > content_reward_after_balancer_decrease, 'content reward not increased after budget open'

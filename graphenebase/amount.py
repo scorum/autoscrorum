@@ -29,16 +29,22 @@ class Amount(dict):
     def asset(self):
         return self["asset"]
 
-    def _serialize(self, prec):
-        amount_string_representation = str(self.amount)
-        if len(amount_string_representation) < prec:
-            multipier = prec - len(amount_string_representation)
-            amount_string_representation = ('0'*(multipier + 1)) + amount_string_representation
+    def _to_string(self, prec):
+        def insert_zeroes_at_start(string):
+            multiplier = prec - len(string)
+            string = ('0' * (multiplier + 1)) + string
+            return string
 
-        list_to_insert = list(amount_string_representation)
-        list_to_insert.insert(-9, '.')
-        amount_string_representation = ''.join(list_to_insert)
-        return amount_string_representation
+        def add_dot_separator(string):
+            list_to_insert = list(string)
+            list_to_insert.insert(-prec, '.')
+            string = ''.join(list_to_insert)
+            return string
+
+        amount_string = str(self.amount)
+        if len(amount_string) < prec:
+            amount_string = insert_zeroes_at_start(amount_string)
+        return add_dot_separator(amount_string)
 
     def __str__(self):
         if self["asset"] == "SCR":
@@ -50,7 +56,7 @@ class Amount(dict):
         else:
             prec = 9
         return "{} {}".format(
-            self._serialize(prec), self["asset"])
+            self._to_string(prec), self["asset"])
 
     def __float__(self):
         return self["amount"]
@@ -95,6 +101,9 @@ class Amount(dict):
         if isinstance(other, Amount):
             raise Exception("Cannot divide two Amounts")
         else:
+            '''
+            need to use floordiv to get result type int
+            '''
             a["amount"] //= other
         return a
 
@@ -140,7 +149,10 @@ class Amount(dict):
             assert other["asset"] == self["asset"]
             return self["amount"] / other["amount"]
         else:
-            self["amount"] /= other
+            '''
+            need to use floordiv to get result type int
+            '''
+            self["amount"] //= other
             return self
 
     def __ifloordiv__(self, other):
