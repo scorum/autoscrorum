@@ -1,7 +1,7 @@
 class Amount(dict):
     """ This class helps deal and calculate with the different assets on the
             chain.
-        :param str amountString: Amount string as used by the backend
+        :param str amount_string: Amount string as used by the backend
             (e.g. "10 SCR")
     """
 
@@ -11,12 +11,11 @@ class Amount(dict):
             self["asset"] = amount_string["asset"]
         elif isinstance(amount_string, str):
             self["amount"], self["asset"] = amount_string.split(" ")
+            self['amount'] = int(self['amount'].replace('.', '').lstrip('0'))
         else:
             raise ValueError(
                 "Need an instance of 'Amount' or a string with amount " +
                 "and asset")
-
-        self["amount"] = float(self["amount"])
 
     @property
     def amount(self):
@@ -30,6 +29,23 @@ class Amount(dict):
     def asset(self):
         return self["asset"]
 
+    def _to_string(self, prec):
+        def insert_zeroes_at_start(string):
+            multiplier = prec - len(string)
+            string = ('0' * (multiplier + 1)) + string
+            return string
+
+        def add_dot_separator(string):
+            list_to_insert = list(string)
+            list_to_insert.insert(-prec, '.')
+            string = ''.join(list_to_insert)
+            return string
+
+        amount_string = str(self.amount)
+        if len(amount_string) < prec:
+            amount_string = insert_zeroes_at_start(amount_string)
+        return add_dot_separator(amount_string)
+
     def __str__(self):
         if self["asset"] == "SCR":
             prec = 9
@@ -39,21 +55,21 @@ class Amount(dict):
         # default
         else:
             prec = 9
-        return "{:.{prec}f} {}".format(
-            self["amount"], self["asset"], prec=prec)
+        return "{} {}".format(
+            self._to_string(prec), self["asset"])
 
     def __float__(self):
         return self["amount"]
 
     def __int__(self):
-        return int(self["amount"])
+        return self["amount"]
 
     def __add__(self, other):
         a = Amount(self)
         if isinstance(other, Amount):
             a["amount"] += other["amount"]
         else:
-            a["amount"] += float(other)
+            a["amount"] += int(other)
         return a
 
     def __sub__(self, other):
@@ -61,7 +77,7 @@ class Amount(dict):
         if isinstance(other, Amount):
             a["amount"] -= other["amount"]
         else:
-            a["amount"] -= float(other)
+            a["amount"] -= int(other)
         return a
 
     def __mul__(self, other):
@@ -85,7 +101,10 @@ class Amount(dict):
         if isinstance(other, Amount):
             raise Exception("Cannot divide two Amounts")
         else:
-            a["amount"] /= other
+            '''
+            need to use floordiv to get result type int
+            '''
+            a["amount"] //= other
         return a
 
     def __mod__(self, other):
@@ -130,7 +149,10 @@ class Amount(dict):
             assert other["asset"] == self["asset"]
             return self["amount"] / other["amount"]
         else:
-            self["amount"] /= other
+            '''
+            need to use floordiv to get result type int
+            '''
+            self["amount"] //= other
             return self
 
     def __ifloordiv__(self, other):
@@ -153,45 +175,39 @@ class Amount(dict):
 
     def __lt__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             return self["amount"] < other["amount"]
         else:
-            return self["amount"] < float(other or 0)
+            return self["amount"] < int(other or 0)
 
     def __le__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             return self["amount"] <= other["amount"]
         else:
-            return self["amount"] <= float(other or 0)
+            return self["amount"] <= int(other or 0)
 
     def __eq__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
-            return str(self) == str(other)
+            return self['amount'] == other['amount']
         else:
-            return self["amount"] == float(other or 0)
+            return self["amount"] == int(other or 0)
 
     def __ne__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             return self["amount"] != other["amount"]
         else:
-            return self["amount"] != float(other or 0)
+            return self["amount"] != int(other or 0)
 
     def __ge__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             return self["amount"] >= other["amount"]
         else:
-            return self["amount"] >= float(other or 0)
+            return self["amount"] >= int(other or 0)
 
     def __gt__(self, other):
         if isinstance(other, Amount):
-            assert other["asset"] == self["asset"]
             return self["amount"] > other["amount"]
         else:
-            return self["amount"] > float(other or 0)
+            return self["amount"] > int(other or 0)
 
     __repr__ = __str__
     __truediv__ = __div__

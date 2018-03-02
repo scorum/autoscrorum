@@ -1,7 +1,6 @@
-import time
-import datetime
 import json
-import pytz
+
+from .utils import fmt_time_from_now
 
 
 class Genesis(object):
@@ -68,5 +67,4 @@ class Genesis(object):
         return json.dumps(self.parms)
 
     def _set_timestamp(self):
-        timestamp = datetime.datetime.fromtimestamp(time.time(), tz=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
-        self['initial_timestamp'] = '2018-01-11T13:55:58'
+        self['initial_timestamp'] = fmt_time_from_now(1)
