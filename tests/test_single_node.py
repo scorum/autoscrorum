@@ -205,7 +205,7 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
 
 
 def test_create_budget(wallet: Wallet):
-    wallet.create_budget(account_name, Amount("10666.666666667 SCR"), fmt_time_from_now(30))
+    wallet.create_budget(account_name, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
     budget = wallet.get_budgets(account_name)[0]
 
     assert account_name in wallet.list_buddget_owners()
@@ -213,7 +213,7 @@ def test_create_budget(wallet: Wallet):
     assert budget['owner'] == account_name
 
 
-@pytest.mark.parametrize('genesis', ('0.420480000 SCR',), indirect=True)
+@pytest.mark.parametrize('genesis', ({'rewards_supply': '0.420480000 SCR'},), indirect=True)
 def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     def get_reward_per_block():
         last_confirmed_block = wallet.get_witness(account_name)['last_confirmed_block_num']

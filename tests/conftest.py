@@ -45,9 +45,6 @@ def genesis(request):
     g = Genesis()
     g["accounts_supply"] = "210100.000000000 SCR"
     g["rewards_supply"] = "1000000.000000000 SCR"
-    if hasattr(request, 'param'):
-        g['rewards_supply'] = request.param
-
     g.add_account(acc_name=acc_name,
                   public_key=acc_public_key,
                   scr_amount="110000.000000000 SCR",
@@ -69,6 +66,9 @@ def genesis(request):
                                      "sp_amount": "210.000000000 SP"},
                                     {"name": "bob",
                                      "sp_amount": "90.100000000 SP"}]
+    if hasattr(request, 'param'):
+        for key, value in request.param.items():
+            g[key] = value
     return g
 
 
