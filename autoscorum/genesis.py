@@ -24,16 +24,16 @@ class Genesis(object):
         self["registration_supply"] = "100.000000000 SCR"
         self["registration_bonus"] = "0.000000100 SCR"
         self["registration_schedule"] = [{"stage": 1,
-                                          "users": 1,
+                                          "users": 4,
                                           "bonus_percent": 100},
                                          {"stage": 2,
-                                          "users": 2,
+                                          "users": 1,
                                           "bonus_percent": 75},
                                          {"stage": 3,
-                                          "users": 5,
+                                          "users": 1,
                                           "bonus_percent": 50},
                                          {"stage": 4,
-                                          "users": 10,
+                                          "users": 1,
                                           "bonus_percent": 25}
                                          ]
 

@@ -136,7 +136,7 @@ def test_create_account(wallet: Wallet, valid_name):
                                             ('a_b', Errors.assert_exception),
                                             ('1ab', Errors.assert_exception),
                                             ('alalalalalalalala', Errors.tx_missing_active_auth),
-                                            ('alice', Errors.assert_exception)])
+                                            ('alice', Errors.uniqueness_constraint_violated)])
 def test_create_account_with_invalid_name(wallet: Wallet, name_and_error):
     creator = account_name
     invalid_name, error = name_and_error
@@ -196,11 +196,12 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
                                             ('a_b', Errors.assert_exception),
                                             ('1ab', Errors.assert_exception),
                                             ('alalalalalalalala', Errors.tx_missing_active_auth),
-                                            ('alice', Errors.assert_exception)])
+                                            ('alice', Errors.uniqueness_constraint_violated)])
 def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_error):
     creator = account_name
     invalid_name, error = name_and_error
     response = wallet.create_account_by_committee(creator, invalid_name, test_account_owner_pub_key)
+    print(response)
     assert error.value == response['error']['data']['code']
 
 
@@ -213,6 +214,7 @@ def test_create_budget(wallet: Wallet):
     assert budget['owner'] == account_name
 
 
+@pytest.mark.xfail(reason='BLOC-207')
 @pytest.mark.parametrize('genesis', ({'rewards_supply': '0.420480000 SCR'},), indirect=True)
 def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     def get_reward_per_block():
