@@ -36,10 +36,10 @@ def account_create_operation(creator: str,
                              additional_posting_keys):
     creation_fee = str(fee)
 
-    owner_pubkey = PublicKey(owner)
-    active_pubkey = PublicKey(active if active else owner)
-    posting_pubkey = PublicKey(posting if posting else owner)
-    memo_pubkey = PublicKey(memo)
+    owner_pubkey = owner if type(owner) is PublicKey else PublicKey(owner)
+    active_pubkey = active if type(active) is PublicKey else PublicKey(active)
+    posting_pubkey = posting if type(posting) is PublicKey else PublicKey(posting)
+    memo_pubkey = memo if type(memo) is PublicKey else PublicKey(memo)
 
     owner_key_authority = [[str(owner_pubkey), 1]]
     active_key_authority = [[str(active_pubkey), 1]]
