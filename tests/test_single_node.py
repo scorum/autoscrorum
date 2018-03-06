@@ -191,26 +191,34 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
 
 
 def test_registration_schedule(wallet: Wallet, genesis: Genesis):
-    def reward_percent():
+    def expected_reward_value(schedule):
+        registratin_bonus = Amount(genesis['registration_bonus'])
         total_accounts = len(wallet.list_accounts())
-        schedule = genesis['registration_schedule']
-        item.pop('')
-        stage = 1
 
-        return schedule
+        for s in schedule:
+            if total_accounts <= s['users']:
+                return registratin_bonus*s['bonus_percent']//100
+        return registratin_bonus*schedule[-1]['bonus_percent']//100
+
+    registration_schedule = list(genesis['registration_schedule'])
+    total_users_in_schedule = 0
+    for stage in registration_schedule:
+        total_users_in_schedule += stage['users']
+        stage['users'] = total_users_in_schedule
 
     creator = committee_name
-    names = ['martin', 'doug', 'joe', 'jim']
+    names = ['martin', 'doug', 'kevin', 'joe', 'jim']
     accounts = [Account(name) for name in names]
 
-    print(reward_percent())
+    for account in accounts:
+        wallet.create_account_by_committee(creator,
+                                           account.name,
+                                           active=account.active.get_public_key(),
+                                           owner=account.owner.get_public_key(),
+                                           posting=account.posting.get_public_key())
 
-    # for account in accounts:
-    #     wallet.create_account_by_committee(creator,
-    #                                        account.name,
-    #                                        active=account.active.get_public_key(),
-    #                                        owner=account.owner.get_public_key(),
-    #                                        posting=account.posting.get_public_key())
+        assert wallet.get_account_sp_balance(account.name) == expected_reward_value(registration_schedule), \
+            '{} sp balance differs from expected'.format(account.name)
 
 
 @pytest.mark.parametrize('name_and_error', [('', Errors.assert_exception),
