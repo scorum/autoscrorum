@@ -261,7 +261,7 @@ class PublicKey(Address):
 
     def __str__(self):
         """ Returns the readable Graphene public key. This call is equivalent to
-            ``format(PublicKey, "GPH")``
+            ``format(PublicKey, "SCR")``
         """
         return format(self._pk, self.prefix)
 
