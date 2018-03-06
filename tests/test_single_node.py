@@ -192,13 +192,13 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
 
 def test_registration_schedule(wallet: Wallet, genesis: Genesis):
     def expected_reward_value(schedule):
-        registratin_bonus = Amount(genesis['registration_bonus'])
+        registration_bonus = Amount(genesis['registration_bonus'])
         total_accounts = len(wallet.list_accounts())
 
         for s in schedule:
             if total_accounts <= s['users']:
-                return registratin_bonus*s['bonus_percent']//100
-        return registratin_bonus*schedule[-1]['bonus_percent']//100
+                return registration_bonus*s['bonus_percent']//100
+        return registration_bonus*schedule[-1]['bonus_percent']//100
 
     registration_schedule = list(genesis['registration_schedule'])
     total_users_in_schedule = 0
@@ -295,4 +295,5 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     wallet.create_budget(committee_name, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
 
     content_reward_after_budget_open = get_reward_per_block()
-    assert content_reward_after_budget_open > content_reward_after_balancer_decrease, 'content reward not increased after budget open'
+    assert content_reward_after_budget_open > content_reward_after_balancer_decrease, \
+        'content reward not increased after budget open'
