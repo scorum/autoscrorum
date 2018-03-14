@@ -1,10 +1,16 @@
 import json
 
 from .utils import fmt_time_from_now
+from graphenebase.amount import Amount
 
 
 class Genesis(object):
     def __init__(self):
+        self.accounts_supply = Amount()
+        self.rewards_supply = Amount()
+        self.founders_supply = Amount('0 SP')
+        self.steemit_bounty_supply = Amount('0 SP')
+        self.registration_supply = Amount('0 SP')
         self.parms = {}
         self._set_timestamp()
         self["accounts_supply"] = "1000.000000000 SCR"
@@ -68,3 +74,11 @@ class Genesis(object):
 
     def _set_timestamp(self):
         self['initial_timestamp'] = fmt_time_from_now(1)
+
+    def accounts(self, accounts=[]):
+        for account in accounts:
+            self['accounts'].append({"name": account.name,
+                                     "recovery_account": "",
+                                     "public_key": account.get_owner_public(),
+                                     "scr_amount": account.scr_balance})
+            # if account.sp_balance:

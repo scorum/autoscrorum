@@ -44,5 +44,17 @@ op_names = [
     'proposal_create'
 ]
 
+proposal_op_names = [
+    'registration_committee_add_member',
+    'registration_committee_exclude_member',
+    'registration_committee_change_quorum',
+    'development_committee_add_member',
+    'development_committee_exclude_member',
+    'development_committee_change_quorum',
+    'development_committee_withdraw_vesting',
+    'development_committee_transfer'
+]
+
 #: assign operation ids
 operations = dict(zip(op_names, range(len(op_names))))
+proposal_operations = dict(zip(proposal_op_names, range(len(proposal_op_names))))

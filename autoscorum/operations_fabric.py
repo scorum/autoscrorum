@@ -151,3 +151,13 @@ def create_budget_operation(owner, permlink, balance: Amount, deadline):
            'deadline': deadline
            }
     )
+
+
+def invite_new_committee_member(inviter, invitee, lifetime_sec):
+    return operations.ProposalCreate(
+        **{'creator': inviter,
+           'data': invitee,
+           'action': 'invite',
+           'lifetime_sec': lifetime_sec
+           }
+    )

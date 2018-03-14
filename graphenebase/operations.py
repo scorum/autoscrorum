@@ -211,3 +211,19 @@ class AccountWitnessVote(GrapheneObject):
                     ('witness', String(kwargs["witness"])),
                     ('approve', Bool(bool(kwargs["approve"]))),
                 ]))
+
+
+class ProposalCreate(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('creator', String(kwargs['creator'])),
+                    ('lifetime_sec', Uint32(kwargs['lifetime_sec'])),
+                    ('operation', )
+                ])
+            )
