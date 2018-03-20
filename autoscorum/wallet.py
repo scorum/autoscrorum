@@ -10,6 +10,23 @@ from .utils import fmt_time_from_now
 import autoscorum.operations_fabric as operations
 
 
+class Broadcaster():
+    def __init__(self, chain_id, keys, rpc):
+        self.chain_id = chain_id
+        self.keys = keys
+        self.rpc = rpc
+
+    def broadcast_transaction_synchronous(self, ref_block_num, ref_block_prefix, ops):
+        tx = SignedTransaction(ref_block_num=ref_block_num,
+                               ref_block_prefix=ref_block_prefix,
+                               expiration=fmt_time_from_now(60),
+                               operations=ops)
+
+        tx.sign(self.keys, self.chain_id)
+
+        return self.rpc.send(Wallet.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+
+
 class Wallet(object):
     def __init__(self, node, keys=[]):
         self.node = node
@@ -17,6 +34,7 @@ class Wallet(object):
         self.chain_id = self.node.get_chain_id()
 
         self.rpc = RpcClient()
+        self.broadcaster = Broadcaster(self.chain_id, self.keys, self.rpc)
 
     def __enter__(self):
         self.rpc.open_ws(self.node.rpc_endpoint)
@@ -236,11 +254,4 @@ class Wallet(object):
     def broadcast_transaction_synchronous(self, ops):
         ref_block_num, ref_block_prefix = self.get_ref_block_params()
 
-        tx = SignedTransaction(ref_block_num=ref_block_num,
-                               ref_block_prefix=ref_block_prefix,
-                               expiration=fmt_time_from_now(60),
-                               operations=ops)
-
-        tx.sign(self.keys, self.chain_id)
-
-        return self.rpc.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+        return self.broadcaster.broadcast_transaction_synchronous(ref_block_num, ref_block_prefix, ops)
