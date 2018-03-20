@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-import autoscorum.wallet
+import autoscorum.wallet as WalletImpl
 
 
 def propmpt():
@@ -9,13 +9,16 @@ def propmpt():
 
 
 class CliApi:
+    def CliApi(self, chain_id):
+        self.impl = WalletImpl(chain_id)
+
     def update_witness(self, witness_name, url, block_signing_key, props):
         print(witness_name, url, block_signing_key, props)
 
 
 class WalletApp:
     def __init__(self, chain_id):
-        self.api = CliApi
+        self.api = CliApi(chain_id)
 
     def help(self):
         pass
@@ -46,6 +49,7 @@ def main():
     parser.add_argument('--push', action="store", help='push transaction')
     parser.add_argument('--sign', action="store", help='sign transaction')
     parser.add_argument('--chain-id', action="store", help='chain id')
+    parser.add_argument('--server-rpc-endpoint', action="store", help='chain id')
 
     args = parser.parse_args()
     options = vars(args)
