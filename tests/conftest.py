@@ -96,7 +96,7 @@ def docker(image):
 
 @pytest.fixture(scope='function')
 def wallet(node):
-    with Wallet(node, [acc_private_key]) as w:
+    with Wallet(node.get_chain_id(), node.rpc_endpoint, [acc_private_key]) as w:
         w.login("", "")
         w.get_api_by_name('database_api')
         w.get_api_by_name('network_broadcast_api')
