@@ -28,16 +28,16 @@ class Broadcaster():
 
 
 class Wallet(object):
-    def __init__(self, node, keys=[]):
-        self.node = node
+    def __init__(self, chain_id, rpc_endpoint, keys=[]):
         self.keys = keys
-        self.chain_id = self.node.get_chain_id()
+        self.chain_id = chain_id
+        self.rpc_endpoint = rpc_endpoint
 
         self.rpc = RpcClient()
         self.broadcaster = Broadcaster(self.chain_id, self.keys, self.rpc)
 
     def __enter__(self):
-        self.rpc.open_ws(self.node.rpc_endpoint)
+        self.rpc.open_ws(self.rpc_endpoint)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
