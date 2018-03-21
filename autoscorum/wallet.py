@@ -159,6 +159,13 @@ class Wallet(object):
 
         return self.broadcast_transaction_synchronous([op])
 
+    def update_witness(self, owner, signing_key, url='testurl.scorum.com', props=None):
+        if not props:
+            props = {'account_creation_fee': '0.0000000025 SCR',
+                     'maximum_block_size': 131072}
+        op = operations.witness_update_operation(owner, url, signing_key, props)
+        return self.broadcast_transaction_synchronous([op])
+
     def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
         op = operations.ProposalCreate(
             **{'creator': inviter,
