@@ -1,60 +1,74 @@
 import argparse
 import sys
 
-import autoscorum.wallet as WalletImpl
+from autoscorum.wallet import Wallet
 
 
 def propmpt():
     print('>> ', end='', flush=True)
 
 
-class CliApi:
-    def CliApi(self, chain_id):
-        self.impl = WalletImpl(chain_id)
-
-    def update_witness(self, witness_name, url, block_signing_key, props):
-        print(witness_name, url, block_signing_key, props)
-
-
 class WalletApp:
-    def __init__(self, chain_id):
-        self.api = CliApi(chain_id)
+    def __init__(self):
+        self._run = True
 
     def help(self):
         pass
 
-    def run(self):
+    def exit(self):
+        self._run = False
+
+    def save(self):
+        pass
+
+    def run(self, chain_id, server_rpc):
         propmpt()
 
-        for line in sys.stdin:
-            if line == "exit\n":
-                return 0
+        with Wallet(chain_id, server_rpc) as wallet:
 
-            words = line.split()
+            for line in sys.stdin:
 
-            if len(words) > 0:
-                try:
-                    getattr(self.api, words[0])(self.api, *words[1:])
-                except AttributeError as e:
-                    print("no such method in api error: \"%s\"" % e)
-                except TypeError as e:
-                    print(e)
+                words = line.split()
 
-            propmpt()
+                if len(words) > 0:
+
+                    try:
+                        getattr(self, words[0])(*words[1:])
+
+                        if not self._run:
+                            break
+
+                        propmpt()
+                        continue
+                    except AttributeError:
+                        pass
+                    except TypeError:
+                        pass
+
+                    try:
+                        print(words)
+                        result = getattr(wallet, words[0])(*words[1:])
+                        print(result)
+                    except AttributeError as e:
+                        print("no such method in api error: \"%s\"" % e)
+                    except TypeError as e:
+                        print(e)
+
+                propmpt()
+
+        self.save()
+        return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description='wallet app')
 
-    parser.add_argument('--push', action="store", help='push transaction')
-    parser.add_argument('--sign', action="store", help='sign transaction')
-    parser.add_argument('--chain-id', action="store", help='chain id')
-    parser.add_argument('--server-rpc-endpoint', action="store", help='chain id')
+    parser.add_argument('--chain-id', action="store", help='Chain ID to connect to')
+    parser.add_argument('--server-rpc-endpoint', default="127.0.0.1:8090", action="store", help='Server websocket RPC endpoint')
 
     args = parser.parse_args()
     options = vars(args)
 
-    wallet = WalletApp(chain_id=options["chain_id"])
+    wallet = WalletApp()
 
-    return wallet.run()
-
+    return wallet.run(chain_id=options["chain_id"], server_rpc=options["server_rpc_endpoint"])

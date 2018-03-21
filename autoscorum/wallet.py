@@ -72,6 +72,9 @@ class Wallet(object):
         else:
             return body_dict
 
+    def import_key(self, key):
+        self.keys.append(key)
+
     def get_dynamic_global_properties(self):
         response = self.rpc.send(self.json_rpc_body('get_dynamic_global_properties', api='database_api'))
         return response['result']
