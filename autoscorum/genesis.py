@@ -7,22 +7,20 @@ class Genesis(object):
     def __init__(self):
         self.parms = {}
         self._set_timestamp()
-        self["accounts_supply"] = "1000.000000000 SCR"
-        self["rewards_supply"] = "100.000000000 SCR"
-
-        self["accounts"] = []
-
-        self["witness_candidates"] = []
-
-        self["founders_supply"] = "100.000000000 SP"
-        self["founders"] = []
-
-        self["steemit_bounty_accounts_supply"] = "0.000000000 SP"
-        self["steemit_bounty_accounts"] = []
-
-        self["registration_committee"] = []
+        self["lock_withdraw_sp_until_timestamp"] = "2018-07-01T00:00:00"
+        self["total_supply"] = "700.000000000 SCR"
         self["registration_supply"] = "100.000000000 SCR"
         self["registration_bonus"] = "0.000000100 SCR"
+        self["accounts_supply"] = "100.000000000 SCR"
+        self["rewards_supply"] = "100.000000000 SCR"
+        self["founders_supply"] = "100.000000000 SP"
+        self["steemit_bounty_accounts_supply"] = "100.000000000 SP"
+        self["development_sp_supply"] = "100.000000000 SP"
+        self["development_scr_supply"] = "100.000000000 SCR"
+        self["accounts"] = []
+        self["founders"] = []
+        self["steemit_bounty_accounts"] = []
+        self["witness_candidates"] = []
         self["registration_schedule"] = [{"stage": 1,
                                           "users": 4,
                                           "bonus_percent": 100},
@@ -36,6 +34,8 @@ class Genesis(object):
                                           "users": 1,
                                           "bonus_percent": 25}
                                          ]
+        self["registration_committee"] = []
+        self["development_committee"] = []
 
     def __getitem__(self, item):
         return self.parms[item]
@@ -43,14 +43,12 @@ class Genesis(object):
     def __setitem__(self, key, value):
         self.parms[key] = value
 
-    def add_account(self, acc_name, public_key, recovery_account="", scr_amount='0.000000000 SRC', sp_amount='0.000000000 SP',  witness=False, committee=False):
+    def add_account(self, acc_name, public_key, scr_amount='0.000000000 SRC', witness=False, committee=False):
         if len(self["registration_committee"]) < 1:
             committee = True
         account = {"name": acc_name,
-                   "recovery_account": recovery_account,
                    "public_key": public_key,
-                   "scr_amount": scr_amount,
-                   "sp_amount": sp_amount}
+                   "scr_amount": scr_amount}
 
         self['accounts'].append(account)
         if witness:

@@ -12,8 +12,8 @@ def transfer_operation(_from, to, amount: Amount, memo):
            })
 
 
-def transfer_to_vesting_operation(_from, to, amount: Amount):
-    return operations.TransferToVesting(
+def transfer_to_scorumpower_operation(_from, to, amount: Amount):
+    return operations.TransferToScorumpower(
         **{'from': _from,
            'to': to,
            'amount': str(amount)

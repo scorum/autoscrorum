@@ -104,7 +104,7 @@ class Wallet(object):
         return Amount(self.get_account(name)['balance'])
 
     def get_account_sp_balance(self, name: str):
-        return Amount(self.get_account(name)['vesting_shares'])
+        return Amount(self.get_account(name)['scorumpower'])
 
     def get_account_keys_auths(self, name: str):
         result = {}
@@ -146,8 +146,8 @@ class Wallet(object):
         op = operations.transfer_operation(_from, to, amount, memo)
         return self.broadcast_transaction_synchronous([op])
 
-    def transfer_to_vesting(self, _from: str, to: str, amount: Amount):
-        op = operations.transfer_to_vesting_operation(_from, to, amount)
+    def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
+        op = operations.transfer_to_scorumpower_operation(_from, to, amount)
         return self.broadcast_transaction_synchronous([op])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):

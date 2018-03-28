@@ -130,7 +130,7 @@ class Transfer(GrapheneObject):
             ]))
 
 
-class TransferToVesting(GrapheneObject):
+class TransferToScorumpower(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
             self.data = args[0].data
