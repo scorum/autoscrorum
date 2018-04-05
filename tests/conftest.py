@@ -66,7 +66,6 @@ def genesis(request):
     if hasattr(request, 'param'):
         for key, value in request.param.items():
             g[key] = value
-    print(g.dump())
     return g
 
 
@@ -76,7 +75,7 @@ def node(genesis, docker):
     n.config['witness'] = '"{acc_name}"'.format(acc_name=acc_name)
     n.config['private-key'] = acc_private_key
     n.config['public-api'] = "database_api login_api account_by_key_api"
-    n.config['enable-plugin'] = 'witness account_history account_by_key'
+    n.config['enable-plugin'] = 'witness blockchain_history account_by_key'
 
     docker.run_node(n)
     yield n

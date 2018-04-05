@@ -239,13 +239,12 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
     assert error.value == response['error']['data']['code']
 
 
-@pytest.mark.xfail(reason='operation banned')
 def test_create_budget(wallet: Wallet):
     wallet.create_budget(committee_name, Amount("10.000000000 SCR"), fmt_time_from_now(30))
     budget = wallet.get_budgets(committee_name)[0]
 
     assert committee_name in wallet.list_buddget_owners()
-    assert budget['per_block'] == '1000000000'
+    assert budget['per_block'] == 1000000000
     assert budget['owner'] == committee_name
 
 
