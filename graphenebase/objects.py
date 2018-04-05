@@ -50,14 +50,6 @@ class Operation:
     def operations(self):
         return operations
 
-    @staticmethod
-    def get_operation_name_for_id(_id: int):
-        """ Convert an operation id into the corresponding string
-        """
-        for key, value in operations.items():
-            if value == int(_id):
-                return key
-
     def _getklass(self, name):
         module = __import__("graphenebase.operations", fromlist=["operations"])
         class_ = getattr(module, name)
@@ -67,7 +59,7 @@ class Operation:
         return bytes(Id(self.opId)) + bytes(self.op)
 
     def __str__(self):
-        return json.dumps([self.get_operation_name_for_id(self.opId), self.op.toJson()])
+        return json.dumps([self.to_method_name(self.name), self.op.toJson()])
 
 
 class GrapheneObject(object):

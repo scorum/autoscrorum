@@ -23,16 +23,18 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
                              Amount(genesis['rewards_supply']) +
                              Amount(genesis['registration_supply']) +
                              Amount(genesis['founders_supply']) +
-                             Amount(genesis['steemit_bounty_accounts_supply']))
+                             Amount(genesis['steemit_bounty_accounts_supply']) +
+                             Amount(genesis['development_sp_supply']) +
+                             Amount(genesis['development_scr_supply']))
 
     assert Amount(info['total_supply']) == expected_total_supply
-    assert wallet.get_account_scr_balance(initdelegate.name) == Amount('110000.000000000 SCR')
-    assert wallet.get_account_scr_balance('alice') == Amount('100000.000000000 SCR')
+    assert wallet.get_account_scr_balance(initdelegate.name) == Amount('80.000000000 SCR')
+    assert wallet.get_account_scr_balance('alice') == Amount('10.000000000 SCR')
 
 
 def test_transfer(wallet: Wallet):
     initdelegate_balance_before = wallet.get_account_scr_balance('initdelegate')
-    amount = initdelegate_balance_before - Amount('100.000000000 SCR')
+    amount = initdelegate_balance_before - Amount('5.000000000 SCR')
     alice_balance_before = wallet.get_account_scr_balance('alice')
 
     wallet.transfer('initdelegate', 'alice', amount)
@@ -66,7 +68,7 @@ def test_transfer_to_vesting(wallet: Wallet):
 
     amount = Amount('1.000000000 SCR')
 
-    wallet.transfer_to_vesting('initdelegate', 'alice', amount)
+    wallet.transfer_to_scorumpower('initdelegate', 'alice', amount)
 
     initdelegate_scr_balance_after = wallet.get_account_scr_balance('initdelegate')
     alice_sp_balance_after = wallet.get_account_sp_balance('alice')
@@ -235,11 +237,11 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
 
 
 def test_create_budget(wallet: Wallet):
-    wallet.create_budget(initdelegate.name, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
+    wallet.create_budget(initdelegate.name, Amount("10.000000000 SCR"), fmt_time_from_now(30))
     budget = wallet.get_budgets(initdelegate.name)[0]
 
     assert initdelegate.name in wallet.list_buddget_owners()
-    assert budget['per_block'] == '1000000000000'
+    assert budget['per_block'] == 1000000000
     assert budget['owner'] == initdelegate.name
 
 

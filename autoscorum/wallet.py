@@ -15,7 +15,6 @@ class Wallet(object):
     def __init__(self, node, accounts=[]):
         self.node = node
         self.chain_id = self.node.get_chain_id()
-
         self.accounts = accounts
 
         self.rpc = RpcClient()
@@ -115,7 +114,7 @@ class Wallet(object):
         return Amount(self.get_account(name)['balance'])
 
     def get_account_sp_balance(self, name: str):
-        return Amount(self.get_account(name)['vesting_shares'])
+        return Amount(self.get_account(name)['scorumpower'])
 
     def get_account_keys_auths(self, name: str):
         result = {}
@@ -161,10 +160,10 @@ class Wallet(object):
         signing_key = self.account(_from).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def transfer_to_vesting(self, _from: str, to: str, amount: Amount):
-        op = operations.transfer_to_vesting_operation(_from, to, amount)
-
+    def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
+        op = operations.transfer_to_scorumpower_operation(_from, to, amount)
         signing_key = self.account(_from).get_active_private()
+
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):
@@ -176,6 +175,13 @@ class Wallet(object):
 
         signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def update_witness(self, owner, signing_key, url='testurl.scorum.com', props=None):
+        if not props:
+            props = {'account_creation_fee': '0.0000000025 SCR',
+                     'maximum_block_size': 131072}
+        op = operations.witness_update_operation(owner, url, signing_key, props)
+        return self.broadcast_transaction_synchronous([op])
 
     def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
         op = operations.invite_new_committee_member(inviter, invitee, lifetime_sec)

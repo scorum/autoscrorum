@@ -130,7 +130,7 @@ class Transfer(GrapheneObject):
             ]))
 
 
-class TransferToVesting(GrapheneObject):
+class TransferToScorumpower(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
             self.data = args[0].data
@@ -224,6 +224,41 @@ class ProposalCreate(GrapheneObject):
                 OrderedDict([
                     ('creator', String(kwargs['creator'])),
                     ('lifetime_sec', Uint32(kwargs['lifetime_sec'])),
-                    ('operation', )
-                ])
-            )
+                    ('operation', kwargs['operation'])
+                ]))
+
+
+class WitnessProps(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super(WitnessProps, self).__init__(
+                OrderedDict([
+                    ('account_creation_fee', Amount(kwargs["account_creation_fee"])),
+                    ('maximum_block_size', Uint32(kwargs["maximum_block_size"])),
+                ]))
+
+
+class WitnessUpdate(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            prefix = kwargs.pop("prefix", default_prefix)
+
+            if not kwargs["block_signing_key"]:
+                kwargs[
+                    "block_signing_key"] = \
+                    "SCR1111111111111111111111111111111114T1Anm"
+            super(WitnessUpdate, self).__init__(
+                OrderedDict([
+                    ('owner', String(kwargs["owner"])),
+                    ('url', String(kwargs["url"])),
+                    ('block_signing_key', PublicKey(kwargs["block_signing_key"], prefix=prefix)),
+                    ('props', WitnessProps(kwargs["props"])),
+                ]))

@@ -12,8 +12,8 @@ def transfer_operation(_from, to, amount: Amount, memo):
            })
 
 
-def transfer_to_vesting_operation(_from, to, amount: Amount):
-    return operations.TransferToVesting(
+def transfer_to_scorumpower_operation(_from, to, amount: Amount):
+    return operations.TransferToScorumpower(
         **{'from': _from,
            'to': to,
            'amount': str(amount)
@@ -160,4 +160,13 @@ def invite_new_committee_member(inviter, invitee, lifetime_sec):
            'action': 'invite',
            'lifetime_sec': lifetime_sec
            }
+    )
+
+
+def witness_update_operation(owner, url, block_signing_key, props: dict):
+    return operations.WitnessUpdate(
+        **{'owner': owner,
+           'url': url,
+           'block_signing_key': block_signing_key,
+           'props': props}
     )
