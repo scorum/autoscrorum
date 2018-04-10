@@ -21,8 +21,7 @@ chain_params = {"chain_id": None,
 
 
 class Node(object):
-    def __init__(self, config=Config(), genesis=None, bin_path=None, logging=True):
-        self._bin_path = bin_path if bin_path else utils.which(SCORUM_BIN)
+    def __init__(self, config=Config(), genesis=None, logging=True):
         self.config = config
         self._genesis = genesis
         self.logging = logging
