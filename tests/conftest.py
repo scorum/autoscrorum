@@ -6,6 +6,7 @@ from autoscorum.genesis import Genesis
 from autoscorum.node import Node
 from autoscorum.docker_controller import DockerController
 from autoscorum.wallet import Wallet
+from autoscorum.utils import which
 
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
@@ -14,9 +15,37 @@ acc_name = "initdelegate"
 acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
 acc_private_key = "5K8ZJUYs9SP47JgzUY97ogDw1da37yuLrSF5syj2Wr4GEvPWok6"
 
+SCORUMD_BIN_PATH = which('scorumd')
+
 
 def pytest_addoption(parser):
-    parser.addoption('--image', metavar='image', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
+    parser.addoption('--target', action='store', default=SCORUMD_BIN_PATH, help='specify path to scorumd')
+    parser.addoption('--image', action='store', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
+    parser.addoption('--use-local-image', action='store_false', help='dont rebuild image')
+
+
+@pytest.fixture(scope='session')
+def rebuild_image(request):
+    return request.config.getoption('--use-local-image')
+
+
+@pytest.fixture(scope='session')
+def bin_path(request, image):
+    if image is DEFAULT_IMAGE_NAME:
+        target = request.config.getoption('--target')
+        scorumd = target
+        scorumd_target_is_pwd = os.path.join(scorumd, 'scorumd')
+        scorumd_target_is_build_dir = os.path.join(scorumd, 'programs/scorumd/scorumd')
+
+        if os.path.isfile(scorumd_target_is_build_dir):
+            return scorumd_target_is_build_dir
+        elif os.path.isfile(scorumd_target_is_pwd):
+            return scorumd_target_is_pwd
+        elif os.path.isfile(scorumd):
+            return scorumd
+        else:
+            pytest.fail("scorumd not found")
+    return None
 
 
 @pytest.fixture(scope='session')
@@ -71,24 +100,27 @@ def genesis(request):
 
 @pytest.fixture(scope='function')
 def node(genesis, docker):
-    n = Node(genesis=genesis, logging=True)
+    n = Node(genesis=genesis, logging=False)
     n.config['witness'] = '"{acc_name}"'.format(acc_name=acc_name)
     n.config['private-key'] = acc_private_key
     n.config['public-api'] = "database_api login_api account_by_key_api"
     n.config['enable-plugin'] = 'witness blockchain_history account_by_key'
 
-    docker.run_node(n)
-    yield n
+    with docker.run_node(n):
+        yield n
+
     if n.logging:
         n.read_logs()
         print(n.logs)
 
 
-@pytest.fixture(scope='function')
-def docker(image):
-    d = DockerController(image)
+@pytest.fixture(scope='session')
+def docker(image, bin_path):
+    d = DockerController(target_bin=bin_path)
+    if rebuild_image:
+        d.remove_image(image)
+    d.set_image(image)
     yield d
-    d.stop_all()
 
 
 @pytest.fixture(scope='function')

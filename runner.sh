@@ -4,9 +4,27 @@
 #% runner.sh - script for running autoscorum tests and writing results in result.xml file
 #%
 #% usage: runner.sh <py.test arguments>
+#% 
+#% where <py.test arguments> in one of standart py.test args and:
+#%		--target=TARGET      specify path to scorumd build directory, parent directory, or directly to scorumd binnary(absolute path)
+#%		--image=IMAGE        specify image for tests run(default value=='autonode' if image name != 'autonode' target arg will be ignored)
+#%		--use-local-image    do not rebuild image(will be rebuilded by default)
+#%
+#% examples:
+#%		./runner.sh --image scorum/release:latest           run tests on latest release image
+#%		./runner.sh --target=/home/username/sources/build   run tests on local scorumd binnary(will try to found it in build/programs/scorumd)
+#%		./runner.sh -v                                      run tests on local scorumd(should be installed, will try to find it in PATH)
 #%
 
 ME=$(basename "${BASH_SOURCE}")
+
+synopsis()
+{
+	ME=$(basename "${BASH_SOURCE}")
+	ME_FULLPATH="$(cd $(dirname ${BASH_SOURCE}) && pwd)/${ME}"
+
+	awk '/^#%/ {print substr($0,3)}' "${ME_FULLPATH}"
+}
 
 SetupColors()
 {
@@ -65,6 +83,11 @@ CheckPython()
 
 main()
 {
+	if [[ "${1}" == "" ]]; then
+		synopsis
+		return 0
+	fi
+
 	SetupColors
 	SetPythonBin
 
