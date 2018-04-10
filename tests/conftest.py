@@ -115,7 +115,7 @@ def node(genesis, docker):
 
 
 @pytest.fixture(scope='session')
-def docker(image, bin_path):
+def docker(image, bin_path, rebuild_image):
     d = DockerController(target_bin=bin_path)
     if rebuild_image:
         d.remove_image(image)
