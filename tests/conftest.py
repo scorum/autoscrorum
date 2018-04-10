@@ -33,18 +33,20 @@ def rebuild_image(request):
 def bin_path(request, image):
     if image is DEFAULT_IMAGE_NAME:
         target = request.config.getoption('--target')
-        scorumd = target
-        scorumd_target_is_pwd = os.path.join(scorumd, 'scorumd')
-        scorumd_target_is_build_dir = os.path.join(scorumd, 'programs/scorumd/scorumd')
+        if not target:
+            pytest.fail('scorumd is not installed, specify path with --target={path}')
 
-        if os.path.isfile(scorumd_target_is_build_dir):
-            return scorumd_target_is_build_dir
-        elif os.path.isfile(scorumd_target_is_pwd):
-            return scorumd_target_is_pwd
-        elif os.path.isfile(scorumd):
-            return scorumd
-        else:
-            pytest.fail("scorumd not found")
+        possible_locations = [target,
+                              os.path.join(target, 'scorumd'),
+                              os.path.join(target, 'programs/scorumd/scorumd')]
+
+        for location in possible_locations:
+            if os.path.isfile(location):
+                return location
+
+        fail_message = 'scorumd not found, checked locations:\n'+' \n'.join(possible_locations)
+
+        pytest.fail(fail_message)
     return None
 
 
