@@ -22,19 +22,12 @@ chain_params = {"chain_id": None,
 
 class Node(object):
     def __init__(self, config=Config(), genesis=None, logging=True):
-        self._bin_path = None
         self.config = config
         self._genesis = genesis
         self.logging = logging
         self.logs = ""
         self.rpc_endpoint = None
         self._dir_name = None
-
-    @staticmethod
-    def check_binaries():
-        bin_path = Path(utils.which(SCORUM_BIN))
-        assert bin_path.exists(), "scorumd does not exists"
-        assert bin_path.is_file(), "scorumd is not a file"
 
     def get_chain_id(self):
         if not chain_params["chain_id"]:

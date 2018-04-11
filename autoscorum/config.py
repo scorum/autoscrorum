@@ -32,6 +32,9 @@ def test_dump():
     config['parm1'] = 'value'
     config['parm2'] = 'value'
     expected_str = 'rpc-endpoint = 0.0.0.0:8090\n' \
+                   'genesis-json = genesis.json\n' \
+                   'enable-stale-production = true\n' \
+                   'shared-file-size = 1G\n' \
                    'parm1 = value\n' \
                    'parm2 = value\n'
     assert config.dump() == expected_str

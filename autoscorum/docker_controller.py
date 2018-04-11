@@ -8,7 +8,6 @@ from contextlib import contextmanager
 
 from .node import Node
 from .node import SCORUM_BIN
-from . import utils
 
 DEFAULT_IMAGE_NAME = 'autonode'
 CONFIG_DIR = '/var/lib/scorumd'
@@ -36,13 +35,18 @@ CMD ["--config-file", "{CONFIG_DIR}/config.ini"]
 
 
 class DockerController:
-    def __init__(self, image):
+    def __init__(self, target_bin=None):
         self.docker = docker.from_env()
         self._image = None
-        self._started_containers = []
+        self._target_bin = target_bin
 
-        self.set_image(image)
+    def remove_image(self, image):
+        try:
+            self.docker.images.remove(image, force=True, noprune=False)
+        except ImageNotFound:
+            pass
 
+    @contextmanager
     def run_node(self, node: Node, image: str=None):
         if image:
             self.set_image(image)
@@ -56,8 +60,8 @@ class DockerController:
         node.rpc_endpoint = "{ip}:{port}".format(ip=self.get_ip(container),
                                                  port=node.config['rpc-endpoint'].split(':')[1])
 
-        self._started_containers.append(container)
-        return container
+        yield container
+        self.stop(container)
 
     def set_image(self, image: str):
         self._image = image
@@ -65,7 +69,6 @@ class DockerController:
             self.docker.images.get(image)
         except ImageNotFound:
             if image is DEFAULT_IMAGE_NAME:
-                Node.check_binaries()
                 self._create_default_image()
             else:
                 self.docker.images.pull(image)
@@ -77,7 +80,7 @@ class DockerController:
     @contextmanager
     def _prepare_context(self):
         with tempfile.TemporaryDirectory() as docker_context:
-            shutil.copyfile(utils.which(SCORUM_BIN), os.path.join(docker_context, SCORUM_BIN))
+            shutil.copyfile(self._target_bin, os.path.join(docker_context, SCORUM_BIN))
             with open(os.path.join(docker_context, 'Dockerfile'), 'w') as file:
                 file.write(DOCKERFILE)
             yield docker_context
@@ -90,11 +93,6 @@ class DockerController:
     @staticmethod
     def stop(container):
         container.remove(force=True, v=False)
-
-    def stop_all(self):
-        for cont in self._started_containers:
-            self._started_containers.remove(cont)
-            self.stop(cont)
 
     @staticmethod
     def get_ip(container):
