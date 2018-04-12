@@ -6,14 +6,13 @@ from autoscorum.genesis import Genesis
 from autoscorum.node import Node
 from autoscorum.docker_controller import DockerController
 from autoscorum.wallet import Wallet
+from autoscorum.account import Account
 from autoscorum.utils import which
 
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
 
-acc_name = "initdelegate"
-acc_public_key = "SCR7R1p6GyZ3QjW3LrDayEy9jxbbBtPo9SDajH5QspVdweADi7bBi"
-acc_private_key = "5K8ZJUYs9SP47JgzUY97ogDw1da37yuLrSF5syj2Wr4GEvPWok6"
+initdelegate = Account('initdelegate')
 
 SCORUMD_BIN_PATH = which('scorumd')
 
@@ -74,8 +73,8 @@ def temp_dir():
 @pytest.fixture(scope='function')
 def genesis(request):
     g = Genesis()
-    g.add_account(acc_name=acc_name,
-                  public_key=acc_public_key,
+    g.add_account(acc_name=initdelegate.name,
+                  public_key=initdelegate.get_active_public(),
                   scr_amount="80.000000000 SCR",
                   witness=True)
     g.add_account(acc_name='alice',
@@ -93,7 +92,7 @@ def genesis(request):
                                      "sp_amount": "50.000000000 SP"},
                                     {"name": "bob",
                                      "sp_amount": "50.000000000 SP"}]
-    g['development_committee'] = [acc_name]
+    g['development_committee'] = [initdelegate.name]
     if hasattr(request, 'param'):
         for key, value in request.param.items():
             g[key] = value
@@ -103,8 +102,8 @@ def genesis(request):
 @pytest.fixture(scope='function')
 def node(genesis, docker):
     n = Node(genesis=genesis, logging=False)
-    n.config['witness'] = '"{acc_name}"'.format(acc_name=acc_name)
-    n.config['private-key'] = acc_private_key
+    n.config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
+    n.config['private-key'] = initdelegate.get_active_private()
     n.config['public-api'] = "database_api login_api account_by_key_api"
     n.config['enable-plugin'] = 'witness blockchain_history account_by_key'
 
@@ -127,7 +126,7 @@ def docker(image, bin_path, rebuild_image):
 
 @pytest.fixture(scope='function')
 def wallet(node):
-    with Wallet(node.get_chain_id(), node.rpc_endpoint, [acc_private_key]) as w:
+    with Wallet(node, [initdelegate]) as w:
         w.login("", "")
         w.get_api_by_name('database_api')
         w.get_api_by_name('network_broadcast_api')

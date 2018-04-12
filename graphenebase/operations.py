@@ -213,6 +213,21 @@ class AccountWitnessVote(GrapheneObject):
                 ]))
 
 
+class ProposalCreate(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('creator', String(kwargs['creator'])),
+                    ('lifetime_sec', Uint32(kwargs['lifetime_sec'])),
+                    ('operation', kwargs['operation'])
+                ]))
+
+
 class WitnessProps(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
@@ -220,7 +235,6 @@ class WitnessProps(GrapheneObject):
         else:
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
-
             super(WitnessProps, self).__init__(
                 OrderedDict([
                     ('account_creation_fee', Amount(kwargs["account_creation_fee"])),
@@ -247,4 +261,20 @@ class WitnessUpdate(GrapheneObject):
                     ('url', String(kwargs["url"])),
                     ('block_signing_key', PublicKey(kwargs["block_signing_key"], prefix=prefix)),
                     ('props', WitnessProps(kwargs["props"])),
+                ]))
+
+
+class Vote(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super(Vote, self).__init__(
+                OrderedDict([
+                    ('voter', String(kwargs["voter"])),
+                    ('author', String(kwargs["author"])),
+                    ('permlink', String(kwargs["permlink"])),
+                    ('weight', Int16(kwargs["weight"])),
                 ]))

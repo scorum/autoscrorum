@@ -153,10 +153,29 @@ def create_budget_operation(owner, permlink, balance: Amount, deadline):
     )
 
 
+def invite_new_committee_member(inviter, invitee, lifetime_sec):
+    return operations.ProposalCreate(
+        **{'creator': inviter,
+           'data': invitee,
+           'action': 'invite',
+           'lifetime_sec': lifetime_sec
+           }
+    )
+
+
 def witness_update_operation(owner, url, block_signing_key, props: dict):
     return operations.WitnessUpdate(
         **{'owner': owner,
            'url': url,
            'block_signing_key': block_signing_key,
            'props': props}
+    )
+
+
+def vote_operation(voter, author, permlink, weight):
+    return operations.Vote(
+        **{'voter': voter,
+           'author': author,
+           'permlink': permlink,
+           'weight': weight}
     )
