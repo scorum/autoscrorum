@@ -7,15 +7,46 @@ from autoscorum.node import Node
 from autoscorum.docker_controller import DockerController
 from autoscorum.wallet import Wallet
 from autoscorum.account import Account
+from autoscorum.utils import which
 
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
 
 initdelegate = Account('initdelegate')
 
+SCORUMD_BIN_PATH = which('scorumd')
+
 
 def pytest_addoption(parser):
-    parser.addoption('--image', metavar='image', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
+    parser.addoption('--target', action='store', default=SCORUMD_BIN_PATH, help='specify path to scorumd')
+    parser.addoption('--image', action='store', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
+    parser.addoption('--use-local-image', action='store_false', help='dont rebuild image')
+
+
+@pytest.fixture(scope='session')
+def rebuild_image(request):
+    return request.config.getoption('--use-local-image')
+
+
+@pytest.fixture(scope='session')
+def bin_path(request, image):
+    if image is DEFAULT_IMAGE_NAME:
+        target = request.config.getoption('--target')
+        if not target:
+            pytest.fail('scorumd is not installed, specify path with --target={path}')
+
+        possible_locations = [target,
+                              os.path.join(target, 'scorumd'),
+                              os.path.join(target, 'programs/scorumd/scorumd')]
+
+        for location in possible_locations:
+            if os.path.isfile(location):
+                return location
+
+        fail_message = 'scorumd not found, checked locations:\n'+' \n'.join(possible_locations)
+
+        pytest.fail(fail_message)
+    return None
 
 
 @pytest.fixture(scope='session')
@@ -70,24 +101,27 @@ def genesis(request):
 
 @pytest.fixture(scope='function')
 def node(genesis, docker):
-    n = Node(genesis=genesis, logging=True)
+    n = Node(genesis=genesis, logging=False)
     n.config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
     n.config['private-key'] = initdelegate.get_active_private()
     n.config['public-api'] = "database_api login_api account_by_key_api"
     n.config['enable-plugin'] = 'witness blockchain_history account_by_key'
 
-    docker.run_node(n)
-    yield n
+    with docker.run_node(n):
+        yield n
+
     if n.logging:
         n.read_logs()
         print(n.logs)
 
 
-@pytest.fixture(scope='function')
-def docker(image):
-    d = DockerController(image)
+@pytest.fixture(scope='session')
+def docker(image, bin_path, rebuild_image):
+    d = DockerController(target_bin=bin_path)
+    if rebuild_image:
+        d.remove_image(image)
+    d.set_image(image)
     yield d
-    d.stop_all()
 
 
 @pytest.fixture(scope='function')
