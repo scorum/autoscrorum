@@ -189,6 +189,12 @@ class Wallet(object):
         signing_key = self.account(inviter).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
+    def vote(self, voter, author, permlink, weight=100):
+        op = operations.vote_operation(voter, author, permlink, weight)
+
+        signing_key = self.account(voter).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
     def create_account(self,
                        creator: str,
                        newname: str,
