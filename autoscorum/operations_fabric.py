@@ -160,3 +160,12 @@ def witness_update_operation(owner, url, block_signing_key, props: dict):
            'block_signing_key': block_signing_key,
            'props': props}
     )
+
+
+def vote_operation(voter, author, permlink, weight):
+    return operations.Vote(
+        **{'voter': voter,
+           'author': author,
+           'permlink': permlink,
+           'weight': weight}
+    )
