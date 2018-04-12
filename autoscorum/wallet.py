@@ -34,6 +34,7 @@ class Wallet(object):
         for account in self.accounts:
             if account.name == name:
                 return account
+        return None
 
     @staticmethod
     def json_rpc_body(name, *args, api=None, as_json=True, _id=0, kwargs=None):
