@@ -2,28 +2,38 @@ import json
 import time
 import _struct
 from binascii import unhexlify
+import autoscorum.operations_fabric as operations
 
 from graphenebase.amount import Amount
 from graphenebase.signedtransactions import SignedTransaction
 from .rpc_client import RpcClient
 from .utils import fmt_time_from_now
-import autoscorum.operations_fabric as operations
+from .account import Account
 
 
 class Wallet(object):
-    def __init__(self, chain_id, rpc_endpoint, keys=[]):
-        self.keys = keys
-        self.chain_id = chain_id
-        self.rpc_endpoint = rpc_endpoint
+    def __init__(self, node, accounts=[]):
+        self.node = node
+        self.chain_id = self.node.get_chain_id()
+        self.accounts = accounts
 
         self.rpc = RpcClient()
 
     def __enter__(self):
-        self.rpc.open_ws(self.rpc_endpoint)
+        self.rpc.open_ws(self.node.rpc_endpoint)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.rpc.close_ws()
+
+    def add_account(self, account):
+        acc = account if type(account) is Account else Account(account)
+        self.accounts.append(acc)
+
+    def account(self, name: str):
+        for account in self.accounts:
+            if account.name == name:
+                return account
 
     @staticmethod
     def json_rpc_body(name, *args, api=None, as_json=True, _id=0, kwargs=None):
@@ -140,15 +150,21 @@ class Wallet(object):
 
     def create_budget(self, owner, balance: Amount, deadline, permlink="", ):
         op = operations.create_budget_operation(owner, permlink, balance, deadline)
-        return self.broadcast_transaction_synchronous([op])
+
+        signing_key = self.account(owner).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer(self, _from: str, to: str, amount: Amount, memo=""):
         op = operations.transfer_operation(_from, to, amount, memo)
-        return self.broadcast_transaction_synchronous([op])
+
+        signing_key = self.account(_from).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
         op = operations.transfer_to_scorumpower_operation(_from, to, amount)
-        return self.broadcast_transaction_synchronous([op])
+        signing_key = self.account(_from).get_active_private()
+
+        return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):
         op = operations.AccountWitnessVote(
@@ -157,7 +173,8 @@ class Wallet(object):
                'approve': approve}
         )
 
-        return self.broadcast_transaction_synchronous([op])
+        signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def update_witness(self, owner, signing_key, url='testurl.scorum.com', props=None):
         if not props:
@@ -167,14 +184,10 @@ class Wallet(object):
         return self.broadcast_transaction_synchronous([op])
 
     def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
-        op = operations.ProposalCreate(
-            **{'creator': inviter,
-               'data': invitee,
-               'action': 'invite',
-               'lifetime_sec': lifetime_sec}
-        )
+        op = operations.invite_new_committee_member(inviter, invitee, lifetime_sec)
 
-        return self.broadcast_transaction_synchronous([op])
+        signing_key = self.account(inviter).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def create_account(self,
                        creator: str,
@@ -207,7 +220,8 @@ class Wallet(object):
                                                  additional_active_keys,
                                                  additional_posting_keys)
 
-        return self.broadcast_transaction_synchronous([op])
+        signing_key = self.account(creator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def create_account_by_committee(self,
                                     creator: str,
@@ -238,9 +252,10 @@ class Wallet(object):
                                                               additional_active_keys,
                                                               additional_posting_keys)
 
-        return self.broadcast_transaction_synchronous([op])
+        signing_key = self.account(creator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def broadcast_transaction_synchronous(self, ops):
+    def broadcast_transaction_synchronous(self, ops, keys=[]):
         ref_block_num, ref_block_prefix = self.get_ref_block_params()
 
         tx = SignedTransaction(ref_block_num=ref_block_num,
@@ -248,6 +263,6 @@ class Wallet(object):
                                expiration=fmt_time_from_now(60),
                                operations=ops)
 
-        tx.sign(self.keys, self.chain_id)
+        tx.sign(keys, self.chain_id)
 
         return self.rpc.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))

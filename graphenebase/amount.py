@@ -6,12 +6,17 @@ class Amount(dict):
     """
 
     def __init__(self, amount_string="0 SCR"):
+        self._prec = 9
         if isinstance(amount_string, Amount):
             self["amount"] = amount_string["amount"]
             self["asset"] = amount_string["asset"]
         elif isinstance(amount_string, str):
             self["amount"], self["asset"] = amount_string.split(" ")
-            self['amount'] = int(self['amount'].replace('.', '').lstrip('0'))
+            amount = self['amount'].replace('.', '')
+            if len(amount) < self._prec + 1:
+                amount += '0'*((self._prec + 1) - len(amount))
+            amount.lstrip('0')
+            self['amount'] = int(amount) if len(amount) > 0 else 0
         else:
             raise ValueError(
                 "Need an instance of 'Amount' or a string with amount " +
@@ -47,16 +52,8 @@ class Amount(dict):
         return add_dot_separator(amount_string)
 
     def __str__(self):
-        if self["asset"] == "SCR":
-            prec = 9
-        elif self["asset"] == "SP":
-            prec = 9
-
-        # default
-        else:
-            prec = 9
         return "{} {}".format(
-            self._to_string(prec), self["asset"])
+            self._to_string(self._prec), self["asset"])
 
     def __float__(self):
         return self["amount"]
