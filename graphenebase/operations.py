@@ -277,4 +277,4 @@ class Vote(GrapheneObject):
                     ('author', String(kwargs["author"])),
                     ('permlink', String(kwargs["permlink"])),
                     ('weight', Int16(kwargs["weight"])),
-]))
+                ]))
