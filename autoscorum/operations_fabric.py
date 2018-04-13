@@ -179,3 +179,14 @@ def vote_operation(voter, author, permlink, weight):
            'permlink': permlink,
            'weight': weight}
     )
+
+def post_comment_operation(author, permlink, parent_author, parent_permlink, title, body, json_metadata):
+    return operations.Comment(
+        **{'parent_author': parent_author,
+           'parent_permlink': parent_permlink,
+           'author': author,
+           'permlink': permlink,
+           'title': title,
+           'body': body,
+           'json_metadata': json_metadata}
+    )

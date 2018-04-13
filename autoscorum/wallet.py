@@ -193,7 +193,13 @@ class Wallet(object):
     def vote(self, voter, author, permlink, weight=100):
         op = operations.vote_operation(voter, author, permlink, weight)
 
-        signing_key = self.account(voter).get_active_private()
+        signing_key = self.account(voter).get_posting_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def post_comment(self, author, permlink, parent_author, parent_permlink, title, body, json_meta):
+        op = operations.post_comment_operation(author, permlink, parent_author, parent_permlink, title, body, json_meta)
+
+        signing_key = self.account(author).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def create_account(self,
