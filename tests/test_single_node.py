@@ -296,3 +296,6 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     content_reward_after_budget_open = get_reward_per_block()
     assert content_reward_after_budget_open > content_reward_after_balancer_decrease, \
         'content reward not increased after budget open'
+
+
+# def test_create_post(wallet: Wallet):

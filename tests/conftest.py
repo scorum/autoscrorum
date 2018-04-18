@@ -73,26 +73,21 @@ def temp_dir():
 @pytest.fixture(scope='function')
 def genesis(request):
     g = Genesis()
-    g.add_account(acc_name=initdelegate.name,
-                  public_key=initdelegate.get_active_public(),
-                  scr_amount="80.000000000 SCR",
-                  witness=True)
-    g.add_account(acc_name='alice',
-                  public_key="SCR8TBVkvbJ79L1A4e851LETG8jurXFPzHPz87obyQQFESxy8pmdx",
-                  scr_amount="10.000000000 SCR")
-    g.add_account(acc_name='bob',
-                  public_key="SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p",
-                  scr_amount="10.000000000 SCR")
+    g.add_account('initdelegate').scr_balance("80.000000000 SCR")\
+                                 .steem_bounty("50.000000000 SP")\
+                                 .witness()\
+                                 .dev_committee()
+    g.add_account('alice').scr_balance("10.000000000 SCR")\
+                          .founder(70.1)
+    g.add_account('bob').scr_balance("10.000000000 SCR")\
+                        .founder(29.9)\
+                        .steem_bounty("50.000000000 SP")
 
-    g["founders"] = [{"name": "alice",
-                      "sp_percent": 70.1},
-                     {"name": "bob",
-                      "sp_percent": 29.9}]
-    g["steemit_bounty_accounts"] = [{"name": "initdelegate",
-                                     "sp_amount": "50.000000000 SP"},
-                                    {"name": "bob",
-                                     "sp_amount": "50.000000000 SP"}]
-    g['development_committee'] = [initdelegate.name]
+    test_account_name_mask = 'test.test{}'
+
+    for i in range(20):
+        g.add_account(test_account_name_mask.format(i+1)).scr_balance('10.000000000 SCR')
+
     if hasattr(request, 'param'):
         for key, value in request.param.items():
             g[key] = value
@@ -126,7 +121,7 @@ def docker(image, bin_path, rebuild_image):
 
 @pytest.fixture(scope='function')
 def wallet(node):
-    with Wallet(node, [initdelegate]) as w:
+    with Wallet(node, node.genesis.get_accounts()) as w:
         w.login("", "")
         w.get_api_by_name('database_api')
         w.get_api_by_name('network_broadcast_api')

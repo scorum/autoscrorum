@@ -23,7 +23,7 @@ chain_params = {"chain_id": None,
 class Node(object):
     def __init__(self, config=Config(), genesis=None, logging=True):
         self.config = config
-        self._genesis = genesis
+        self.genesis = genesis
         self.logging = logging
         self.logs = ""
         self.rpc_endpoint = None
@@ -52,7 +52,7 @@ class Node(object):
             os.makedirs(os.path.dirname(genesis_path))
 
         with open(genesis_path, 'w') as genesis:
-            g = self._genesis.dump()
+            g = self.genesis.dump()
             genesis.write(g)
             chain_params["chain_id"] = sha256(g.encode()).hexdigest()
         with open(config_path, 'w') as config:
