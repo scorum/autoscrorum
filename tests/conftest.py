@@ -104,8 +104,16 @@ def node(genesis, docker):
     n = Node(genesis=genesis, logging=False)
     n.config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
     n.config['private-key'] = initdelegate.get_active_private()
-    n.config['public-api'] = "database_api login_api account_by_key_api"
-    n.config['enable-plugin'] = 'witness blockchain_history account_by_key'
+
+    n.config['public-api'] = "database_api " \
+                             "login_api " \
+                             "account_by_key_api " \
+                             "network_broadcast_api " \
+
+
+    n.config['enable-plugin'] = 'witness ' \
+                                'blockchain_history ' \
+                                'account_by_key ' \
 
     with docker.run_node(n):
         yield n

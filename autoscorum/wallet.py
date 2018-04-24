@@ -77,24 +77,24 @@ class Wallet(object):
         return response['result']
 
     def get_api_by_name(self, api_name: str):
-        response = self.rpc.send(self.json_rpc_body('call', 1, 'get_api_by_name', [api_name]))
+        response = self.rpc.send(self.json_rpc_body('call', 'login_api', 'get_api_by_name', [api_name]))
         return response['result']
 
     def list_accounts(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_accounts', ["", limit]))
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', ["", limit]))
         return response['result']
 
     def list_buddget_owners(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_budget_owners', ["", limit]))
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_budget_owners', ["", limit]))
         return response['result']
 
     def list_witnesses(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_witness_accounts', ["", limit]))
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_witness_accounts', ["", limit]))
         return response['result']
 
     def get_block(self, num: int, **kwargs):
         def request():
-            return self.rpc.send(self.json_rpc_body('get_block', num, api='database_api'))
+            return self.rpc.send(self.json_rpc_body('get_block', num, api='blockchain_history_api'))
         wait = kwargs.get('wait_for_block', False)
 
         block = request()['result']
@@ -127,19 +127,19 @@ class Wallet(object):
         return result
 
     def get_budgets(self, owner_name: str):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'get_budgets', [[owner_name]]))
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [[owner_name]]))
         return response['result']
 
     def get_witness(self, name: str):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'get_witness_by_account', [name]))
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_witness_by_account', [name]))
         return response['result']
 
     def list_proposals(self):
-        response = self.rpc.send(self.json_rpc_body("call", 0, 'lookup_proposals', []))
+        response = self.rpc.send(self.json_rpc_body("call", 'database_api', 'lookup_proposals', []))
         return response['result']
 
     def get_account_by_key(self, pub_key: str):
-        response = self.rpc.send(self.json_rpc_body("call", 2, 'get_key_references', [[pub_key]]))
+        response = self.rpc.send(self.json_rpc_body("call", 'account_by_key_api', 'get_key_references', [[pub_key]]))
         return response['result']
 
     def get_ref_block_params(self):
@@ -272,4 +272,4 @@ class Wallet(object):
 
         tx.sign(keys, self.chain_id)
 
-        return self.rpc.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+        return self.rpc.send(self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()]))
