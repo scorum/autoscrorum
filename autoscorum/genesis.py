@@ -27,7 +27,7 @@ class Genesis(object):
         self["steemit_bounty_accounts"] = []
         self["witness_candidates"] = []
         self["registration_schedule"] = [{"stage": 1,
-                                          "users": 4,
+                                          "users": 24,
                                           "bonus_percent": 100},
                                          {"stage": 2,
                                           "users": 1,
@@ -53,15 +53,12 @@ class Genesis(object):
         self._accounts.append(account)
         return account
 
-    def dump(self):
+    def calculate(self):
         for acc in self._accounts:
-            print('\n HELLO!!!!!!')
-            print(acc.get_scr_balance())
-            print(acc.name)
-            self.accounts_supply += acc.get_scr_balance()
-            self.steemit_bounty_supply += acc.get_steem_bounty()
+            self.accounts_supply += acc.scr_balance
+            self.steemit_bounty_supply += acc.steem_bounty
             account = {'name': acc.name,
-                       'scr_amount': acc.get_scr_balance(),
+                       'scr_amount': str(acc.scr_balance),
                        'public_key': acc.get_owner_public()}
             self['accounts'].append(account)
 
@@ -71,7 +68,7 @@ class Genesis(object):
 
             if acc.is_founder():
                 self['founders'].append({'name': acc.name,
-                                         'sp_percent': acc.get_founder_percent()})
+                                         'sp_percent': acc.founder_percent})
 
             if acc.is_dev_committee():
                 self['development_committee'].append(acc.name)
@@ -81,7 +78,7 @@ class Genesis(object):
 
             if acc.is_in_steem_bounty_program():
                 self['steemit_bounty_accounts'].append({'name': acc.name,
-                                                        'sp_amount': acc.get_sp_balance()})
+                                                        'sp_amount': str(acc.sp_balance)})
 
         self['accounts_supply'] = str(self.accounts_supply)
         self['steemit_bounty_accounts_supply'] = str(self.steemit_bounty_supply)
@@ -93,6 +90,8 @@ class Genesis(object):
                                     Amount(self['steemit_bounty_accounts_supply']) +
                                     Amount(self['development_sp_supply']) +
                                     Amount(self['development_scr_supply'])))
+
+    def dump(self):
         return json.dumps(self.parms)
 
     def _set_timestamp(self):
@@ -100,11 +99,3 @@ class Genesis(object):
 
     def get_accounts(self):
         return self._accounts
-
-    def accounts(self, accounts=[]):
-        for account in accounts:
-            self['accounts'].append({"name": account.name,
-                                     "recovery_account": "",
-                                     "public_key": account.get_owner_public(),
-                                     "scr_amount": account.scr_balance})
-            # if account.sp_balance:
