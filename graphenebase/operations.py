@@ -278,3 +278,30 @@ class Vote(GrapheneObject):
                     ('permlink', String(kwargs["permlink"])),
                     ('weight', Int16(kwargs["weight"])),
                 ]))
+
+
+class Comment(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            meta = ""
+            if "json_metadata" in kwargs and kwargs["json_metadata"]:
+                if (isinstance(kwargs["json_metadata"], dict)
+                        or isinstance(kwargs["json_metadata"], list)):
+                    meta = json.dumps(kwargs["json_metadata"])
+                else:
+                    meta = kwargs["json_metadata"]
+
+            super(Comment, self).__init__(
+                OrderedDict([
+                    ('parent_author', String(kwargs["parent_author"])),
+                    ('parent_permlink', String(kwargs["parent_permlink"])),
+                    ('author', String(kwargs["author"])),
+                    ('permlink', String(kwargs["permlink"])),
+                    ('title', String(kwargs["title"])),
+                    ('body', String(kwargs["body"])),
+                    ('json_metadata', String(meta)),
+                ]))

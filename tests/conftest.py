@@ -73,26 +73,26 @@ def temp_dir():
 @pytest.fixture(scope='function')
 def genesis(request):
     g = Genesis()
-    g.add_account(acc_name=initdelegate.name,
-                  public_key=initdelegate.get_active_public(),
-                  scr_amount="80.000000000 SCR",
-                  witness=True)
-    g.add_account(acc_name='alice',
-                  public_key="SCR8TBVkvbJ79L1A4e851LETG8jurXFPzHPz87obyQQFESxy8pmdx",
-                  scr_amount="10.000000000 SCR")
-    g.add_account(acc_name='bob',
-                  public_key="SCR7w8tySAVQmJ95xSL8SS2GJJCws9s2gCY85DSAEALMFPmaMKA6p",
-                  scr_amount="10.000000000 SCR")
+    g.add_account(initdelegate).set_scr_balance("80.000000000 SCR")\
+                               .steemit_bounty("50.000000000 SP")\
+                               .witness()\
+                               .dev_committee() \
+                               .reg_committee()
+    g.add_account('alice').set_scr_balance("10.000000000 SCR")\
+                          .founder(70.1)
+    g.add_account('bob').set_scr_balance("10.000000000 SCR")\
+                        .founder(29.9)\
+                        .steemit_bounty("50.000000000 SP")
 
-    g["founders"] = [{"name": "alice",
-                      "sp_percent": 70.1},
-                     {"name": "bob",
-                      "sp_percent": 29.9}]
-    g["steemit_bounty_accounts"] = [{"name": "initdelegate",
-                                     "sp_amount": "50.000000000 SP"},
-                                    {"name": "bob",
-                                     "sp_amount": "50.000000000 SP"}]
-    g['development_committee'] = [initdelegate.name]
+    test_account_name_mask = 'test.test{}'
+
+    for i in range(20):
+        g.add_account(test_account_name_mask.format(i+1)) \
+         .set_scr_balance('10.000000000 SCR') \
+         .steemit_bounty("50.000000000 SP")
+
+    g.calculate()
+
     if hasattr(request, 'param'):
         for key, value in request.param.items():
             g[key] = value
@@ -103,17 +103,18 @@ def genesis(request):
 def node(genesis, docker):
     n = Node(genesis=genesis, logging=False)
     n.config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
-    n.config['private-key'] = initdelegate.get_active_private()
+    n.config['private-key'] = initdelegate.get_signing_private()
 
     n.config['public-api'] = "database_api " \
                              "login_api " \
-                             "account_by_key_api " \
                              "network_broadcast_api " \
-
+                             "account_by_key_api " \
+                             "tags_api "
 
     n.config['enable-plugin'] = 'witness ' \
                                 'blockchain_history ' \
                                 'account_by_key ' \
+                                'tags'
 
     with docker.run_node(n):
         yield n
@@ -134,7 +135,7 @@ def docker(image, bin_path, rebuild_image):
 
 @pytest.fixture(scope='function')
 def wallet(node):
-    with Wallet(node, [initdelegate]) as w:
+    with Wallet(node.get_chain_id(), node.rpc_endpoint, node.genesis.get_accounts()) as w:
         w.login("", "")
         w.get_api_by_name('database_api')
         w.get_api_by_name('network_broadcast_api')
