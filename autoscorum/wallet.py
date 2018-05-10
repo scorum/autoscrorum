@@ -12,15 +12,15 @@ from .account import Account
 
 
 class Wallet(object):
-    def __init__(self, node, accounts=[]):
-        self.node = node
-        self.chain_id = self.node.get_chain_id()
+    def __init__(self, chain_id, rpc_endpoint, accounts=[]):
+        self.chain_id = chain_id
         self.accounts = accounts
+        self.endpoint = rpc_endpoint
 
         self.rpc = RpcClient()
 
     def __enter__(self):
-        self.rpc.open_ws(self.node.rpc_endpoint)
+        self.rpc.open_ws(self.endpoint)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -67,37 +67,59 @@ class Wallet(object):
 
     def get_dynamic_global_properties(self):
         response = self.rpc.send(self.json_rpc_body('get_dynamic_global_properties', api='database_api'))
-        return response['result']
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def get_circulating_capital(self):
         return Amount(self.get_dynamic_global_properties()['circulating_capital'])
 
     def login(self, username: str, password: str):
         response = self.rpc.send(self.json_rpc_body('login', username, password, api='login_api'))
-        return response['result']
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def get_api_by_name(self, api_name: str):
-        response = self.rpc.send(self.json_rpc_body('call', 1, 'get_api_by_name', [api_name]))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body('call', 'login_api', 'get_api_by_name', [api_name]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def list_accounts(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_accounts', ["", limit]))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', ["", limit]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def list_buddget_owners(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_budget_owners', ["", limit]))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_budget_owners', ["", limit]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def list_witnesses(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'lookup_witness_accounts', ["", limit]))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_witness_accounts', ["", limit]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def get_block(self, num: int, **kwargs):
         def request():
-            return self.rpc.send(self.json_rpc_body('get_block', num, api='database_api'))
+            return self.rpc.send(self.json_rpc_body('get_block', num, api='blockchain_history_api'))
         wait = kwargs.get('wait_for_block', False)
 
-        block = request()['result']
+        response = request()
+        try:
+            block = response['result']
+        except KeyError:
+            return response
         if wait and not block:
             timer = 1
             time_to_wait = kwargs.get('time_to_wait', 10)
@@ -109,7 +131,10 @@ class Wallet(object):
 
     def get_account(self, name: str):
         response = self.rpc.send(self.json_rpc_body('get_accounts', [name]))
-        return response['result'][0]
+        try:
+            return response['result'][0]
+        except KeyError:
+            return response
 
     def get_account_scr_balance(self, name: str):
         return Amount(self.get_account(name)['balance'])
@@ -127,20 +152,32 @@ class Wallet(object):
         return result
 
     def get_budgets(self, owner_name: str):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'get_budgets', [[owner_name]]))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [[owner_name]]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def get_witness(self, name: str):
-        response = self.rpc.send(self.json_rpc_body('call', 0, 'get_witness_by_account', [name]))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_witness_by_account', [name]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def list_proposals(self):
-        response = self.rpc.send(self.json_rpc_body("call", 0, 'lookup_proposals', []))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body("call", 'database_api', 'lookup_proposals', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def get_account_by_key(self, pub_key: str):
-        response = self.rpc.send(self.json_rpc_body("call", 2, 'get_key_references', [[pub_key]]))
-        return response['result']
+        response = self.rpc.send(self.json_rpc_body("call", 'account_by_key_api', 'get_key_references', [[pub_key]]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def get_ref_block_params(self):
         props = self.get_dynamic_global_properties()
@@ -196,11 +233,45 @@ class Wallet(object):
         signing_key = self.account(voter).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def post_comment(self, author, permlink, parent_author, parent_permlink, title, body, json_meta):
-        op = operations.post_comment_operation(author, permlink, parent_author, parent_permlink, title, body, json_meta)
+    def post_comment(self, author, permlink, parent_author, parent_permlink, title, body, json_metadata):
+
+        op = operations.post_comment_operation(author,
+                                               permlink,
+                                               parent_author,
+                                               parent_permlink,
+                                               title, body,
+                                               json_metadata)
 
         signing_key = self.account(author).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def get_content(self, author, permlink):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_content', [author, permlink]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_content_replies(self, parent, parent_permlink):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_content_replies', [parent, parent_permlink]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_trending_tags(self, start_tag='', limit=100):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_trending_tags', [start_tag, limit]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_discussions_by(self, by_what, **kwargs):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def create_account(self,
                        creator: str,
@@ -277,5 +348,9 @@ class Wallet(object):
                                operations=ops)
 
         tx.sign(keys, self.chain_id)
+        response = self.rpc.send(self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()]))
 
-        return self.rpc.send(self.json_rpc_body('call', 3, "broadcast_transaction_synchronous", [tx.json()]))
+        try:
+            return response['result']
+        except KeyError:
+            return response

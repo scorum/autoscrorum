@@ -297,10 +297,10 @@ class Comment(GrapheneObject):
 
             super(Comment, self).__init__(
                 OrderedDict([
-                    ('author', String(kwargs["author"])),
-                    ('permlink', String(kwargs["permlink"])),
                     ('parent_author', String(kwargs["parent_author"])),
                     ('parent_permlink', String(kwargs["parent_permlink"])),
+                    ('author', String(kwargs["author"])),
+                    ('permlink', String(kwargs["permlink"])),
                     ('title', String(kwargs["title"])),
                     ('body', String(kwargs["body"])),
                     ('json_metadata', String(meta)),
