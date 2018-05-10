@@ -1,4 +1,7 @@
+import json
+
 import pytest
+import datetime
 
 from graphenebase.amount import Amount
 from autoscorum.wallet import Wallet
@@ -37,7 +40,7 @@ def test_transfer(wallet: Wallet):
     amount = initdelegate_balance_before - Amount('5.000000000 SCR')
     alice_balance_before = wallet.get_account_scr_balance('alice')
 
-    wallet.transfer('initdelegate', 'alice', amount)
+    print(wallet.transfer('initdelegate', 'alice', amount))
 
     initdelegate_balance_after = wallet.get_account_scr_balance('initdelegate')
     alice_balance_after = wallet.get_account_scr_balance('alice')
@@ -148,6 +151,7 @@ def test_create_account_with_invalid_name(wallet: Wallet, name_and_error):
 @pytest.mark.parametrize('valid_name', ['joe', 'aaaaaaaaaaaaaaa1'])
 def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_name):
     creator = initdelegate.name
+    accounts_before = wallet.list_accounts()
 
     creator_balance_before = wallet.get_account_scr_balance(creator)
     print(wallet.create_account_by_committee(creator,
@@ -160,9 +164,9 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
 
     assert wallet.get_account(valid_name)['recovery_account'] == creator
 
-    accounts = wallet.list_accounts()
-    assert len(accounts) == 4
-    assert valid_name in accounts
+    accounts_after = wallet.list_accounts()
+    assert len(accounts_after) == len(accounts_before) + 1
+    assert valid_name in accounts_after
 
     account_by_active_key = wallet.get_account_by_key(test_account_active_pub_key)[0][0]
     assert account_by_active_key == valid_name
@@ -298,4 +302,70 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
         'content reward not increased after budget open'
 
 
-# def test_create_post(wallet: Wallet):
+def test_post_comment(wallet: Wallet):
+    post_kwargs = {'author': 'initdelegate',
+                   'permlink': 'initdelegate-post-1',
+                   'parent_author': '',
+                   'parent_permlink': 'football',
+                   'title': 'initdelegate post title',
+                   'body': 'initdelegate post body',
+                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
+    comment_level_1_kwargs = {'author': 'bob',
+                              'permlink': 'bob-comment-1',
+                              'parent_author': 'initdelegate',
+                              'parent_permlink': 'initdelegate-post-1',
+                              'title': 'bob comment title',
+                              'body': 'bob comment body',
+                              'json_metadata': '{"tags":["comment", "initdelegate_posts", "bob_tag"]}'}
+    comment_level_2_kwargs = {'author': 'alice',
+                              'permlink': 'alice-comment-1',
+                              'parent_author': 'bob',
+                              'parent_permlink': 'bob-comment-1',
+                              'title': 'alice comment title',
+                              'body': 'alice comment body',
+                              'json_metadata': '{"tags":["comment", "initdelegate_posts", "alice_tag"]}'}
+
+    assert 'error' not in wallet.post_comment(**post_kwargs).keys(), 'post creation failed'
+    assert 'error' not in wallet.post_comment(**comment_level_1_kwargs).keys(), 'post creation failed'
+    assert 'error' not in wallet.post_comment(**comment_level_2_kwargs).keys(), 'post creation failed'
+
+    def validate_cashout_interval(comment: dict):
+        time_format = '%Y-%m-%dT%H:%M:%S'
+        date_start = datetime.datetime.strptime(comment['created'], time_format)
+        date_finish = datetime.datetime.strptime(comment['cashout_time'], time_format)
+        delta = date_finish - date_start
+        assert delta.total_seconds()/3600/24 == 7.0
+
+    def validate_url(comment: dict):
+        if comment['parent_author']:
+            assert comment['url'] == '/{category}/@{root_author}/{root_permlink}#@{author}/{permlink}'\
+                                  .format(category=comment['category'],
+                                          root_author=post['author'],
+                                          root_permlink=post['permlink'],
+                                          author=comment['author'],
+                                          permlink=comment['permlink'])
+        else:
+            assert comment['url'] == '/{}/@{}/{}'.format(comment['category'], comment['author'], comment['permlink'])
+
+    def validate_comment(comment, comment_kwargs, parent=None):
+        for key, value in comment_kwargs.items():
+            assert comment[key] == value, '{} value differs from expected'.format(key)
+        assert comment['category'] == post_kwargs['parent_permlink']
+        expected_depth = parent['depth'] + 1 if parent else 0
+        assert comment['depth'] == expected_depth
+        assert comment['root_title'] == post_kwargs['title']
+        assert comment['root_comment'] == post['id']
+        validate_cashout_interval(comment)
+        validate_url(comment)
+
+    post = wallet.get_content(post_kwargs['author'], post_kwargs['permlink'])
+    print(post)
+    validate_comment(post, post_kwargs)
+
+    comment_level_1 = wallet.get_content_replies(post_kwargs['author'], post_kwargs['permlink'])
+    assert len(comment_level_1) == 1, 'get_content_replies method should return only 1 level children'
+    comment_level_1 = comment_level_1[0]
+    validate_comment(comment_level_1, comment_level_1_kwargs, post)
+
+    comment_level_2 = wallet.get_content_replies(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'])[0]
+    validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1)
