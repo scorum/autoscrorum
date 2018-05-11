@@ -245,7 +245,7 @@ def test_create_budget(wallet: Wallet):
     budget = wallet.get_budgets(initdelegate.name)[0]
 
     assert initdelegate.name in wallet.list_buddget_owners()
-    assert budget['per_block'] == 1000000000
+    assert budget['per_block'] == Amount("1.000000000 SCR")
     assert budget['owner'] == initdelegate.name
 
 
