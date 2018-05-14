@@ -245,7 +245,7 @@ def test_create_budget(wallet: Wallet):
     budget = wallet.get_budgets(initdelegate.name)[0]
 
     assert initdelegate.name in wallet.list_buddget_owners()
-    assert budget['per_block'] == 1000000000
+    assert Amount(budget['per_block']) == Amount('1.000000000 SCR')
     assert budget['owner'] == initdelegate.name
 
 
@@ -348,6 +348,7 @@ def test_post_comment(wallet: Wallet):
             assert comment['url'] == '/{}/@{}/{}'.format(comment['category'], comment['author'], comment['permlink'])
 
     def validate_comment(comment, comment_kwargs, parent=None):
+        print(comment)
         for key, value in comment_kwargs.items():
             assert comment[key] == value, '{} value differs from expected'.format(key)
         assert comment['category'] == post_kwargs['parent_permlink']
@@ -359,7 +360,6 @@ def test_post_comment(wallet: Wallet):
         validate_url(comment)
 
     post = wallet.get_content(post_kwargs['author'], post_kwargs['permlink'])
-    print(post)
     validate_comment(post, post_kwargs)
 
     comment_level_1 = wallet.get_content_replies(post_kwargs['author'], post_kwargs['permlink'])
