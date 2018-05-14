@@ -244,8 +244,11 @@ def test_create_budget(wallet: Wallet):
     wallet.create_budget(initdelegate.name, Amount("10.000000000 SCR"), fmt_time_from_now(30))
     budget = wallet.get_budgets(initdelegate.name)[0]
 
+    per_block_for_10_blocks_budget = Amount('1.000000000 SCR')
+    per_block_for_9_blocks_budget = Amount('1.034482758 SCR')
+
     assert initdelegate.name in wallet.list_buddget_owners()
-    assert Amount(budget['per_block']) == Amount('1.000000000 SCR')
+    assert Amount(budget['per_block']) in (per_block_for_10_blocks_budget, per_block_for_9_blocks_budget)
     assert budget['owner'] == initdelegate.name
 
 
@@ -362,10 +365,9 @@ def test_post_comment(wallet: Wallet):
     post = wallet.get_content(post_kwargs['author'], post_kwargs['permlink'])
     validate_comment(post, post_kwargs)
 
-    comment_level_1 = wallet.get_content_replies(post_kwargs['author'], post_kwargs['permlink'])
+    comment_level_1 = wallet.get_comments(post_kwargs['author'], post_kwargs['permlink'], 1)
     assert len(comment_level_1) == 1, 'get_content_replies method should return only 1 level children'
-    comment_level_1 = comment_level_1[0]
-    validate_comment(comment_level_1, comment_level_1_kwargs, post)
+    validate_comment(comment_level_1[0], comment_level_1_kwargs, post)
 
-    comment_level_2 = wallet.get_content_replies(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'])[0]
-    validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1)
+    comment_level_2 = wallet.get_comments(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'], 2)[0]
+    validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])

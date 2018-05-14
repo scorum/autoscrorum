@@ -252,8 +252,8 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_content_replies(self, parent, parent_permlink):
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_content_replies', [parent, parent_permlink]))
+    def get_comments(self, parent_author, parent_permlink, depth):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_comments', [parent_author, parent_permlink, str(depth)]))
         try:
             return response['result']
         except KeyError:
