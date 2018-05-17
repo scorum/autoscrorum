@@ -23,7 +23,7 @@ pipenv install
 pipenv run pip install -e .
 ```
 
-### Runing testst with py.test
+### Runing tests with py.test
 ```bash
 pipenv run py.test tests
 ```
