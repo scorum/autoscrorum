@@ -8,6 +8,7 @@ from autoscorum.docker_controller import DockerController
 from autoscorum.wallet import Wallet
 from autoscorum.account import Account
 from autoscorum.utils import which
+from autoscorum.config import Config
 
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
@@ -100,21 +101,32 @@ def genesis(request):
 
 
 @pytest.fixture(scope='function')
-def node(genesis, docker):
-    n = Node(genesis=genesis, logging=False)
-    n.config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
-    n.config['private-key'] = initdelegate.get_signing_private()
+def config():
+    config = Config()
+    config['rpc-endpoint'] = '0.0.0.0:8090'
+    config['genesis-json'] = 'genesis.json'
+    config['enable-stale-production'] = 'true'
+    config['shared-file-size'] = '1G'
+    config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
+    config['private-key'] = initdelegate.get_signing_private()
 
-    n.config['public-api'] = "database_api " \
-                             "login_api " \
-                             "network_broadcast_api " \
-                             "account_by_key_api " \
-                             "tags_api "
+    config['public-api'] = "database_api " \
+                           "login_api " \
+                           "network_broadcast_api " \
+                           "account_by_key_api " \
+                           "tags_api "
 
-    n.config['enable-plugin'] = 'witness ' \
-                                'blockchain_history ' \
-                                'account_by_key ' \
-                                'tags'
+    config['enable-plugin'] = 'witness ' \
+                              'blockchain_history ' \
+                              'account_by_key ' \
+                              'tags'
+    return config
+
+
+@pytest.fixture(scope='function')
+def node(config, genesis, docker):
+
+    n = Node(config=config, genesis=genesis, logging=False)
 
     with docker.run_node(n):
         yield n
