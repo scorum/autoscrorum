@@ -11,10 +11,16 @@ class Config(object):
     def __setitem__(self, key, value):
         self.parms[key] = value
 
+    def __contains__(self, item):
+        return item in self.parms
+
     def __copy__(self):
         new = Config()
         new.parms = deepcopy(self.parms)
         return new
+
+    def get(self, key, default=None):
+        return self.__getitem__(key) if self.__contains__(key) else default
 
     def dump(self):
         result = ''

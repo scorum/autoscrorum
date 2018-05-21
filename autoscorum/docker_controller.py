@@ -53,12 +53,13 @@ class DockerController:
 
         container = self.docker.containers.run(
             self._image, detach=True, auto_remove=True,
-            volumes={node.work_dir: {'bind': '/var/lib/scorumd', 'mode': 'rw'}}
+            volumes={node.work_dir: {'bind': CONFIG_DIR, 'mode': 'rw'}}
         )
 
         node.rpc_endpoint = "{ip}:{port}".format(
             ip=self.get_ip(container),
-            port=node.config['rpc-endpoint'].split(':')[1]
+            # set dummy port if config is empty
+            port=node.config.get('rpc-endpoint', "0.0.0.0:8001").split(':')[1]
         )
 
         yield container
