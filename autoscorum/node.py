@@ -21,7 +21,6 @@ class Node(object):
         self.genesis_path = None
         self.config_path = None
         self._setup()
-        self._generate_configs()
 
     def get_chain_id(self):
         if not self.chain_params["chain_id"]:
@@ -53,7 +52,7 @@ class Node(object):
         self.genesis_path = os.path.join(self.work_dir, 'genesis.json')
         self.config_path = os.path.join(self.work_dir, 'config.ini')
 
-    def _generate_configs(self):
+    def generate_configs(self):
         if not os.path.exists(self.work_dir):
             os.makedirs(self.work_dir)
 
@@ -63,5 +62,6 @@ class Node(object):
                 self.chain_params["chain_id"] = sha256(g.encode()).hexdigest()
                 gfd.write(g)
 
-        with open(self.config_path, 'w') as cfd:  # config file descriptor
-            cfd.write(self.config.dump())
+        if self.config is not None:
+            with open(self.config_path, 'w') as cfd:  # config file descriptor
+                cfd.write(self.config.dump())

@@ -127,7 +127,7 @@ def config():
 def node(config, genesis, docker):
 
     n = Node(config=config, genesis=genesis, logging=False)
-
+    n.generate_configs()
     with docker.run_node(n):
         yield n
 
