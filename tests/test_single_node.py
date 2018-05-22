@@ -1,5 +1,7 @@
 import pytest
 import datetime
+import time
+import re
 
 from graphenebase.amount import Amount
 from autoscorum.wallet import Wallet
@@ -33,6 +35,25 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis, creator: str):
     assert Amount(info['total_supply']) == expected_total_supply
     assert wallet.get_account_scr_balance(creator) == Amount('80.000000000 SCR')
     assert wallet.get_account_scr_balance('alice') == Amount('10.000000000 SCR')
+
+
+def test_node_log_update(node: Node):
+    prev_size = 0
+    for i in range(5):
+        time.sleep(3)
+        node.read_logs()
+        curr_size = len(node.logs)
+        assert curr_size > prev_size, "Node logs are not updated."
+        prev_size = curr_size
+
+
+def test_node_log_errors(node: Node):
+    RE_ERRORS = r"(warning|error|critical|exception|traceback)"
+    for i in range(5):
+        time.sleep(3)
+        node.read_logs()
+        m = re.match(RE_ERRORS, node.logs, re.IGNORECASE)
+        assert m is None, "In logs presents error message: %s" % m.group()
 
 
 def test_transfer(wallet: Wallet):
