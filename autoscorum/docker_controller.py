@@ -52,7 +52,8 @@ class DockerController:
             self.set_image(image)
 
         container = self.docker.containers.run(
-            self._image, detach=True, auto_remove=True,
+            self._image,
+            detach=True, auto_remove=True, environment={'NODE': 'full'},
             volumes={node.work_dir: {'bind': CONFIG_DIR, 'mode': 'rw'}}
         )
 

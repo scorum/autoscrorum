@@ -31,6 +31,19 @@ class Config(object):
     def get_rpc_port(self):
         return self['rpc-endpoint'].split(':', 1)[1]
 
+    def read(self, file_path: str):
+        """
+        Reads existing config file to memory
+
+        :param str file_path:
+        """
+        with open(file_path, "r") as f:
+            for line in f:
+                if not line.strip() or line.startswith("#"):
+                    continue
+                key, value = line.split(" = ")
+                self.__setitem__(key, value)
+
 
 def test_dump():
     config = Config()

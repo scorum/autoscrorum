@@ -13,15 +13,76 @@ from autoscorum.config import Config
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
 
-initdelegate = Account('initdelegate')
-
 SCORUMD_BIN_PATH = which('scorumd')
+
+CUSTOM_ACCOUNTS = {
+    # (
+    #   name, scr_balance, steemit_bounty, founder, witness,
+    #   dev_committee, reg_committee
+    # )
+    (
+        'initdelegate', "80.000000000 SCR", "50.000000000 SP", None, True,
+        True, True
+    ),
+    ('alice', "10.000000000 SCR", None, 70.1, False, False, False),
+    ('bob', "10.000000000 SCR", "50.000000000 SP", 29.9, False, False, False)
+}
 
 
 def pytest_addoption(parser):
     parser.addoption('--target', action='store', default=SCORUMD_BIN_PATH, help='specify path to scorumd')
     parser.addoption('--image', action='store', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
     parser.addoption('--use-local-image', action='store_false', help='dont rebuild image')
+
+
+def create_acc(
+        name, scr_balance, steemit_bounty, founder=0,
+        witness=False, dev_committee=False, reg_committee=False
+):
+    acc = Account(name)
+    if scr_balance is not None:
+        acc.set_scr_balance(scr_balance)
+    if steemit_bounty is not None:
+        acc.steemit_bounty(steemit_bounty)
+    if founder is not None:
+        acc.founder(founder)
+    if witness:
+        acc.witness()
+    if dev_committee:
+        acc.dev_committee()
+    if reg_committee:
+        acc.reg_committee()
+    return acc
+
+
+@pytest.fixture(scope='session')
+def accounts():
+    accounts = []
+
+    for acc in CUSTOM_ACCOUNTS:
+        accounts.append(create_acc(*acc))
+
+    test_account_name_mask = 'test.test{}'
+
+    for i in range(20):
+        accounts.append(create_acc(
+            test_account_name_mask.format(i + 1),
+            "10.000000000 SCR", "50.000000000 SP"
+        ))
+
+    return accounts
+
+
+@pytest.fixture(scope='session')
+def witness(accounts):
+    for acc in accounts:
+        if acc.is_witness():
+            return acc
+
+
+@pytest.fixture(scope='session')
+def creator(witness):
+    return witness.name
 
 
 @pytest.fixture(scope='session')
@@ -72,25 +133,11 @@ def temp_dir():
 
 
 @pytest.fixture(scope='function')
-def genesis(request):
+def genesis(request, accounts):
     g = Genesis()
-    g.add_account(initdelegate).set_scr_balance("80.000000000 SCR")\
-                               .steemit_bounty("50.000000000 SP")\
-                               .witness()\
-                               .dev_committee() \
-                               .reg_committee()
-    g.add_account('alice').set_scr_balance("10.000000000 SCR")\
-                          .founder(70.1)
-    g.add_account('bob').set_scr_balance("10.000000000 SCR")\
-                        .founder(29.9)\
-                        .steemit_bounty("50.000000000 SP")
 
-    test_account_name_mask = 'test.test{}'
-
-    for i in range(20):
-        g.add_account(test_account_name_mask.format(i+1)) \
-         .set_scr_balance('10.000000000 SCR') \
-         .steemit_bounty("50.000000000 SP")
+    for a in accounts:
+        g.add_account(a)
 
     g.calculate()
 
@@ -101,26 +148,26 @@ def genesis(request):
 
 
 @pytest.fixture(scope='function')
-def config():
-    config = Config()
-    config['rpc-endpoint'] = '0.0.0.0:8090'
-    config['genesis-json'] = 'genesis.json'
-    config['enable-stale-production'] = 'true'
-    config['shared-file-size'] = '1G'
-    config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
-    config['private-key'] = initdelegate.get_signing_private()
+def default_config(docker):
+    n = Node()  # node without pre-generated config file
+    with docker.run_node(n):  # generate by binary default config
+        assert (os.path.exists(n.config_path))
 
-    config['public-api'] = "database_api " \
-                           "login_api " \
-                           "network_broadcast_api " \
-                           "account_by_key_api " \
-                           "tags_api "
+    cfg = Config()
+    cfg.read(n.config_path)
+    return cfg
 
-    config['enable-plugin'] = 'witness ' \
-                              'blockchain_history ' \
-                              'account_by_key ' \
-                              'tags'
-    return config
+
+@pytest.fixture(scope='function')
+def config(default_config, witness):
+    default_config['rpc-endpoint'] = '0.0.0.0:8090'
+    default_config['genesis-json'] = 'genesis.json'
+    default_config['enable-stale-production'] = 'true'
+    default_config['witness'] = '"{acc_name}"'.format(acc_name=witness.name)
+    default_config['private-key'] = witness.get_signing_private()
+    default_config['public-api'] = default_config['public-api'].replace('\n', " tags_api\n")
+    default_config["enable-plugin"] = 'witness tags ' + default_config["enable-plugin"]
+    return default_config
 
 
 @pytest.fixture(scope='function')
