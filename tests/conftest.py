@@ -130,8 +130,8 @@ def config(default_config, genesis):
     default_config['enable-stale-production'] = 'true'
     default_config['witness'] = '"{acc_name}"'.format(acc_name=witness.name)
     default_config['private-key'] = witness.get_signing_private()
-    default_config['public-api'] = default_config['public-api'].replace('\n', " tags_api\n")
-    default_config["enable-plugin"] = 'witness tags ' + default_config["enable-plugin"]
+    default_config['public-api'] += ' tags_api'
+    default_config["enable-plugin"] += ' witness tags'
     return default_config
 
 

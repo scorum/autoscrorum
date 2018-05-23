@@ -58,9 +58,7 @@ class DockerController:
         )
 
         node.rpc_endpoint = "{ip}:{port}".format(
-            ip=self.get_ip(container),
-            # set dummy port if config is empty
-            port=node.config.get('rpc-endpoint', "0.0.0.0:8001").split(':')[1]
+            ip=self.get_ip(container), port=node.config.get_rpc_port()
         )
 
         yield container
