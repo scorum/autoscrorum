@@ -1,15 +1,19 @@
-import pytest
 import datetime
-import time
 import re
+import time
+from random import randrange
 
-from graphenebase.amount import Amount
-from autoscorum.wallet import Wallet
+import pytest
+
+from autoscorum.account import Account
+from autoscorum.config import Config
+from autoscorum.docker_controller import DockerController
+from autoscorum.errors import Errors
+from autoscorum.genesis import Genesis
 from autoscorum.node import Node
 from autoscorum.utils import fmt_time_from_now
-from autoscorum.genesis import Genesis
-from autoscorum.errors import Errors
-from autoscorum.account import Account
+from autoscorum.wallet import Wallet
+from graphenebase.amount import Amount
 from tests.conftest import DEFAULT_WITNESS
 
 
@@ -388,3 +392,37 @@ def test_post_comment(wallet: Wallet):
 
     comment_level_2 = wallet.get_comments(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'], 2)[0]
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
+
+
+def test_replay_blockchain(
+        config: Config, genesis: Genesis, docker: DockerController
+):
+    block_num = randrange(1, 10)  # bigger number - more time to wait
+
+    node = Node(config=config, genesis=genesis)
+    node.generate_configs()
+
+    with docker.run_node(node):
+        with Wallet(
+                node.get_chain_id(), node.rpc_endpoint,
+                node.genesis.get_accounts()
+        ) as w:
+            # minimum blocks to generate index file + additional blocks
+            blocks = 21 + block_num
+            w.get_block(
+                blocks, wait_for_block=True,
+                time_to_wait=3 * blocks  # ~3 sec on each block
+            )
+
+    node.drop_database()
+    node.config['replay-blockchain'] = 'true'
+    node.generate_configs()
+
+    with docker.run_node(node):
+        time.sleep(3)  # wait until blockchain will be replayed
+        with Wallet(
+                node.get_chain_id(), node.rpc_endpoint,
+                node.genesis.get_accounts()
+        ) as w:
+            last_block = w.get_dynamic_global_properties()['head_block_number']
+            assert last_block > block_num, "Blockchain wasn't replayed."
