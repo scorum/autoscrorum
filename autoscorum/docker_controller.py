@@ -1,10 +1,10 @@
 import os
-
-import docker
 import shutil
 import tempfile
-from docker.errors import ImageNotFound
 from contextlib import contextmanager
+
+import docker
+from docker.errors import ImageNotFound
 
 from .node import Node
 from .node import SCORUM_BIN

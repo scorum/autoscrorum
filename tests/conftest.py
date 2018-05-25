@@ -1,17 +1,17 @@
 import os
 import shutil
-import pytest
 import time
 
+import pytest
+
+from autoscorum.config import Config
+from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
+from autoscorum.docker_controller import DockerController
 from autoscorum.genesis import Genesis
 from autoscorum.node import Node
-from autoscorum.docker_controller import DockerController
-from autoscorum.wallet import Wallet
-from autoscorum.utils import which
-from autoscorum.config import Config
-
 from autoscorum.node import TEST_TEMP_DIR
-from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
+from autoscorum.utils import which
+from autoscorum.wallet import Wallet
 
 SCORUMD_BIN_PATH = which('scorumd')
 

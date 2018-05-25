@@ -1,4 +1,5 @@
 import pytest
+
 from autoscorum.rpc_client import RpcClient
 
 

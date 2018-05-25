@@ -1,9 +1,8 @@
-import tempfile
 import os
-
+import tempfile
 from hashlib import sha256
-from .config import Config
 
+from .config import Config
 
 TEST_TEMP_DIR = '/tmp/autoscorum'
 SCORUM_BIN = 'scorumd'

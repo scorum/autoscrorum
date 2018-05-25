@@ -1,5 +1,4 @@
 import datetime
-import re
 import time
 
 import pytest
@@ -13,6 +12,7 @@ from autoscorum.node import Node
 from autoscorum.utils import fmt_time_from_now
 from autoscorum.wallet import Wallet
 from graphenebase.amount import Amount
+from tests.common import generate_blocks, check_logs_on_errors
 from tests.conftest import DEFAULT_WITNESS
 
 
@@ -42,26 +42,19 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
         assert wallet.get_account_scr_balance(account.name) == amount
 
 
-def test_node_log_update(node: Node):
+def test_node_logs(node):
+    """
+    Check logs of running node (logs are updated, there are no errors).
+
+    :param Node node: Running node
+    """
     prev_size = 0
-    for i in range(5):
-        time.sleep(3)
+    for i in range(5):  # random number of iterations
+        time.sleep(3)  # time to generate one block
         node.read_logs()
         curr_size = len(node.logs)
         assert curr_size > prev_size, "Node logs are not updated."
         prev_size = curr_size
-
-
-def check_logs_on_errors(logs: str):
-    re_errors = r"(warning|error|critical|exception|traceback)"
-    m = re.match(re_errors, logs, re.IGNORECASE)
-    assert m is None, "In logs presents error message: %s" % m.group()
-
-
-def test_node_log_errors(node: Node):
-    for i in range(5):
-        time.sleep(3)
-        node.read_logs()
         check_logs_on_errors(node.logs)
 
 
@@ -400,43 +393,6 @@ def test_post_comment(wallet: Wallet):
 MIN_BLOCKS_TO_SAVE_INDEX = 21
 
 
-def generate_blocks_n(node, docker, num):
-    """
-    Run node, generate N blocks, stop node.
-
-    :param Node node: Node to run
-    :param DockerController docker: Docker to run container
-    :param int num: Number of blocks to generate
-    """
-    with docker.run_node(node):
-        with Wallet(
-                node.get_chain_id(), node.rpc_endpoint,
-                node.genesis.get_accounts()
-        ) as w:
-            # minimum blocks to generate index file + additional blocks
-            w.get_block(
-                num, wait_for_block=True,
-                time_to_wait=3 * num  # 3 sec on each block
-            )
-
-
-def generate_block(node, docker):
-    """
-    Run node, generate one block, stop node.
-
-    :param Node node: Node to run
-    :param DockerController docker: Docker to run container
-    :return int: Number of head block
-    """
-    with docker.run_node(node):
-        time.sleep(3)  # wait until block will be generated
-        with Wallet(
-                node.get_chain_id(), node.rpc_endpoint,
-                node.genesis.get_accounts()
-        ) as w:
-            return w.get_dynamic_global_properties()['head_block_number']
-
-
 def test_replay_blockchain(config, genesis, docker):
     """
     Test replay state of Node.
@@ -446,20 +402,22 @@ def test_replay_blockchain(config, genesis, docker):
     :param DockerController docker: Pre-initialized image to run node
     """
 
-    blocks = 2
+    blocks_num = 5
     node = Node(config=config, genesis=genesis)
     node.generate_configs()
-
-    generate_blocks_n(node, docker, blocks + MIN_BLOCKS_TO_SAVE_INDEX)
+    # Start node, generate initial blocks in chain
+    last_block = generate_blocks(
+        node, docker, blocks_num + MIN_BLOCKS_TO_SAVE_INDEX
+    )  # node was stopped
+    assert last_block > 0, "Was not generated any block."
 
     node.drop_database()
     node.config['replay-blockchain'] = 'true'
     node.generate_configs()
-
-    last_block = generate_block(node, docker)
-
-    assert last_block > blocks, \
-        "Blocks were not generated properly in node replay state."
+    # Start node again, get header block
+    last_block = generate_blocks(node, docker)  # node was stopped
+    assert last_block >= blocks_num, \
+        "Was generated %s blocks, should be >= %s" % (last_block, blocks_num)
     check_logs_on_errors(node.logs)
 
 
@@ -472,12 +430,16 @@ def test_restart_node(config, genesis, docker):
     :param DockerController docker: Pre-initialized image to run node
     """
 
-    blocks = 2
+    blocks_num = 5
     node = Node(config=config, genesis=genesis)
     node.generate_configs()
-
-    generate_blocks_n(node, docker, blocks + MIN_BLOCKS_TO_SAVE_INDEX)
-    last_block = generate_block(node, docker)
-    assert last_block > blocks, \
-        "Blocks were not generated properly after node restart."
+    # Start node, generate initial blocks in chain
+    last_block = generate_blocks(
+        node, docker, blocks_num + MIN_BLOCKS_TO_SAVE_INDEX
+    )  # node was stopped
+    assert last_block > 0, "Was not generated any block."
+    # Start node again, get header block
+    last_block = generate_blocks(node, docker)  # node was stopped
+    assert last_block >= blocks_num, \
+        "Was generated %s blocks, should be >= %s" % (last_block, blocks_num)
     check_logs_on_errors(node.logs)
