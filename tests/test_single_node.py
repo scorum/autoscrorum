@@ -1,7 +1,6 @@
 import datetime
 import re
 import time
-from random import randrange
 
 import pytest
 
@@ -53,13 +52,17 @@ def test_node_log_update(node: Node):
         prev_size = curr_size
 
 
+def check_logs_on_errors(logs: str):
+    re_errors = r"(warning|error|critical|exception|traceback)"
+    m = re.match(re_errors, logs, re.IGNORECASE)
+    assert m is None, "In logs presents error message: %s" % m.group()
+
+
 def test_node_log_errors(node: Node):
-    RE_ERRORS = r"(warning|error|critical|exception|traceback)"
     for i in range(5):
         time.sleep(3)
         node.read_logs()
-        m = re.match(RE_ERRORS, node.logs, re.IGNORECASE)
-        assert m is None, "In logs presents error message: %s" % m.group()
+        check_logs_on_errors(node.logs)
 
 
 def test_transfer(wallet: Wallet):
@@ -394,35 +397,87 @@ def test_post_comment(wallet: Wallet):
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
 
 
-def test_replay_blockchain(
-        config: Config, genesis: Genesis, docker: DockerController
-):
-    block_num = randrange(1, 10)  # bigger number - more time to wait
+MIN_BLOCKS_TO_SAVE_INDEX = 21
 
-    node = Node(config=config, genesis=genesis)
-    node.generate_configs()
 
+def generate_blocks_n(node, docker, num):
+    """
+    Run node, generate N blocks, stop node.
+
+    :param Node node: Node to run
+    :param DockerController docker: Docker to run container
+    :param int num: Number of blocks to generate
+    """
     with docker.run_node(node):
         with Wallet(
                 node.get_chain_id(), node.rpc_endpoint,
                 node.genesis.get_accounts()
         ) as w:
             # minimum blocks to generate index file + additional blocks
-            blocks = 21 + block_num
             w.get_block(
-                blocks, wait_for_block=True,
-                time_to_wait=3 * blocks  # ~3 sec on each block
+                num, wait_for_block=True,
+                time_to_wait=3 * num  # 3 sec on each block
             )
+
+
+def generate_block(node, docker):
+    """
+    Run node, generate one block, stop node.
+
+    :param Node node: Node to run
+    :param DockerController docker: Docker to run container
+    :return int: Number of head block
+    """
+    with docker.run_node(node):
+        time.sleep(3)  # wait until block will be generated
+        with Wallet(
+                node.get_chain_id(), node.rpc_endpoint,
+                node.genesis.get_accounts()
+        ) as w:
+            return w.get_dynamic_global_properties()['head_block_number']
+
+
+def test_replay_blockchain(config, genesis, docker):
+    """
+    Test replay state of Node.
+
+    :param Config config: Base config to run witness node
+    :param Genesis genesis: Base genesis structure (users, accounts)
+    :param DockerController docker: Pre-initialized image to run node
+    """
+
+    blocks = 2
+    node = Node(config=config, genesis=genesis)
+    node.generate_configs()
+
+    generate_blocks_n(node, docker, blocks + MIN_BLOCKS_TO_SAVE_INDEX)
 
     node.drop_database()
     node.config['replay-blockchain'] = 'true'
     node.generate_configs()
 
-    with docker.run_node(node):
-        time.sleep(3)  # wait until blockchain will be replayed
-        with Wallet(
-                node.get_chain_id(), node.rpc_endpoint,
-                node.genesis.get_accounts()
-        ) as w:
-            last_block = w.get_dynamic_global_properties()['head_block_number']
-            assert last_block > block_num, "Blockchain wasn't replayed."
+    last_block = generate_block(node, docker)
+
+    assert last_block > blocks, \
+        "Blocks were not generated properly in node replay state."
+    check_logs_on_errors(node.logs)
+
+
+def test_restart_node(config, genesis, docker):
+    """
+    Test restart of the node.
+
+    :param Config config: Base config to run witness node
+    :param Genesis genesis: Base genesis structure (users, accounts)
+    :param DockerController docker: Pre-initialized image to run node
+    """
+
+    blocks = 2
+    node = Node(config=config, genesis=genesis)
+    node.generate_configs()
+
+    generate_blocks_n(node, docker, blocks + MIN_BLOCKS_TO_SAVE_INDEX)
+    last_block = generate_block(node, docker)
+    assert last_block > blocks, \
+        "Blocks were not generated properly after node restart."
+    check_logs_on_errors(node.logs)
