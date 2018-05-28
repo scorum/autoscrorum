@@ -12,7 +12,7 @@ class Node(object):
 
     GENESIS_FILE = 'genesis.json'
     CONFIG_FILE = 'config.ini'
-    CURRENT_LOG = os.path.join('logs', 'current')
+    ALL_LOG = 'all.log'
     SHARED_MEMORY_BIN = 'shared_memory.bin'
     SHARED_MEMORY_META = 'shared_memory.meta'
     BLOCK_LOG = 'block_log'
@@ -32,6 +32,7 @@ class Node(object):
         self.work_dir = None
         self.genesis_path = None
         self.config_path = None
+        self.logs_path = None
         self._setup()
 
     def get_chain_id(self):
@@ -43,8 +44,7 @@ class Node(object):
 
     def read_logs(self):
         self.logs = ""  # empty logs param before repeat reading logs
-        log_path = os.path.join(self.work_dir, self.CURRENT_LOG)
-        with open(log_path, 'r') as f:
+        with open(self.logs_path, 'r') as f:
             for line in f:
                 self.logs += line
 
@@ -71,6 +71,7 @@ class Node(object):
 
         self.genesis_path = os.path.join(self.work_dir, self.GENESIS_FILE)
         self.config_path = os.path.join(self.work_dir, self.CONFIG_FILE)
+        self.logs_path = os.path.join(self.work_dir, 'logs', self.ALL_LOG)
 
     def generate_configs(self):
         if not os.path.exists(self.work_dir):

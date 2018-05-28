@@ -1,6 +1,5 @@
 import os
 import shutil
-import time
 
 import pytest
 
@@ -12,6 +11,7 @@ from autoscorum.node import Node
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.utils import which
 from autoscorum.wallet import Wallet
+from tests.common import check_file_creation
 
 SCORUMD_BIN_PATH = which('scorumd')
 
@@ -110,12 +110,7 @@ def genesis(request):
 def default_config(docker):
     n = Node()  # node without pre-generated config file
     with docker.run_node(n):  # generate by binary default config
-        for i in range(50):
-            if os.path.exists(n.config_path):
-                break
-            time.sleep(0.1)
-        assert os.path.exists(n.config_path), \
-            "Config file wasn't created after 5 seconds."
+        check_file_creation(n.config_path)
 
     cfg = Config()
     cfg.read(n.config_path)

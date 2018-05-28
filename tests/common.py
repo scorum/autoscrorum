@@ -1,4 +1,6 @@
 import re
+import os
+import time
 
 from autoscorum.wallet import Wallet
 
@@ -12,6 +14,21 @@ def check_logs_on_errors(logs):
     re_errors = r"(warning|error|critical|exception|traceback)"
     m = re.match(re_errors, logs, re.IGNORECASE)
     assert m is None, "In logs presents error message: %s" % m.group()
+
+
+def check_file_creation(filepath, sec=5):
+    """
+    Check if file on given path was created in specified time.
+
+    :param str filepath: Path to file.
+    :param int sec: Maximum number of seconds to wait.
+    """
+    for i in range(sec*10):
+        if os.path.exists(filepath):
+            break
+        time.sleep(0.1)
+    assert os.path.exists(filepath), \
+        "File wasn't created after %d seconds. Path %s" % (sec, filepath)
 
 
 def generate_blocks(node, docker, num=1):

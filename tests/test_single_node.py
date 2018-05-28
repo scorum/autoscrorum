@@ -12,7 +12,9 @@ from autoscorum.node import Node
 from autoscorum.utils import fmt_time_from_now
 from autoscorum.wallet import Wallet
 from graphenebase.amount import Amount
-from tests.common import generate_blocks, check_logs_on_errors
+from tests.common import (
+    generate_blocks, check_logs_on_errors, check_file_creation
+)
 from tests.conftest import DEFAULT_WITNESS
 
 
@@ -44,10 +46,11 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
 
 def test_node_logs(node):
     """
-    Check logs of running node (logs are updated, there are no errors).
+    Check logs of running node (logs are created, updated, there are no errors).
 
     :param Node node: Running node
     """
+    check_file_creation(node.logs_path, 5)
     prev_size = 0
     for i in range(5):  # random number of iterations
         time.sleep(3)  # time to generate one block
