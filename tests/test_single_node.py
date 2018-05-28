@@ -10,6 +10,7 @@ from autoscorum.utils import fmt_time_from_now
 from autoscorum.genesis import Genesis
 from autoscorum.errors import Errors
 from autoscorum.account import Account
+from tests.conftest import DEFAULT_WITNESS
 
 
 def test_block_production(wallet: Wallet, node: Node):
@@ -18,7 +19,7 @@ def test_block_production(wallet: Wallet, node: Node):
     assert block['witness'] == node.config['witness'][1:-1]
 
 
-def test_genesis_block(wallet: Wallet, genesis: Genesis, creator: str):
+def test_genesis_block(wallet: Wallet, genesis: Genesis):
     info = wallet.get_dynamic_global_properties()
 
     records = [
@@ -33,8 +34,9 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis, creator: str):
         expected_total_supply = expected_total_supply + Amount(genesis[r])
 
     assert Amount(info['total_supply']) == expected_total_supply
-    assert wallet.get_account_scr_balance(creator) == Amount('80.000000000 SCR')
-    assert wallet.get_account_scr_balance('alice') == Amount('10.000000000 SCR')
+
+    for account, amount in genesis.genesis_accounts:
+        assert wallet.get_account_scr_balance(account.name) == amount
 
 
 def test_node_log_update(node: Node):
@@ -108,22 +110,22 @@ test_account_active_pub_key = 'SCR8G7CU317DiQxkq95c5poDV74nu715CbU8h3QqoNy2Rzv9w
 
 
 @pytest.mark.parametrize('valid_name', ['joe', 'ahahahahahahaha1'])
-def test_create_account(wallet: Wallet, valid_name, creator: str):
+def test_create_account(wallet: Wallet, valid_name):
     fee = Amount('0.000001000 SCR')
     account_before = wallet.list_accounts()
 
-    creator_balance_before = wallet.get_account_scr_balance(creator)
-    print(wallet.create_account(creator,
+    creator_balance_before = wallet.get_account_scr_balance(DEFAULT_WITNESS)
+    print(wallet.create_account(DEFAULT_WITNESS,
                                 newname=valid_name,
                                 owner=test_account_owner_pub_key,
                                 active=test_account_active_pub_key,
                                 posting=test_accout_posting_pub_key,
                                 memo=test_account_memo_key,
                                 fee=fee))
-    creator_balance_delta = creator_balance_before - wallet.get_account_scr_balance(creator)
+    creator_balance_delta = creator_balance_before - wallet.get_account_scr_balance(DEFAULT_WITNESS)
     assert creator_balance_delta == fee
 
-    assert wallet.get_account(valid_name)['recovery_account'] == creator
+    assert wallet.get_account(valid_name)['recovery_account'] == DEFAULT_WITNESS
 
     accounts_after = wallet.list_accounts()
     assert len(accounts_after) == len(account_before) + 1
@@ -160,27 +162,26 @@ def test_create_account(wallet: Wallet, valid_name, creator: str):
                                             ('1ab', Errors.assert_exception),
                                             ('alalalalalalalala', Errors.tx_missing_active_auth),
                                             ('alice', Errors.uniqueness_constraint_violated)])
-def test_create_account_with_invalid_name(wallet: Wallet, name_and_error, creator: str):
+def test_create_account_with_invalid_name(wallet: Wallet, name_and_error):
     invalid_name, error = name_and_error
-    response = wallet.create_account(creator, invalid_name, test_account_owner_pub_key)
+    response = wallet.create_account(DEFAULT_WITNESS, invalid_name, test_account_owner_pub_key)
     print(response)
     assert error.value == response['error']['data']['code']
 
 
 @pytest.mark.parametrize('valid_name', ['joe', 'aaaaaaaaaaaaaaa1'])
-def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_name, creator: str):
+def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_name):
     accounts_before = wallet.list_accounts()
-
-    creator_balance_before = wallet.get_account_scr_balance(creator)
-    print(wallet.create_account_by_committee(creator,
+    creator_balance_before = wallet.get_account_scr_balance(DEFAULT_WITNESS)
+    print(wallet.create_account_by_committee(DEFAULT_WITNESS,
                                              newname=valid_name,
                                              owner=test_account_owner_pub_key,
                                              active=test_account_active_pub_key,
                                              posting=test_accout_posting_pub_key,
                                              memo=test_account_memo_key,))
-    assert creator_balance_before == wallet.get_account_scr_balance(creator)
+    assert creator_balance_before == wallet.get_account_scr_balance(DEFAULT_WITNESS)
 
-    assert wallet.get_account(valid_name)['recovery_account'] == creator
+    assert wallet.get_account(valid_name)['recovery_account'] == DEFAULT_WITNESS
 
     accounts_after = wallet.list_accounts()
     assert len(accounts_after) == len(accounts_before) + 1
@@ -199,8 +200,8 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
     assert account_by_memo_key == []
 
     new_account_sp_balance_amount = str(wallet.get_account_sp_balance(valid_name)).split()[0]
-    registration_bouns_amount = genesis['registration_bonus'].split()[0]
-    assert new_account_sp_balance_amount == registration_bouns_amount
+    registration_bonus_amount = genesis['registration_bonus'].split()[0]
+    assert new_account_sp_balance_amount == registration_bonus_amount
 
     # TODO add assert to check registration_supply delta
 
@@ -211,7 +212,7 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
     assert keys_auths['memo'] == test_account_memo_key
 
 
-def test_registration_schedule(wallet: Wallet, genesis: Genesis, creator: str):
+def test_registration_schedule(wallet: Wallet, genesis: Genesis):
     def expected_reward_value(schedule):
         registration_bonus = Amount(genesis['registration_bonus'])
         total_accounts = len(wallet.list_accounts())
@@ -231,7 +232,7 @@ def test_registration_schedule(wallet: Wallet, genesis: Genesis, creator: str):
     accounts = [Account(name) for name in names]
 
     for account in accounts:
-        wallet.create_account_by_committee(creator,
+        wallet.create_account_by_committee(DEFAULT_WITNESS,
                                            account.name,
                                            active=account.active.get_public_key(),
                                            owner=account.owner.get_public_key(),
@@ -249,38 +250,38 @@ def test_registration_schedule(wallet: Wallet, genesis: Genesis, creator: str):
                                             ('1ab', Errors.assert_exception),
                                             ('alalalalalalalala', Errors.tx_missing_active_auth),
                                             ('alice', Errors.uniqueness_constraint_violated)])
-def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_error,  creator: str):
+def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_error):
     invalid_name, error = name_and_error
-    response = wallet.create_account_by_committee(creator, invalid_name, test_account_owner_pub_key)
+    response = wallet.create_account_by_committee(DEFAULT_WITNESS, invalid_name, test_account_owner_pub_key)
     print(response)
     assert error.value == response['error']['data']['code']
 
 
-def test_create_budget(wallet: Wallet, creator: str):
-    wallet.create_budget(creator, Amount("10.000000000 SCR"), fmt_time_from_now(30))
-    budget = wallet.get_budgets(creator)[0]
+def test_create_budget(wallet: Wallet):
+    wallet.create_budget(DEFAULT_WITNESS, Amount("10.000000000 SCR"), fmt_time_from_now(30))
+    budget = wallet.get_budgets(DEFAULT_WITNESS)[0]
 
     per_block_for_10_blocks_budget = Amount('1.000000000 SCR')
     per_block_for_9_blocks_budget = Amount('1.034482758 SCR')
 
-    assert creator in wallet.list_buddget_owners()
+    assert DEFAULT_WITNESS in wallet.list_buddget_owners()
     assert Amount(budget['per_block']) in (per_block_for_10_blocks_budget, per_block_for_9_blocks_budget)
-    assert budget['owner'] == creator
+    assert budget['owner'] == DEFAULT_WITNESS
 
 
 @pytest.mark.xfail(reason='BLOC-207')
 @pytest.mark.parametrize('genesis', ({'rewards_supply': '0.420480000 SCR'},), indirect=True)
-def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis, creator: str):
+def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     def get_reward_per_block():
-        last_confirmed_block = wallet.get_witness(creator)['last_confirmed_block_num']
-        sp_balance_before_block_confirm = wallet.get_account_sp_balance(creator)
+        last_confirmed_block = wallet.get_witness(DEFAULT_WITNESS)['last_confirmed_block_num']
+        sp_balance_before_block_confirm = wallet.get_account_sp_balance(DEFAULT_WITNESS)
         circulating_capital_before = wallet.get_circulating_capital()
 
         new_confirmed_block = last_confirmed_block
         while new_confirmed_block == last_confirmed_block:
-            new_confirmed_block = wallet.get_witness(creator)['last_confirmed_block_num']
+            new_confirmed_block = wallet.get_witness(DEFAULT_WITNESS)['last_confirmed_block_num']
 
-        witness_reward = wallet.get_account_sp_balance(creator) - sp_balance_before_block_confirm
+        witness_reward = wallet.get_account_sp_balance(DEFAULT_WITNESS) - sp_balance_before_block_confirm
         full_content_reward = wallet.get_circulating_capital() - circulating_capital_before
 
         activity_content_reward = full_content_reward*95/100
@@ -314,7 +315,7 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis, creator: str
     open budget with large amount and short lifetime to instantly increase reward pool which enforce balancer to
     increase content reward
     '''
-    wallet.create_budget(creator, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
+    wallet.create_budget(DEFAULT_WITNESS, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
 
     content_reward_after_budget_open = get_reward_per_block()
     assert content_reward_after_budget_open > content_reward_after_balancer_decrease, \

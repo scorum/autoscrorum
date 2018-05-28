@@ -1,12 +1,12 @@
 import os
 import shutil
 import pytest
+import time
 
 from autoscorum.genesis import Genesis
 from autoscorum.node import Node
 from autoscorum.docker_controller import DockerController
 from autoscorum.wallet import Wallet
-from autoscorum.account import Account
 from autoscorum.utils import which
 from autoscorum.config import Config
 
@@ -15,74 +15,13 @@ from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
 
 SCORUMD_BIN_PATH = which('scorumd')
 
-CUSTOM_ACCOUNTS = {
-    # (
-    #   name, scr_balance, steemit_bounty, founder, witness,
-    #   dev_committee, reg_committee
-    # )
-    (
-        'initdelegate', "80.000000000 SCR", "50.000000000 SP", None, True,
-        True, True
-    ),
-    ('alice', "10.000000000 SCR", None, 70.1, False, False, False),
-    ('bob', "10.000000000 SCR", "50.000000000 SP", 29.9, False, False, False)
-}
+DEFAULT_WITNESS = "initdelegate"
 
 
 def pytest_addoption(parser):
     parser.addoption('--target', action='store', default=SCORUMD_BIN_PATH, help='specify path to scorumd')
     parser.addoption('--image', action='store', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
     parser.addoption('--use-local-image', action='store_false', help='dont rebuild image')
-
-
-def create_acc(
-        name, scr_balance, steemit_bounty, founder=0,
-        witness=False, dev_committee=False, reg_committee=False
-):
-    acc = Account(name)
-    if scr_balance is not None:
-        acc.set_scr_balance(scr_balance)
-    if steemit_bounty is not None:
-        acc.steemit_bounty(steemit_bounty)
-    if founder is not None:
-        acc.founder(founder)
-    if witness:
-        acc.witness()
-    if dev_committee:
-        acc.dev_committee()
-    if reg_committee:
-        acc.reg_committee()
-    return acc
-
-
-@pytest.fixture(scope='session')
-def accounts():
-    accounts = []
-
-    for acc in CUSTOM_ACCOUNTS:
-        accounts.append(create_acc(*acc))
-
-    test_account_name_mask = 'test.test{}'
-
-    for i in range(20):
-        accounts.append(create_acc(
-            test_account_name_mask.format(i + 1),
-            "10.000000000 SCR", "50.000000000 SP"
-        ))
-
-    return accounts
-
-
-@pytest.fixture(scope='session')
-def witness(accounts):
-    for acc in accounts:
-        if acc.is_witness():
-            return acc
-
-
-@pytest.fixture(scope='session')
-def creator(witness):
-    return witness.name
 
 
 @pytest.fixture(scope='session')
@@ -133,13 +72,33 @@ def temp_dir():
 
 
 @pytest.fixture(scope='function')
-def genesis(request, accounts):
+def genesis(request):
+
+    accounts = {
+        (DEFAULT_WITNESS, "80.000000000 SCR"),
+        ('alice', "10.000000000 SCR"),
+        ('bob', "10.000000000 SCR")
+    }.union(
+        ("test.test{}".format(i + 1), "10.000000000 SCR") for i in range(20)
+    )
+
     g = Genesis()
 
-    for a in accounts:
-        g.add_account(a)
+    for name, amount in accounts:
+        g.add_account(name, amount)
 
-    g.calculate()
+    g.add_witness_acc(DEFAULT_WITNESS)
+
+    g.add_founder_acc('alice', 70.1)
+    g.add_founder_acc('bob', 29.9)
+
+    g.add_steemit_bounty_acc(DEFAULT_WITNESS)
+    g.add_steemit_bounty_acc('bob')
+
+    g.add_reg_committee_acc(DEFAULT_WITNESS)
+    g.add_dev_committee_acc(DEFAULT_WITNESS)
+
+    g.calculate_supplies()
 
     if hasattr(request, 'param'):
         for key, value in request.param.items():
@@ -151,7 +110,12 @@ def genesis(request, accounts):
 def default_config(docker):
     n = Node()  # node without pre-generated config file
     with docker.run_node(n):  # generate by binary default config
-        assert (os.path.exists(n.config_path))
+        for i in range(50):
+            if os.path.exists(n.config_path):
+                break
+            time.sleep(0.1)
+        assert os.path.exists(n.config_path), \
+            "Config file wasn't created after 5 seconds."
 
     cfg = Config()
     cfg.read(n.config_path)
@@ -159,7 +123,8 @@ def default_config(docker):
 
 
 @pytest.fixture(scope='function')
-def config(default_config, witness):
+def config(default_config, genesis):
+    witness = genesis.get_account(DEFAULT_WITNESS)
     default_config['rpc-endpoint'] = '0.0.0.0:8090'
     default_config['genesis-json'] = 'genesis.json'
     default_config['enable-stale-production'] = 'true'
