@@ -1,20 +1,21 @@
 import os
 import shutil
 import pytest
+import time
 
 from autoscorum.genesis import Genesis
 from autoscorum.node import Node
 from autoscorum.docker_controller import DockerController
 from autoscorum.wallet import Wallet
-from autoscorum.account import Account
 from autoscorum.utils import which
+from autoscorum.config import Config
 
 from autoscorum.node import TEST_TEMP_DIR
 from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
 
-initdelegate = Account('initdelegate')
-
 SCORUMD_BIN_PATH = which('scorumd')
+
+DEFAULT_WITNESS = "initdelegate"
 
 
 def pytest_addoption(parser):
@@ -72,26 +73,32 @@ def temp_dir():
 
 @pytest.fixture(scope='function')
 def genesis(request):
+
+    accounts = {
+        (DEFAULT_WITNESS, "80.000000000 SCR"),
+        ('alice', "10.000000000 SCR"),
+        ('bob', "10.000000000 SCR")
+    }.union(
+        ("test.test{}".format(i + 1), "10.000000000 SCR") for i in range(20)
+    )
+
     g = Genesis()
-    g.add_account(initdelegate).set_scr_balance("80.000000000 SCR")\
-                               .steemit_bounty("50.000000000 SP")\
-                               .witness()\
-                               .dev_committee() \
-                               .reg_committee()
-    g.add_account('alice').set_scr_balance("10.000000000 SCR")\
-                          .founder(70.1)
-    g.add_account('bob').set_scr_balance("10.000000000 SCR")\
-                        .founder(29.9)\
-                        .steemit_bounty("50.000000000 SP")
 
-    test_account_name_mask = 'test.test{}'
+    for name, amount in accounts:
+        g.add_account(name, amount)
 
-    for i in range(20):
-        g.add_account(test_account_name_mask.format(i+1)) \
-         .set_scr_balance('10.000000000 SCR') \
-         .steemit_bounty("50.000000000 SP")
+    g.add_witness_acc(DEFAULT_WITNESS)
 
-    g.calculate()
+    g.add_founder_acc('alice', 70.1)
+    g.add_founder_acc('bob', 29.9)
+
+    g.add_steemit_bounty_acc(DEFAULT_WITNESS)
+    g.add_steemit_bounty_acc('bob')
+
+    g.add_reg_committee_acc(DEFAULT_WITNESS)
+    g.add_dev_committee_acc(DEFAULT_WITNESS)
+
+    g.calculate_supplies()
 
     if hasattr(request, 'param'):
         for key, value in request.param.items():
@@ -100,22 +107,39 @@ def genesis(request):
 
 
 @pytest.fixture(scope='function')
-def node(genesis, docker):
-    n = Node(genesis=genesis, logging=False)
-    n.config['witness'] = '"{acc_name}"'.format(acc_name=initdelegate.name)
-    n.config['private-key'] = initdelegate.get_signing_private()
+def default_config(docker):
+    n = Node()  # node without pre-generated config file
+    with docker.run_node(n):  # generate by binary default config
+        for i in range(50):
+            if os.path.exists(n.config_path):
+                break
+            time.sleep(0.1)
+        assert os.path.exists(n.config_path), \
+            "Config file wasn't created after 5 seconds."
 
-    n.config['public-api'] = "database_api " \
-                             "login_api " \
-                             "network_broadcast_api " \
-                             "account_by_key_api " \
-                             "tags_api "
+    cfg = Config()
+    cfg.read(n.config_path)
+    return cfg
 
-    n.config['enable-plugin'] = 'witness ' \
-                                'blockchain_history ' \
-                                'account_by_key ' \
-                                'tags'
 
+@pytest.fixture(scope='function')
+def config(default_config, genesis):
+    witness = genesis.get_account(DEFAULT_WITNESS)
+    default_config['rpc-endpoint'] = '0.0.0.0:8090'
+    default_config['genesis-json'] = 'genesis.json'
+    default_config['enable-stale-production'] = 'true'
+    default_config['witness'] = '"{acc_name}"'.format(acc_name=witness.name)
+    default_config['private-key'] = witness.get_signing_private()
+    default_config['public-api'] = default_config['public-api'].replace('\n', " tags_api\n")
+    default_config["enable-plugin"] = 'witness tags ' + default_config["enable-plugin"]
+    return default_config
+
+
+@pytest.fixture(scope='function')
+def node(config, genesis, docker):
+
+    n = Node(config=config, genesis=genesis, logging=False)
+    n.generate_configs()
     with docker.run_node(n):
         yield n
 

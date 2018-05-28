@@ -50,15 +50,18 @@ class DockerController:
     def run_node(self, node: Node, image: str=None):
         if image:
             self.set_image(image)
-        volume_src = node.setup()
 
-        container = self.docker.containers.run(self._image,
-                                               detach=True,
-                                               auto_remove=True,
-                                               volumes={volume_src: {'bind': '/var/lib/scorumd', 'mode': 'rw'}})
+        container = self.docker.containers.run(
+            self._image,
+            detach=True, auto_remove=True, environment={'NODE': 'full'},
+            volumes={node.work_dir: {'bind': CONFIG_DIR, 'mode': 'rw'}}
+        )
 
-        node.rpc_endpoint = "{ip}:{port}".format(ip=self.get_ip(container),
-                                                 port=node.config['rpc-endpoint'].split(':')[1])
+        node.rpc_endpoint = "{ip}:{port}".format(
+            ip=self.get_ip(container),
+            # set dummy port if config is empty
+            port=node.config.get('rpc-endpoint', "0.0.0.0:8001").split(':')[1]
+        )
 
         yield container
         self.stop(container)
@@ -80,7 +83,9 @@ class DockerController:
     @contextmanager
     def _prepare_context(self):
         with tempfile.TemporaryDirectory() as docker_context:
-            shutil.copyfile(self._target_bin, os.path.join(docker_context, SCORUM_BIN))
+            shutil.copyfile(
+                self._target_bin, os.path.join(docker_context, SCORUM_BIN)
+            )
             with open(os.path.join(docker_context, 'Dockerfile'), 'w') as file:
                 file.write(DOCKERFILE)
             yield docker_context

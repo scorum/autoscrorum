@@ -1,10 +1,9 @@
+from copy import deepcopy
+
+
 class Config(object):
     def __init__(self):
         self.parms = {}
-        self['rpc-endpoint'] = '0.0.0.0:8090'
-        self['genesis-json'] = 'genesis.json'
-        self['enable-stale-production'] = 'true'
-        self['shared-file-size'] = '1G'
 
     def __getitem__(self, item):
         return self.parms[item]
@@ -12,10 +11,16 @@ class Config(object):
     def __setitem__(self, key, value):
         self.parms[key] = value
 
+    def __contains__(self, item):
+        return item in self.parms
+
     def __copy__(self):
         new = Config()
-        new.parms = self.parms
+        new.parms = deepcopy(self.parms)
         return new
+
+    def get(self, key, default=None):
+        return self.__getitem__(key) if self.__contains__(key) else default
 
     def dump(self):
         result = ''
@@ -25,6 +30,19 @@ class Config(object):
 
     def get_rpc_port(self):
         return self['rpc-endpoint'].split(':', 1)[1]
+
+    def read(self, file_path: str):
+        """
+        Reads existing config file to memory
+
+        :param str file_path:
+        """
+        with open(file_path, "r") as f:
+            for line in f:
+                if not line.strip() or line.startswith("#"):
+                    continue
+                key, value = line.split(" = ")
+                self.__setitem__(key, value)
 
 
 def test_dump():
