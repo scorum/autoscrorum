@@ -1,5 +1,4 @@
 import datetime
-import time
 
 import pytest
 
@@ -44,16 +43,17 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
         assert wallet.get_account_scr_balance(account.name) == amount
 
 
-def test_node_logs(node):
+def test_node_logs(node, wallet):
     """
     Check logs of running node (logs are created, updated, there are no errors).
 
     :param Node node: Running node
+    :param Wallet wallet: Wallet client to communicate with node
     """
-    check_file_creation(node.logs_path, 5)
+    check_file_creation(node.logs_path)
     prev_size = 0
-    for i in range(5):  # random number of iterations
-        time.sleep(3)  # time to generate one block
+    for i in range(1, 5):  # or any max number of blocks
+        wallet.get_block(i, wait_for_block=True)
         node.read_logs()
         curr_size = len(node.logs)
         assert curr_size > prev_size, "Node logs are not updated."

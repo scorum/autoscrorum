@@ -23,7 +23,7 @@ def check_file_creation(filepath, sec=5):
     :param str filepath: Path to file.
     :param int sec: Maximum number of seconds to wait.
     """
-    for i in range(sec*10):
+    for i in range(sec * 10):
         if os.path.exists(filepath):
             break
         time.sleep(0.1)
