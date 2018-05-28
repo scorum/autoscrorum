@@ -1,13 +1,11 @@
 import hashlib
 from binascii import hexlify, unhexlify
 
-from graphenebase.ecdsa import sign_message, verify_message
-
-from graphenebase.account import PublicKey
-from graphenebase.types import String
-
 from graphenebase import operations
+from graphenebase.account import PublicKey
+from graphenebase.ecdsa import sign_message, verify_message
 from graphenebase.signedtransactions import SignedTransaction
+from graphenebase.types import String
 
 
 def test_sha256_hash():

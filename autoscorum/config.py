@@ -3,33 +3,47 @@ from copy import deepcopy
 
 class Config(object):
     def __init__(self):
-        self.parms = {}
+        self.params = {}
 
     def __getitem__(self, item):
-        return self.parms[item]
+        return self.params[item]
 
     def __setitem__(self, key, value):
-        self.parms[key] = value
+        self.params[key] = value
+
+    def __additem__(self, key, value):
+        try:
+            v = self.params.pop(key)
+            if isinstance(v, list):
+                v.append(value)
+                self.__setitem__(key, v)
+            else:
+                self.__setitem__(key, [v, value])
+        except KeyError:
+            self.params[key] = value
 
     def __contains__(self, item):
-        return item in self.parms
+        return item in self.params
 
     def __copy__(self):
         new = Config()
-        new.parms = deepcopy(self.parms)
+        new.params = deepcopy(self.params)
         return new
 
     def get(self, key, default=None):
         return self.__getitem__(key) if self.__contains__(key) else default
 
     def dump(self):
-        result = ''
-        for key, value in self.parms.items():
-            result += "{key} = {value}\n".format(key=key, value=value)
-        return result
+        return '\n'.join([
+            "{key} = {value}".format(key=key, value=value)
+            if isinstance(value, str)
+            else '\n'.join(["{k} = {v}".format(k=key, v=v) for v in value])
+            for key, value in self.params.items()
+        ]) + '\n'
 
     def get_rpc_port(self):
-        return self['rpc-endpoint'].split(':', 1)[1]
+        # set dummy port if config is empty
+        return self.get('rpc-endpoint', "0.0.0.0:8001").split(':')[1]
 
     def read(self, file_path: str):
         """
@@ -38,11 +52,12 @@ class Config(object):
         :param str file_path:
         """
         with open(file_path, "r") as f:
-            for line in f:
-                if not line.strip() or line.startswith("#"):
+            for row in f:
+                line = row.strip()
+                if not line or line.startswith("#"):
                     continue
                 key, value = line.split(" = ")
-                self.__setitem__(key, value)
+                self.__additem__(key, value)
 
 
 def test_dump():

@@ -1,15 +1,27 @@
-import tempfile
 import os
-
+import tempfile
 from hashlib import sha256
-from .config import Config
 
+from .config import Config
 
 TEST_TEMP_DIR = '/tmp/autoscorum'
 SCORUM_BIN = 'scorumd'
 
 
 class Node(object):
+
+    GENESIS_FILE = 'genesis.json'
+    CONFIG_FILE = 'config.ini'
+    ALL_LOG = 'all.log'
+    SHARED_MEMORY_BIN = 'shared_memory.bin'
+    SHARED_MEMORY_META = 'shared_memory.meta'
+    BLOCK_LOG = 'block_log'
+    BLOCK_LOG_INDEX = 'block_log.index'
+    DATABASE_FILES = [
+        SHARED_MEMORY_BIN, SHARED_MEMORY_META,
+        BLOCK_LOG, BLOCK_LOG_INDEX
+    ]
+
     def __init__(self, config=None, genesis=None, logging=True):
         self.config = config
         self.genesis = genesis
@@ -20,6 +32,7 @@ class Node(object):
         self.work_dir = None
         self.genesis_path = None
         self.config_path = None
+        self.logs_path = None
         self._setup()
 
     def get_chain_id(self):
@@ -30,10 +43,17 @@ class Node(object):
         return self.chain_params["chain_id"]
 
     def read_logs(self):
-        log_file = os.path.join(self.work_dir, 'logs/current')
-        with open(log_file, 'r') as logs:
-            for line in logs:
+        self.logs = ""  # empty logs param before repeat reading logs
+        with open(self.logs_path, 'r') as f:
+            for line in f:
                 self.logs += line
+
+    def drop_database(self, clean_logs=False, remove_index=False):
+        for file in self.DATABASE_FILES:
+            if (not clean_logs and file == self.BLOCK_LOG) \
+                    or (not remove_index and file == self.BLOCK_LOG_INDEX):
+                continue
+            os.remove(os.path.join(self.work_dir, 'blockchain', file))
 
     def _setup(self):
         self.chain_params = {
@@ -49,8 +69,9 @@ class Node(object):
             prefix=self.config['witness'][1:-1], dir=TEST_TEMP_DIR
         )
 
-        self.genesis_path = os.path.join(self.work_dir, 'genesis.json')
-        self.config_path = os.path.join(self.work_dir, 'config.ini')
+        self.genesis_path = os.path.join(self.work_dir, self.GENESIS_FILE)
+        self.config_path = os.path.join(self.work_dir, self.CONFIG_FILE)
+        self.logs_path = os.path.join(self.work_dir, 'logs', self.ALL_LOG)
 
     def generate_configs(self):
         if not os.path.exists(self.work_dir):

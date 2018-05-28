@@ -1,17 +1,17 @@
 import os
 import shutil
-import pytest
-import time
 
+import pytest
+
+from autoscorum.config import Config
+from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
+from autoscorum.docker_controller import DockerController
 from autoscorum.genesis import Genesis
 from autoscorum.node import Node
-from autoscorum.docker_controller import DockerController
-from autoscorum.wallet import Wallet
-from autoscorum.utils import which
-from autoscorum.config import Config
-
 from autoscorum.node import TEST_TEMP_DIR
-from autoscorum.docker_controller import DEFAULT_IMAGE_NAME
+from autoscorum.utils import which
+from autoscorum.wallet import Wallet
+from tests.common import check_file_creation
 
 SCORUMD_BIN_PATH = which('scorumd')
 
@@ -110,12 +110,7 @@ def genesis(request):
 def default_config(docker):
     n = Node()  # node without pre-generated config file
     with docker.run_node(n):  # generate by binary default config
-        for i in range(50):
-            if os.path.exists(n.config_path):
-                break
-            time.sleep(0.1)
-        assert os.path.exists(n.config_path), \
-            "Config file wasn't created after 5 seconds."
+        check_file_creation(n.config_path)
 
     cfg = Config()
     cfg.read(n.config_path)
@@ -130,8 +125,8 @@ def config(default_config, genesis):
     default_config['enable-stale-production'] = 'true'
     default_config['witness'] = '"{acc_name}"'.format(acc_name=witness.name)
     default_config['private-key'] = witness.get_signing_private()
-    default_config['public-api'] = default_config['public-api'].replace('\n', " tags_api\n")
-    default_config["enable-plugin"] = 'witness tags ' + default_config["enable-plugin"]
+    default_config['public-api'] += ' tags_api'
+    default_config["enable-plugin"] += ' witness tags'
     return default_config
 
 

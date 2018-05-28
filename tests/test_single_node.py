@@ -1,15 +1,19 @@
-import pytest
 import datetime
-import time
-import re
 
-from graphenebase.amount import Amount
-from autoscorum.wallet import Wallet
+import pytest
+
+from autoscorum.account import Account
+from autoscorum.config import Config
+from autoscorum.docker_controller import DockerController
+from autoscorum.errors import Errors
+from autoscorum.genesis import Genesis
 from autoscorum.node import Node
 from autoscorum.utils import fmt_time_from_now
-from autoscorum.genesis import Genesis
-from autoscorum.errors import Errors
-from autoscorum.account import Account
+from autoscorum.wallet import Wallet
+from graphenebase.amount import Amount
+from tests.common import (
+    generate_blocks, check_logs_on_errors, check_file_creation
+)
 from tests.conftest import DEFAULT_WITNESS
 
 
@@ -39,23 +43,22 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
         assert wallet.get_account_scr_balance(account.name) == amount
 
 
-def test_node_log_update(node: Node):
+def test_node_logs(node, wallet):
+    """
+    Check logs of running node (logs are created, updated, there are no errors).
+
+    :param Node node: Running node
+    :param Wallet wallet: Wallet client to communicate with node
+    """
+    check_file_creation(node.logs_path)
     prev_size = 0
-    for i in range(5):
-        time.sleep(3)
+    for i in range(1, 5):  # or any max number of blocks
+        wallet.get_block(i, wait_for_block=True)
         node.read_logs()
         curr_size = len(node.logs)
         assert curr_size > prev_size, "Node logs are not updated."
         prev_size = curr_size
-
-
-def test_node_log_errors(node: Node):
-    RE_ERRORS = r"(warning|error|critical|exception|traceback)"
-    for i in range(5):
-        time.sleep(3)
-        node.read_logs()
-        m = re.match(RE_ERRORS, node.logs, re.IGNORECASE)
-        assert m is None, "In logs presents error message: %s" % m.group()
+        check_logs_on_errors(node.logs)
 
 
 def test_transfer(wallet: Wallet):
@@ -388,3 +391,58 @@ def test_post_comment(wallet: Wallet):
 
     comment_level_2 = wallet.get_comments(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'], 2)[0]
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
+
+
+MIN_BLOCKS_TO_SAVE_INDEX = 21
+
+
+def test_replay_blockchain(config, genesis, docker):
+    """
+    Test replay state of Node.
+
+    :param Config config: Base config to run witness node
+    :param Genesis genesis: Base genesis structure (users, accounts)
+    :param DockerController docker: Pre-initialized image to run node
+    """
+
+    blocks_num = 5
+    node = Node(config=config, genesis=genesis)
+    node.generate_configs()
+    # Start node, generate initial blocks in chain
+    last_block = generate_blocks(
+        node, docker, blocks_num + MIN_BLOCKS_TO_SAVE_INDEX
+    )  # node was stopped
+    assert last_block > 0, "Was not generated any block."
+
+    node.drop_database()
+    node.config['replay-blockchain'] = 'true'
+    node.generate_configs()
+    # Start node again, get header block
+    last_block = generate_blocks(node, docker)  # node was stopped
+    assert last_block >= blocks_num, \
+        "Was generated %s blocks, should be >= %s" % (last_block, blocks_num)
+    check_logs_on_errors(node.logs)
+
+
+def test_restart_node(config, genesis, docker):
+    """
+    Test restart of the node.
+
+    :param Config config: Base config to run witness node
+    :param Genesis genesis: Base genesis structure (users, accounts)
+    :param DockerController docker: Pre-initialized image to run node
+    """
+
+    blocks_num = 5
+    node = Node(config=config, genesis=genesis)
+    node.generate_configs()
+    # Start node, generate initial blocks in chain
+    last_block = generate_blocks(
+        node, docker, blocks_num + MIN_BLOCKS_TO_SAVE_INDEX
+    )  # node was stopped
+    assert last_block > 0, "Was not generated any block."
+    # Start node again, get header block
+    last_block = generate_blocks(node, docker)  # node was stopped
+    assert last_block >= blocks_num, \
+        "Was generated %s blocks, should be >= %s" % (last_block, blocks_num)
+    check_logs_on_errors(node.logs)
