@@ -191,3 +191,11 @@ def post_comment_operation(author, permlink, parent_author, parent_permlink, tit
            'body': body,
            'json_metadata': json_metadata}
     )
+
+
+def delegate_scorumpower(delegator, delegatee, scorumpower):
+    return operations.DelegateScorumPower(
+        **{'delegator': delegator,
+           'delegatee': delegatee,
+           'scorumpower': str(scorumpower)}
+    )

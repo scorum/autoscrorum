@@ -305,3 +305,18 @@ class Comment(GrapheneObject):
                     ('body', String(kwargs["body"])),
                     ('json_metadata', String(meta)),
                 ]))
+
+
+class DelegateScorumPower(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super(DelegateScorumPower, self).__init__(
+                OrderedDict([
+                    ('delegator', String(kwargs["delegator"])),
+                    ('delegatee', String(kwargs["delegatee"])),
+                    ('scorumpower', Amount(kwargs["scorumpower"])),
+]))
