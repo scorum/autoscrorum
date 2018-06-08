@@ -319,4 +319,4 @@ class DelegateScorumPower(GrapheneObject):
                     ('delegator', String(kwargs["delegator"])),
                     ('delegatee', String(kwargs["delegatee"])),
                     ('scorumpower', Amount(kwargs["scorumpower"])),
-]))
+                ]))
