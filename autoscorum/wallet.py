@@ -110,6 +110,15 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def get_account_history(self, name: str, _from=4294967295, limit=100):
+        response = self.rpc.send(self.json_rpc_body('call',
+                                                    'account_history_api',
+                                                    'get_account_history', [name, _from, limit]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def get_block(self, num: int, **kwargs):
         def request():
             return self.rpc.send(self.json_rpc_body('get_block', num, api='blockchain_history_api'))
@@ -122,9 +131,9 @@ class Wallet(object):
             return response
         if wait and not block:
             timer = 1
-            time_to_wait = kwargs.get('time_to_wait', 10)
+            time_to_wait = kwargs.get('time_to_wait', 10)*10
             while timer < time_to_wait and not block:
-                time.sleep(1)
+                time.sleep(0.1)
                 timer += 1
                 block = request()['result']
         return block
@@ -190,6 +199,12 @@ class Wallet(object):
         op = operations.create_budget_operation(owner, permlink, balance, deadline)
 
         signing_key = self.account(owner).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def delegate_scorumpower(self, delegator, delegatee, scorumpower: Amount):
+        op = operations.delegate_scorumpower(delegator, delegatee, scorumpower)
+
+        signing_key = self.account(delegator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer(self, _from: str, to: str, amount: Amount, memo=""):
