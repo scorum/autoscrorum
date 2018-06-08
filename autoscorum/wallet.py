@@ -119,6 +119,16 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def get_last_block_duration_in_microseconds(self):
+        response = self.rpc.send(self.json_rpc_body('call',
+                                                    'node_monitoring_api',
+                                                    'get_last_block_duration_microseconds', []))
+
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def get_block(self, num: int, **kwargs):
         def request():
             return self.rpc.send(self.json_rpc_body('get_block', num, api='blockchain_history_api'))
