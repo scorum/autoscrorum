@@ -98,11 +98,12 @@ def genesis(request):
     g.add_reg_committee_acc(DEFAULT_WITNESS)
     g.add_dev_committee_acc(DEFAULT_WITNESS)
 
-    g.calculate_supplies()
-
     if hasattr(request, 'param'):
         for key, value in request.param.items():
             g[key] = value
+
+    g.calculate_supplies()
+
     return g
 
 
