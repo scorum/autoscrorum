@@ -107,9 +107,11 @@ class CreateBudget(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('owner', String(kwargs["owner"])),
-                    ('content_permlink', String(kwargs["content_permlink"])),
+                    ('json_metadata', String(kwargs["json_metadata"])),
                     ('balance', Amount(kwargs["balance"])),
-                    ('deadline', PointInTime(kwargs['deadline']))
+                    ('start', PointInTime(kwargs['start'])),
+                    ('deadline', PointInTime(kwargs['deadline'])),
+                    ('type', String(kwargs['type']))
                 ]))
 
 
