@@ -103,6 +103,13 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def get_config(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_config', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def list_witnesses(self, limit: int=100):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_witness_accounts', ["", limit]))
         try:
@@ -114,6 +121,21 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('call',
                                                     'account_history_api',
                                                     'get_account_history', [name, _from, limit]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_account_transfers(self, name: str, _from="sp", to="scr", starts=-1, limit=100):
+        transfers = ["sp", "scr"]
+        assert _from in transfers
+        assert to in transfers
+        assert _from != "sp" and to != "sp", "Not supported sp_to_sp transfers."
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'account_history_api',
+            'get_account_%s_to_%s_transfers' % (_from, to),
+            [name, starts, limit]
+        ))
         try:
             return response['result']
         except KeyError:
@@ -148,6 +170,21 @@ class Wallet(object):
                 block = request()['result']
         return block
 
+    def get_ops_in_block(self, num, operation_type=0):
+        """
+        Returns sequence of operations included/generated in a specified block
+        :param int num: Number of block in chain.
+        :param int operation_type: Operations type (all = 0, not_virt = 1, virt = 2, market = 3)
+        :rtype: dict
+        """
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'blockchain_history_api', 'get_ops_in_block', [num, operation_type]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def get_account(self, name: str):
         response = self.rpc.send(self.json_rpc_body('get_accounts', [name]))
         try:
@@ -172,6 +209,13 @@ class Wallet(object):
 
     def get_budgets(self, owner_name: str):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [[owner_name]]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_chain_capital(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'chain_api', 'get_chain_capital', [], _id=1))
         try:
             return response['result']
         except KeyError:
@@ -295,6 +339,14 @@ class Wallet(object):
 
     def get_discussions_by(self, by_what, **kwargs):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_stats_for_interval(self, time_from: str, time_to: str):  # %Y-%m-%dT%H:%M:%S
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'blockchain_statistics_api', 'get_stats_for_interval', [time_from, time_to]))
         try:
             return response['result']
         except KeyError:
