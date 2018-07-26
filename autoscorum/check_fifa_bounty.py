@@ -10,31 +10,23 @@ FIFA_BLOCK_NUM = 3325780
 
 # reward operations
 O_AUTHOR_REWARD = "author_reward"
-O_BENEFACTOR_REWARD = "comment_benefactor_reward"
 O_COMMENT_REWARD = "comment_reward"
-O_CURATION_REWARD = "curation_reward"
 
-# CHAIN_ID = "d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"
-# ADDR_BEFORE = "rpc1-testnet-v2.scorum.com:8001"
-CHAIN_ID = "db4007d45f04c1403a7e66a5c66b5b1cdfc2dde8b5335d1d2f116d592ca3dbb1"
-# ADDR_BEFORE = "localhost:11092"
-# ADDR_BEFORE = "rpc1-mainnet-weu-v2.scorum.com:8001"
-# ADDR_AFTER = ADDR_BEFORE
-
-# ADDR_BEFORE = "192.168.100.10:8091"
-# ADDR_AFTER = "192.168.100.10:8093"
-
-ADDR_BEFORE = "localhost:8091"
-ADDR_AFTER = "localhost:8093"
+# CHAIN_ID = "d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"  # testnet
+CHAIN_ID = "db4007d45f04c1403a7e66a5c66b5b1cdfc2dde8b5335d1d2f116d592ca3dbb1"  # mainnet
 
 
-def get_fifa_pool(chain_id, address):
-    with Wallet(chain_id, address) as wallet:
-        return Amount(wallet.get_chain_capital()["content_reward_fifa_world_cup_2018_bounty_fund_sp_balance"])
+def get_chain_capital(address):
+    with Wallet(CHAIN_ID, address) as wallet:
+        return wallet.get_chain_capital()
 
 
-def list_accounts(chain_id, address):
-    with Wallet(chain_id, address) as wallet:
+def get_fifa_pool(address):
+    return Amount(get_chain_capital(address)["content_reward_fifa_world_cup_2018_bounty_fund_sp_balance"])
+
+
+def list_accounts(address):
+    with Wallet(CHAIN_ID, address) as wallet:
         limit = 100
         names = []
         last = ""
@@ -52,22 +44,22 @@ def list_accounts(chain_id, address):
         return names
 
 
-def get_accounts(names, chain_id, address):
-    with Wallet(chain_id, address) as wallet:
+def get_accounts(names, address):
+    with Wallet(CHAIN_ID, address) as wallet:
         accounts = wallet.get_accounts(names)
         logging.info("Total number of accounts; %d" % len(accounts))
         return {a["name"]: a for a in accounts}
 
 
-def get_posts(chain_id, address):
-    with Wallet(chain_id, address) as wallet:
+def get_posts(address):
+    with Wallet(CHAIN_ID, address) as wallet:
         posts = {"%s:%s" % (p["author"], p["permlink"]): p for p in wallet.get_posts_and_comments()}
         logging.info("Total number of posts and comments: %d", len(posts))
         return posts
 
 
-def get_operations_in_fifa_block(chain_id, address):
-    with Wallet(chain_id, address) as w:
+def get_operations_in_fifa_block(address):
+    with Wallet(CHAIN_ID, address) as w:
         operations = w.get_ops_in_block(FIFA_BLOCK_NUM, 2)
         save_to_file("operations.json", operations)
         return operations
@@ -316,20 +308,19 @@ def check_expected_accounts_received_reward(accounts_before, accounts_after):
 
 
 def main():
-    logging.basicConfig(
-        level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S",
-        format="%(asctime)s.%(msecs)03d (%(name)s) %(levelname)s - %(message)s" 
-    )
+    # addr_before = "192.168.100.10:8091"
+    # addr_after = "192.168.100.10:8093"
+    addr_before = "localhost:8091"
+    addr_after = "localhost:8093"
 
-    logging.info("Collecting data before fifa payment.")
-    names = list_accounts(CHAIN_ID, ADDR_BEFORE)
+    names = list_accounts(addr_before)
     # names = ["robin-ho"]
-    accounts_before = get_accounts(names, CHAIN_ID, ADDR_BEFORE)
-    posts_before = get_posts(CHAIN_ID, ADDR_BEFORE)
+    accounts_before = get_accounts(names, addr_before)
+    posts_before = get_posts(addr_before)
     find_posts_to_be_rewarded(posts_before)
     total_net_rshares = sum_net_rshares_per_account(accounts_before, posts_before)
     logging.info("Total net_rshares: %d", total_net_rshares)
-    fifa_pool_before = get_fifa_pool(CHAIN_ID, ADDR_BEFORE)
+    fifa_pool_before = get_fifa_pool(addr_before)
     logging.info("Fifa pool before: %s" % fifa_pool_before)
     calc_expected_reward(accounts_before, fifa_pool_before, total_net_rshares)
     save_to_file("accounts_before.json", accounts_before)
@@ -337,14 +328,14 @@ def main():
     save_to_file("posts_before.json", posts_before)
 
     logging.info("Collecting data after fifa payment.")
-    fifa_operations = get_operations_in_fifa_block(CHAIN_ID, ADDR_AFTER)
-    accounts_after = get_accounts(names, CHAIN_ID, ADDR_AFTER)
+    fifa_operations = get_operations_in_fifa_block(addr_after)
+    accounts_after = get_accounts(names, addr_after)
     calc_accounts_actual_rewards(accounts_after, fifa_operations)
     save_to_file("accounts_after.json", accounts_after)
-    posts_after = get_posts(CHAIN_ID, ADDR_AFTER)
+    posts_after = get_posts(addr_after)
     calc_posts_actual_rewards(posts_after, fifa_operations)
     save_to_file("posts_after.json", posts_after)
-    fifa_pool_after = get_fifa_pool(CHAIN_ID, ADDR_AFTER)
+    fifa_pool_after = get_fifa_pool(addr_after)
     logging.info("Fifa pool after: %s" % fifa_pool_after)
 
     check_expected_accounts_received_reward(accounts_before, accounts_after)
@@ -360,5 +351,36 @@ def main():
         check_accounts_fund_reward_distribution(accounts_before[name], accounts_after[name])
 
 
+def circulation_capital_check():
+    addr_before = "rpc1-mainnet-weu.scorum.com:8001"
+    addr_after = "rpc1-mainnet-weu-v2.scorum.com:8001"
+
+    names = list_accounts(addr_before)
+    for addr in [addr_before, addr_after]:
+        logging.info(str(" %s " % addr).center(100, "="))
+        total_sp = Amount("0 SP")
+        total_scr = Amount("0 SCR")
+        accs = get_accounts(names, addr)
+        for name in accs:
+            total_scr += Amount(accs[name]["balance"])
+            total_sp += Amount(accs[name]["scorumpower"])
+        logging.info("Total SCR from accs: %s" % str(total_scr))
+        logging.info("Total SP from accs: %s" % str(total_sp))
+        accs_cc = total_sp + total_scr
+        logging.info("Circulating capital from accs: %s" % (str(accs_cc)))
+        capital = get_chain_capital(addr)
+        chain_cc = Amount(capital["circulating_capital"])
+        logging.info("Total SP from get_chain_capital: %s" % str(Amount(capital["total_scorumpower"])))
+        logging.info("Total SCR from get_chain_capital: %s" % str(Amount(capital.get("total_scr", Amount("0 SCR")))))
+        logging.info("Circulating capital from get_chain_capital: %s" % str(chain_cc))
+        logging.info("Accs CC == Chain CC: %s, diff: %s" % (accs_cc == chain_cc, str(accs_cc - chain_cc)))
+
+
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S",
+        format="%(asctime)s.%(msecs)03d (%(name)s) %(levelname)s - %(message)s"
+    )
+
+    logging.info("Collecting data before fifa payment.")
     main()
