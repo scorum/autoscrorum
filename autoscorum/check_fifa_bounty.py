@@ -21,8 +21,21 @@ def get_chain_capital(address):
         return wallet.get_chain_capital()
 
 
+def get_dynamic_global_properties(address):
+    with Wallet(CHAIN_ID, address) as wallet:
+        return wallet.get_dynamic_global_properties()
+
+
 def get_fifa_pool(address):
-    return Amount(get_chain_capital(address)["content_reward_fifa_world_cup_2018_bounty_fund_sp_balance"])
+    fifa_pool = Amount(get_chain_capital(address)["content_reward_fifa_world_cup_2018_bounty_fund_sp_balance"])
+    logging.info("Fifa pool: '%s'" % str(fifa_pool))
+    return fifa_pool
+
+
+def get_totalnet_rhsres(posts_to_be_rewarded, all_posts):
+    total_net_rshares = sum([int(all_posts[name]["net_rshares"]) for name in posts_to_be_rewarded])
+    logging.info("Total net_rshares: %d", total_net_rshares)
+    return total_net_rshares
 
 
 def list_accounts(address):
@@ -73,14 +86,14 @@ def calc_accounts_actual_rewards(accounts, operations):
     missed_accs = set()
     for num, data in operations:
         operation = data["op"][0]
-        if operation != O_AUTHOR_REWARD:
+        if operation != O_COMMENT_REWARD or Amount(data["op"][1]["curators_reward"]) > Amount("0 SP"):
             continue
         name = data["op"][1]["author"]
         if name not in accounts:
             missed_accs.add(name)
             continue
-        accounts[name]["actual_reward"] += Amount(data["op"][1]["reward"])
-        op_sum += Amount(data["op"][1]["reward"])
+        accounts[name]["actual_reward"] += Amount(data["op"][1]["author_reward"])
+        op_sum += Amount(data["op"][1]["author_reward"])
         op_num += 1
     if missed_accs:
         logging.error("Unexpected '%d' author_reward operations for accs: %s", missed_accs)
@@ -138,8 +151,6 @@ def to_date(date: str):
 
 
 def find_posts_to_be_rewarded(posts):
-    for _, post in posts.items():
-        post.update({"is_reward_expected": False})
     posts_to_be_rewarded = [
         address for address, post in posts.items()
         if int(post["net_rshares"]) > 0
@@ -156,38 +167,37 @@ def find_posts_to_be_rewarded(posts):
         posts_to_be_rewarded.add(value="%s:%s" % (parent_author, parent_permlink))
         i += 1
     logging.info("Expected %d posts and comments to be rewarded: %s", len(posts_to_be_rewarded), posts_to_be_rewarded)
-    for address in posts_to_be_rewarded:
-        posts[address]["is_reward_expected"] = True
+    return posts_to_be_rewarded
 
 
-def sum_net_rshares_per_account(accounts, posts):
-    for _, acc in accounts.items():
-        acc.update({"net_rshares": 0, "is_reward_expected": False})
-    total_net_rshares = 0
-    for address in posts:
-        if not posts[address]["is_reward_expected"]:
-            continue
-        author = posts[address]["author"]
+def calc_expected_rewards(posts_to_be_rewarded, posts, accounts, fifa_pool, total_net_rshares):
+    for name in accounts:
+        accounts[name].update({"is_reward_expected": False, "expected_reward": Amount("0 SP")})
+    for post in posts.values():
+        post.update({"is_reward_expected": False, "expected_reward": Amount("0 SP")})
+    authors_to_be_rewarded = set()
+    for addr in posts_to_be_rewarded:
+        posts[addr]["is_reward_expected"] = True
+        post_reward = Amount("0 SP")
+        net_rshares = int(posts[addr]["net_rshares"])
+        if net_rshares > 0:
+            post_reward["amount"] = int(fifa_pool.amount * net_rshares / total_net_rshares)
+            posts[addr]["expected_reward"] = post_reward
+        author = posts[addr]["author"]
+        authors_to_be_rewarded.add(author)
+        comment_reward = posts[addr].get("comment_reward", Amount("0 SP"))
+        author_reward = (post_reward + comment_reward) / 2
+        accounts[author]["expected_reward"] += author_reward
         accounts[author]["is_reward_expected"] = True
-        net_rshares = int(posts[address]["net_rshares"])
-        if net_rshares > 0:
-            accounts[author]["net_rshares"] += net_rshares
-            total_net_rshares += net_rshares
-    logging.info(
-        "Expected amount of accounts to be rewarded: %d",
-        len([name for name in accounts if accounts[name]["is_reward_expected"]])
-    )
-    return total_net_rshares
 
+        parent_author = posts[addr]["parent_author"]
+        parent_permlink = posts[addr]["parent_permlink"]
+        if parent_author:
+            parent_addr = "%s:%s" % (parent_author, parent_permlink)
+            parent_comment_reward = posts[parent_addr].get("comment_reward", Amount("0 SP"))
+            posts[parent_addr]["comment_reward"] = parent_comment_reward + author_reward
 
-def calc_expected_reward(data, fifa_pool, total_net_rshares):
-    for record in data.values():
-        record["expected_reward"] = Amount("0 SP")
-        if not record["is_reward_expected"]:
-            continue
-        net_rshares = int(record["net_rshares"])
-        if net_rshares > 0:
-            record["expected_reward"]["amount"] = int(fifa_pool.amount * net_rshares / total_net_rshares)
+    logging.info("Expected amount of accounts to be rewarded: %d", len(authors_to_be_rewarded))
 
 
 def check_comments_fund_reward_sum_after_distribution_equal_to_fifa_pull_size(posts, fifa_pool):
@@ -235,11 +245,10 @@ def check_account_scr_balance_do_not_changed(account_before, account_after):
 
 
 def check_balances_of_expected_accounts_increased(account_before, account_after):
-    net_rshares = account_before["net_rshares"]
     gain = Amount(account_after["scorumpower"]) - Amount(account_before["scorumpower"])
     is_reward_expected = account_before["is_reward_expected"]
     if is_reward_expected:
-        msg = "Balance of '%s' account  with net_rshares '%d' has not changed." % (account_before["name"], net_rshares)
+        msg = "Balance of '%s' account has not changed (gain expected)." % (account_before["name"])
         # assert gain > Amount("0 SP"), msg
         if gain > Amount("0 SP"):
             return
@@ -247,12 +256,11 @@ def check_balances_of_expected_accounts_increased(account_before, account_after)
 
 
 def check_balances_expected_accounts_not_increased(account_before, account_after):
-    net_rshares = account_before["net_rshares"]
     gain = Amount(account_after["scorumpower"]) - Amount(account_before["scorumpower"])
     is_reward_expected = account_before["is_reward_expected"]
     if not is_reward_expected:
-        msg = "Account '%s' balance with net_rshares '%d' was changed on '%s'." % \
-              (account_before["name"], net_rshares, str(gain))
+        msg = "Account '%s' balance with net_rshares on '%s'." % \
+              (account_before["name"], str(gain))
         # assert Amount("0 SP") <= gain < Amount("1.000000000 SP"), msg
         if Amount("0 SP") <= gain < Amount("1.000000000 SP"):
             return
@@ -317,15 +325,13 @@ def main():
     # names = ["robin-ho"]
     accounts_before = get_accounts(names, addr_before)
     posts_before = get_posts(addr_before)
-    find_posts_to_be_rewarded(posts_before)
-    total_net_rshares = sum_net_rshares_per_account(accounts_before, posts_before)
-    logging.info("Total net_rshares: %d", total_net_rshares)
+    posts_to_be_rewarded = find_posts_to_be_rewarded(posts_before)
+    total_net_rshares = get_totalnet_rhsres(posts_to_be_rewarded, posts_before)
     fifa_pool_before = get_fifa_pool(addr_before)
-    logging.info("Fifa pool before: %s" % fifa_pool_before)
-    calc_expected_reward(accounts_before, fifa_pool_before, total_net_rshares)
-    save_to_file("accounts_before.json", accounts_before)
-    calc_expected_reward(posts_before, fifa_pool_before, total_net_rshares)
+
+    calc_expected_rewards(posts_to_be_rewarded, posts_before, accounts_before, fifa_pool_before, total_net_rshares)
     save_to_file("posts_before.json", posts_before)
+    save_to_file("accounts_before.json", accounts_before)
 
     logging.info("Collecting data after fifa payment.")
     fifa_operations = get_operations_in_fifa_block(addr_after)
@@ -336,7 +342,6 @@ def main():
     calc_posts_actual_rewards(posts_after, fifa_operations)
     save_to_file("posts_after.json", posts_after)
     fifa_pool_after = get_fifa_pool(addr_after)
-    logging.info("Fifa pool after: %s" % fifa_pool_after)
 
     check_expected_accounts_received_reward(accounts_before, accounts_after)
     check_expected_posts_received_reward(posts_before, posts_after)
@@ -352,28 +357,40 @@ def main():
 
 
 def circulation_capital_check():
-    addr_before = "rpc1-mainnet-weu.scorum.com:8001"
-    addr_after = "rpc1-mainnet-weu-v2.scorum.com:8001"
-
-    names = list_accounts(addr_before)
-    for addr in [addr_before, addr_after]:
+    # addr_before = "rpc1-mainnet-weu.scorum.com:8001"
+    # addr_after = "rpc1-mainnet-weu-v2.scorum.com:8001"
+    import time
+    addr = "localhost:11090"
+    data = {
+        "accs_total_sp": Amount("0 SP"), "accs_total_scr": Amount("0 SP"), "accs_cc": Amount("0 SP"),
+        "chain_cc": Amount("0 SP"), "chain_sp": Amount("0 SP"), "chain_scr": Amount("0 SP")
+    }
+    for i in range(0, 10):
         logging.info(str(" %s " % addr).center(100, "="))
         total_sp = Amount("0 SP")
         total_scr = Amount("0 SCR")
+        names = list_accounts(addr)
         accs = get_accounts(names, addr)
         for name in accs:
             total_scr += Amount(accs[name]["balance"])
             total_sp += Amount(accs[name]["scorumpower"])
-        logging.info("Total SCR from accs: %s" % str(total_scr))
-        logging.info("Total SP from accs: %s" % str(total_sp))
+        logging.info("Total SCR from accs: %s (%s)" % (str(total_scr), str(total_scr - data["accs_total_scr"])))
+        logging.info("Total SP from accs: %s (%s)" % (str(total_sp), str(total_sp - data["accs_total_sp"])))
         accs_cc = total_sp + total_scr
-        logging.info("Circulating capital from accs: %s" % (str(accs_cc)))
-        capital = get_chain_capital(addr)
+        logging.info("Circulating capital from accs: %s (%s)" % (str(accs_cc), str(accs_cc - data["accs_cc"])))
+        capital = get_dynamic_global_properties(addr)
         chain_cc = Amount(capital["circulating_capital"])
-        logging.info("Total SP from get_chain_capital: %s" % str(Amount(capital["total_scorumpower"])))
-        logging.info("Total SCR from get_chain_capital: %s" % str(Amount(capital.get("total_scr", Amount("0 SCR")))))
-        logging.info("Circulating capital from get_chain_capital: %s" % str(chain_cc))
+        chain_sp = Amount(capital["total_scorumpower"])
+        chain_scr = Amount(capital.get("total_scr", Amount("0 SCR")))
+        logging.info("Total SCR from get_chain_capital: %s (%s)" % (str(chain_scr), str(chain_scr - data["chain_scr"])))
+        logging.info("Total SP from get_chain_capital: %s (%s)" % (str(chain_sp), str(chain_sp - data["chain_sp"])))
+        logging.info("Circulating capital from get_chain_capital: %s (%s)" % (str(chain_cc), str(chain_cc - data["chain_cc"])))
         logging.info("Accs CC == Chain CC: %s, diff: %s" % (accs_cc == chain_cc, str(accs_cc - chain_cc)))
+        time.sleep(10)
+        data.update({
+            "accs_total_sp": total_sp, "accs_total_scr": total_scr, "accs_cc": accs_cc,
+            "chain_cc": chain_cc, "chain_sp": chain_sp, "chain_scr": chain_scr
+        })
 
 
 if __name__ == "__main__":
@@ -384,3 +401,4 @@ if __name__ == "__main__":
 
     logging.info("Collecting data before fifa payment.")
     main()
+    # circulation_capital_check()
