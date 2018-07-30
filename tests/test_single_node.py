@@ -485,6 +485,35 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
     assert posts[0]["id"] > posts[1]["id"], "Posts were not created in correct order"
 
 
+def test_get_discussions_by_author_order(wallet: Wallet):
+    import time
+    post = {
+        'author': DEFAULT_WITNESS,
+        'parent_author': '',
+        'parent_permlink': 'football',
+        'title': 'initdelegate post title',
+        'body': 'initdelegate post body',
+        'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'
+    }
+    permlinks = ["initdelefate-post-%d" % i for i in range(1, 4)]
+
+    for permlink in permlinks:
+        post["permlink"] = permlink
+        res = wallet.post_comment(**post)
+        assert 'error' not in res.keys(), 'post creation failed: %s' % res
+        print("Post created.")
+        time.sleep(360)
+
+    discussions = wallet.get_discussions_by(
+        "author", **{"start_author": DEFAULT_WITNESS, "limit": 3, "start_permlink": permlinks[0]}
+    )
+    total_posts = len(permlinks)
+    for current in range(0, total_posts):
+        opposite = total_posts - current - 1
+        assert permlinks[current] == discussions[opposite]["permlink"], \
+            "Broken posts order, Post %d should be on %d position." % (current, opposite)
+
+
 MIN_BLOCKS_TO_SAVE_INDEX = 21
 
 
