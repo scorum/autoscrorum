@@ -80,8 +80,35 @@ def get_posts(address):
 def get_operations_in_fifa_block(address):
     with Wallet(CHAIN_ID, address) as w:
         operations = w.get_ops_in_block(FIFA_BLOCK_NUM, 2)
-        save_to_file("operations.json", operations)
+        save_to_file("all_operations.json", operations)
         return operations
+
+
+def get_fifa_operations(operations, cashout_posts):
+    fifa_ops = []
+    additional_ops = []
+    for num, data in operations:
+        op = data["op"][0]
+        if op != O_COMMENT_REWARD:
+            continue
+        addr = "%s:%s" % (data["op"][1]["author"], data["op"][1]["permlink"])
+        if addr in cashout_posts:
+            cashout_posts.remove(addr)
+            additional_ops.append([num, data])
+        else:
+            fifa_ops.append([num, data])
+    save_to_file("fifa_operations.json", fifa_ops)
+    if cashout_posts:
+        logging.critical(cashout_posts)
+    if additional_ops:
+        save_to_file("additional_operations.json", additional_ops)
+        fund_sum = Amount("0 SP")
+        author_sum = Amount("0 SP")
+        for num, data in additional_ops:
+            fund_sum += Amount(data["op"][1]["fund_reward"])
+            author_sum += Amount(data["op"][1]["author_reward"])
+        logging.info("Additional rewards: fund '%s', author '%s' ", str(fund_sum), str(author_sum))
+    return fifa_ops, additional_ops
 
 
 def calc_accounts_actual_rewards(accounts, operations):
@@ -91,9 +118,6 @@ def calc_accounts_actual_rewards(accounts, operations):
     op_sum = Amount("0 SP")
     missed_accs = set()
     for num, data in operations:
-        operation = data["op"][0]
-        if operation != O_COMMENT_REWARD or Amount(data["op"][1]["curators_reward"]) > Amount("0 SP"):
-            continue
         name = data["op"][1]["author"]
         if name not in accounts:
             missed_accs.add(name)
@@ -114,9 +138,6 @@ def calc_posts_actual_rewards(posts, operations):
     commenting_sum = Amount("0 SP")
     missed_posts = set()
     for num, data in operations:
-        operation = data["op"][0]
-        if operation != O_COMMENT_REWARD or Amount(data["op"][1]["curators_reward"]) > Amount("0 SP"):
-            continue
         author = data["op"][1]["author"]
         permlink = data["op"][1]["permlink"]
         address = "%s:%s" % (author, permlink)
@@ -156,28 +177,49 @@ def to_date(date: str):
     return datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
 
 
+def _add_parent_posts(base_posts, all_posts):
+    # sort base ports by depth (from children to parents)
+    base_posts = SortedSet(base_posts, key=lambda k: int(all_posts[k]["depth"]) * -1)
+    # add all missing parents
+    i = 0
+    while True:
+        address = base_posts[i]
+        parent_author = all_posts[address]["parent_author"]
+        if not parent_author:
+            break
+        parent_permlink = all_posts[address]["parent_permlink"]
+        base_posts.add(value="%s:%s" % (parent_author, parent_permlink))
+        i += 1
+    # check that order is correct
+    for i in range(1, len(base_posts)):
+        curr = base_posts[i]
+        prev = base_posts[i - 1]
+        assert all_posts[curr]["depth"] <= all_posts[prev]["depth"], "Order of comments to reward is not correct."
+    return base_posts
+
+
 def find_posts_to_be_rewarded(posts):
     posts_to_be_rewarded = [
         address for address, post in posts.items()
         if int(post["net_rshares"]) > 0
            and to_date(post["cashout_time"]) < datetime.datetime.utcnow()
     ]
-    posts_to_be_rewarded = SortedSet(posts_to_be_rewarded, key=lambda k: int(posts[k]["depth"]) * -1)
-    i = 0
-    while True:
-        address = posts_to_be_rewarded[i]
-        parent_author = posts[address]["parent_author"]
-        if not parent_author:
-            break
-        parent_permlink = posts[address]["parent_permlink"]
-        posts_to_be_rewarded.add(value="%s:%s" % (parent_author, parent_permlink))
-        i += 1
-    logging.info("Expected %d posts and comments to be rewarded: %s", len(posts_to_be_rewarded), posts_to_be_rewarded)
-    for i in range(1, len(posts_to_be_rewarded)):
-        curr = posts_to_be_rewarded[i]
-        prev = posts_to_be_rewarded[i - 1]
-        assert posts[curr]["depth"] <= posts[prev]["depth"], "Order of comments to reward is not correct."
+
+    posts_to_be_rewarded = _add_parent_posts(posts_to_be_rewarded, posts)
+    logging.info("Expected amount of posts and comments to be rewarded: %d", len(posts_to_be_rewarded))
     return posts_to_be_rewarded
+
+
+def find_cashout_posts(posts):
+    # for these posts expected other rewards in addition to fifa
+    cashout_posts = [
+        addr for addr, post in posts.items()
+        if to_date("1970-01-01T00:00:00") < to_date(post["cashout_time"]) < datetime.datetime.utcnow()
+        and int(post["net_rshares"]) > 0
+    ]
+    cashout_posts = _add_parent_posts(cashout_posts, posts)
+    logging.info("Amount of cashout posts: %d", len(cashout_posts))
+    return cashout_posts
 
 
 def calc_expected_rewards(posts_to_be_rewarded, posts, accounts, fifa_pool, total_net_rshares):
@@ -220,36 +262,50 @@ def check_comments_expected_reward_sum_equal_to_fifa_pull_size(posts, fifa_pool)
     msg = "Sum of expected fund rewards for posts is not equal to fifa pool: %s" % \
           comparison_str(fifa_pool, fund_sum)
     # assert Amount("-0.005 SP") <= fund_sum - fifa_pool <= Amount("0.005 SP"), msg
-    if Amount("-0.005 SP") <= fund_sum - fifa_pool <= Amount("0.005 SP"):
+    if Amount("-0.000005 SP") <= fund_sum - fifa_pool <= Amount("0.000005 SP"):
         return
     logging.error(msg)
 
 
-def check_comments_fund_reward_sum_after_distribution_equal_to_fifa_pull_size(posts, fifa_pool):
+def check_comments_actual_reward_sum_equal_to_fifa_pull_size(posts, fifa_pool):
     fund_sum = Amount("0 SP")
     for post in posts.values():
         fund_sum += post["actual_reward"]
     msg = "Sum of actual fund rewards is not equal to fifa pool: %s" % \
           comparison_str(fifa_pool, fund_sum)
     # assert Amount("-0.005 SP") <= fund_sum - fifa_pool <= Amount("0.005 SP"), msg
-    if Amount("-0.005 SP") <= fund_sum - fifa_pool <= Amount("0.005 SP"):
+    if Amount("-0.000005 SP") <= fund_sum - fifa_pool <= Amount("0.000005 SP"):
         return
     logging.error(msg)
 
 
-def check_sum_of_authors_expected_reward_equal_to_fifa_pool_size(accounts, fifa_pool):
+def check_accounts_expected_reward_sum_equal_to_fifa_pool_size(accounts, fifa_pool):
     reward_sum = Amount("0 SP")
     for name in accounts.keys():
         reward_sum += accounts[name]["expected_reward"] + accounts[name]["comment_reward"]
     msg = "Sum of expected rewards for all accounts is not equal to fifa pool: %s" % \
           comparison_str(fifa_pool, reward_sum)
-    # assert Amount("-0.005 SP") <= reward_sum - fifa_pool <= Amount("0.005 SP"), msg
-    if Amount("-0.005 SP") <= reward_sum - fifa_pool <= Amount("0.005 SP"):
+    # assert reward_sum == fifa_pool, msg
+    if reward_sum == fifa_pool:
+        logging.info("check_accounts_expected_reward_sum_equal_to_fifa_pool_size - OK")
         return
     logging.error(msg)
 
 
-def check_sum_of_authors_sp_balance_gain_equal_to_fifa_pool_size(accounts_before, accounts_after, fifa_pool):
+def check_accounts_actual_reward_sum_equal_to_fifa_pool_size(accounts, fifa_pool):
+    reward_sum = Amount("0 SP")
+    for name in accounts.keys():
+        reward_sum += accounts[name]["actual_reward"]
+    msg = "Sum of actual rewards for all accounts is not equal to fifa pool: %s" % \
+          comparison_str(fifa_pool, reward_sum)
+    # assert reward_sum == fifa_pool, msg
+    if reward_sum == fifa_pool:
+        logging.info("check_accounts_actual_reward_sum_equal_to_fifa_pool_size - OK")
+        return
+    logging.error(msg)
+
+
+def check_accounts_sp_gain_equal_to_fifa_pool_size(accounts_before, accounts_after, fifa_pool):
     total_gain = Amount("0 SP")
     for name in accounts_before.keys():
         sp_before = Amount(accounts_before[name]["scorumpower"])
@@ -257,8 +313,9 @@ def check_sum_of_authors_sp_balance_gain_equal_to_fifa_pool_size(accounts_before
         total_gain += sp_after - sp_before
     msg = "Amount of sp balance gain is not equal to fifa pool: %s" % \
           comparison_str(fifa_pool, total_gain)
-    # assert Amount("-0.005 SP") <= total_gain - fifa_pool <= Amount("0.005 SP"), msg
-    if Amount("-0.005 SP") <= total_gain - fifa_pool <= Amount("0.005 SP"):
+    # assert total_gain == fifa_pool, msg
+    if total_gain == fifa_pool:
+        logging.info("check_sum_of_authors_sp_balance_gain_equal_to_fifa_pool_size - OK")
         return
     logging.error(msg)
 
@@ -267,63 +324,87 @@ def check_fifa_pool_after_distribution_equal_zero(fifa_pool):
     msg = "Fifa pool after payment is not equal to zero: %s" % str(fifa_pool)
     # assert fifa_pool == Amount("0 SP"), msg
     if fifa_pool == Amount("0 SP"):
+        logging.info("check_fifa_pool_after_distribution_equal_zero - OK")
         return
     logging.error(msg)
 
 
-def check_account_scr_balance_do_not_changed(account_before, account_after):
-    scr_before = Amount(account_before["balance"])
-    scr_after = Amount(account_after["balance"])
-    msg = "Amount of SCR balance has changed for '%s'" % account_before["name"]
-    # assert scr_after - scr_before == Amount("0 SCR"), msg
-    if scr_after - scr_before == Amount("0 SCR"):
-        return
-    logging.error(msg)
-
-
-def check_balances_of_expected_accounts_increased(account_before, account_after):
-    gain = Amount(account_after["scorumpower"]) - Amount(account_before["scorumpower"])
-    is_reward_expected = account_before["is_reward_expected"]
-    if is_reward_expected:
-        msg = "Balance of '%s' account has not changed (gain expected)." % (account_before["name"])
-        # assert gain > Amount("0 SP"), msg
-        if gain > Amount("0 SP"):
-            return
+def check_accounts_scr_balance_has_not_changed(accounts_before, accounts_after):
+    errors = 0
+    for name in accounts_before.keys():
+        scr_before = Amount(accounts_before[name]["balance"])
+        scr_after = Amount(accounts_after[name]["balance"])
+        msg = "Amount of SCR balance has changed for '%s'" % name
+        # assert scr_after - scr_before == Amount("0 SCR"), msg
+        if scr_after - scr_before == Amount("0 SCR"):
+            continue
         logging.error(msg)
+        errors += 1
+    if not errors:
+        logging.info("check_accounts_scr_balance_has_not_changed - OK")
 
 
-def check_balances_expected_accounts_not_increased(account_before, account_after):
-    gain = Amount(account_after["scorumpower"]) - Amount(account_before["scorumpower"])
-    is_reward_expected = account_before["is_reward_expected"]
-    if not is_reward_expected:
-        msg = "Balance of '%s' unexpectedly has changed on '%s'." % \
-              (account_before["name"], str(gain))
-        # assert Amount("0 SP") <= gain < Amount("1.000000000 SP"), msg
-        if Amount("0 SP") <= gain < Amount("1.000000000 SP"):
-            return
+def check_balances_of_expected_accounts_increased(accounts_before, accounts_after):
+    errors = 0
+    for name in accounts_before.keys():
+        gain = Amount(accounts_after[name]["scorumpower"]) - Amount(accounts_before[name]["scorumpower"])
+        is_reward_expected = accounts_before[name]["is_reward_expected"]
+        if is_reward_expected:
+            msg = "Balance of '%s' account has not changed (gain expected)." % name
+            # assert gain > Amount("0 SP"), msg
+            if gain > Amount("0 SP"):
+                continue
+            logging.error(msg)
+            errors += 1
+    if not errors:
+        logging.info("check_balances_of_expected_accounts_increased - OK")
+
+
+def check_balances_of_expected_accounts_not_increased(accounts_before, accounts_after):
+    errors = 0
+    for name in accounts_before.keys():
+        gain = Amount(accounts_after[name]["scorumpower"]) - Amount(accounts_before[name]["scorumpower"])
+        is_reward_expected = accounts_before[name]["is_reward_expected"]
+        if not is_reward_expected:
+            msg = "Balance of '%s' unexpectedly has changed on '%s'." % (name, str(gain))
+            # assert Amount("0 SP") <= gain < Amount("1.000000000 SP"), msg
+            if Amount("0 SP") <= gain < Amount("1.000000000 SP"):
+                continue
+            logging.error(msg)
+            errors += 1
+    if not errors:
+        logging.info("check_balances_of_expected_accounts_not_increased - OK")
+
+
+def check_accounts_fund_reward_distribution(accounts_before, accounts_after):
+    errors = 0
+    for name in accounts_before.keys():
+        expected = accounts_before[name]["expected_reward"]
+        actual = accounts_after[name]["actual_reward"]
+        msg = "Account actual and expected rewards are not equal: %s, name '%s'" % \
+            (comparison_str(expected, actual), name)
+        # assert Amount("-0.000005 SP") <= actual - expected <= Amount("0.000005 SP"), msg
+        if Amount("-0.000005 SP") <= actual - expected <= Amount("0.000005 SP"):
+            continue
         logging.error(msg)
-
-
-def check_accounts_fund_reward_distribution(account_before, account_after):
-    expected = account_before["expected_reward"]
-    actual = account_after["actual_reward"]
-    msg = "Account actual and expected rewards are not equal: %s, name '%s'" % \
-        (comparison_str(expected, actual), account_before["name"])
-    # assert Amount("-0.005 SP") <= actual - expected <= Amount("0.005 SP"), msg
-    if Amount("-0.005 SP") <= actual - expected <= Amount("0.005 SP"):
-        return
-    logging.error(msg)
+        errors += 1
+    if not errors:
+        logging.info("check_accounts_fund_reward_distribution - OK")
 
 
 def check_posts_fund_reward_distribution(posts_before, posts_after):
+    errors = 0
     for address in posts_before.keys():
         expected = posts_before[address]["expected_reward"]
         actual = posts_after[address]["actual_reward"]
         msg = "Post actual and expected rewards are not equal: %s, author_permlink '%s'" % \
             (comparison_str(expected, actual), address)
-        if Amount("-0.005 SP") <= actual - expected <= Amount("0.005 SP"):
+        if Amount("-0.000005 SP") <= actual - expected <= Amount("0.000005 SP"):
             continue
         logging.error(msg)
+        errors += 1
+    if not errors:
+        logging.info("check_posts_fund_reward_distribution - OK")
 
 
 def check_expected_posts_received_reward(posts_before, posts_after):
@@ -339,6 +420,8 @@ def check_expected_posts_received_reward(posts_before, posts_after):
     unexpected = rewarded_posts.difference(posts_to_reward)
     if unexpected:
         logging.error("Unexpected comment_reward_operations for %d posts: %s", len(unexpected), unexpected)
+    if not missing and not unexpected:
+        logging.info("check_expected_posts_received_reward - OK")
 
 
 def check_expected_accounts_received_reward(accounts_before, accounts_after):
@@ -350,19 +433,19 @@ def check_expected_accounts_received_reward(accounts_before, accounts_after):
     unexpected = rewarded_authors.difference(accs_to_reward)
     if unexpected:
         logging.error("Unexpected author_reward_operations for %d accounts: %s", len(unexpected), unexpected)
+    if not missing and not unexpected:
+        logging.info("check_expected_accounts_received_reward - OK")
 
 
 def main():
-    # addr_before = "192.168.100.10:8091"
-    # addr_after = "192.168.100.10:8093"
     addr_before = "localhost:8091"
     addr_after = "localhost:8093"
 
     names = list_accounts(addr_before)
-    # names = ["robin-ho"]
     accounts_before = get_accounts(names, addr_before)
     posts_before = get_posts(addr_before)
     posts_to_be_rewarded = find_posts_to_be_rewarded(posts_before)
+    cashout_posts = find_cashout_posts(posts_before)
     total_net_rshares = get_totalnet_rhsres(posts_to_be_rewarded, posts_before)
     fifa_pool_before = get_fifa_pool(addr_before)
 
@@ -371,7 +454,8 @@ def main():
     save_to_file("accounts_before.json", accounts_before)
 
     logging.info("Collecting data after fifa payment.")
-    fifa_operations = get_operations_in_fifa_block(addr_after)
+    ops = get_operations_in_fifa_block(addr_after)
+    fifa_operations, additional_ops = get_fifa_operations(ops, cashout_posts)
     accounts_after = get_accounts(names, addr_after)
     calc_accounts_actual_rewards(accounts_after, fifa_operations)
     save_to_file("accounts_after.json", accounts_after)
@@ -380,19 +464,21 @@ def main():
     save_to_file("posts_after.json", posts_after)
     fifa_pool_after = get_fifa_pool(addr_after)
 
-    check_sum_of_authors_expected_reward_equal_to_fifa_pool_size(accounts_before, fifa_pool_before)
-    check_comments_expected_reward_sum_equal_to_fifa_pull_size(posts_before, fifa_pool_before)
-    check_expected_accounts_received_reward(accounts_before, accounts_after)
-    check_expected_posts_received_reward(posts_before, posts_after)
     check_fifa_pool_after_distribution_equal_zero(fifa_pool_after)
-    check_comments_fund_reward_sum_after_distribution_equal_to_fifa_pull_size(posts_after, fifa_pool_before)
-    check_sum_of_authors_sp_balance_gain_equal_to_fifa_pool_size(accounts_before, accounts_after, fifa_pool_before)
+
+    check_expected_posts_received_reward(posts_before, posts_after)
+    check_comments_expected_reward_sum_equal_to_fifa_pull_size(posts_before, fifa_pool_before)
+    check_comments_actual_reward_sum_equal_to_fifa_pull_size(posts_after, fifa_pool_before)
     check_posts_fund_reward_distribution(posts_before,  posts_after)
-    for name in names:
-        check_account_scr_balance_do_not_changed(accounts_before[name], accounts_after[name])
-        check_balances_of_expected_accounts_increased(accounts_before[name], accounts_after[name])
-        check_balances_expected_accounts_not_increased(accounts_before[name], accounts_after[name])
-        check_accounts_fund_reward_distribution(accounts_before[name], accounts_after[name])
+
+    check_expected_accounts_received_reward(accounts_before, accounts_after)
+    check_accounts_expected_reward_sum_equal_to_fifa_pool_size(accounts_before, fifa_pool_before)
+    check_accounts_actual_reward_sum_equal_to_fifa_pool_size(accounts_after, fifa_pool_before)
+    check_accounts_fund_reward_distribution(accounts_before, accounts_after)
+    check_accounts_sp_gain_equal_to_fifa_pool_size(accounts_before, accounts_after, fifa_pool_before)
+    check_accounts_scr_balance_has_not_changed(accounts_before, accounts_after)
+    check_balances_of_expected_accounts_increased(accounts_before, accounts_after)
+    check_balances_of_expected_accounts_not_increased(accounts_before, accounts_after)
 
 
 def circulation_capital_check():
