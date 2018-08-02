@@ -8,7 +8,7 @@ from graphenebase.amount import Amount
 from sortedcontainers import SortedSet
 
 
-FIFA_BLOCK_NUM = 3325780
+FIFA_BLOCK_NUM = 3725076
 
 # reward operations
 O_AUTHOR_REWARD = "author_reward"
@@ -34,7 +34,7 @@ def get_fifa_pool(address):
     return fifa_pool
 
 
-def get_totalnet_rhsres(posts_to_be_rewarded, all_posts):
+def get_total_net_rhsres(posts_to_be_rewarded, all_posts):
     total_net_rshares = 0
     for name in posts_to_be_rewarded:
         net_rshares = int(all_posts[name]["net_rshares"])
@@ -222,10 +222,16 @@ def find_cashout_posts(posts):
     return cashout_posts
 
 
-def calc_expected_rewards(posts_to_be_rewarded, posts, accounts, fifa_pool, total_net_rshares):
+def calc_expected_rewards(posts_to_be_rewarded, posts, accounts, fifa_pool):
+    total_net_rshares = get_total_net_rhsres(posts_to_be_rewarded, posts)
+    total_posting_rewards = sum([Amount(a["posting_rewards_sp"]) for a in accounts.values()], Amount("0 SP"))
     params = {"is_reward_expected": False, "expected_reward": Amount("0 SP"), "comment_reward": Amount("0 SP")}
     for account in accounts.values():
         account.update(deepcopy(params))
+        exp_posting_reward = Amount("0 SP")
+        acc_posting_rewards = Amount(account["posting_rewards_sp"])
+        exp_posting_reward["amount"] = int(fifa_pool.amount * acc_posting_rewards.amount / total_posting_rewards.amount)
+        account.update({"expected_posting_reward": exp_posting_reward})
     for post in posts.values():
         post.update(deepcopy(params))
     authors_to_be_rewarded = set()
@@ -446,10 +452,8 @@ def main():
     posts_before = get_posts(addr_before)
     posts_to_be_rewarded = find_posts_to_be_rewarded(posts_before)
     cashout_posts = find_cashout_posts(posts_before)
-    total_net_rshares = get_totalnet_rhsres(posts_to_be_rewarded, posts_before)
     fifa_pool_before = get_fifa_pool(addr_before)
-
-    calc_expected_rewards(posts_to_be_rewarded, posts_before, accounts_before, fifa_pool_before, total_net_rshares)
+    calc_expected_rewards(posts_to_be_rewarded, posts_before, accounts_before, fifa_pool_before)
     save_to_file("posts_before.json", posts_before)
     save_to_file("accounts_before.json", accounts_before)
 
