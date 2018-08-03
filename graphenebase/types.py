@@ -421,3 +421,29 @@ class Enum8(Uint8):
 
     def __str__(self):
         return str(self.options[self.data])
+
+
+class BudgetType(Enum8):
+    def __init__(self, selection):
+        self.options = ["post", "banner"]
+        super(BudgetType, self).__init__(selection)
+
+
+def test_seriralize_banner_to_string():
+    x = BudgetType("banner")
+    assert str(x) == "banner"
+
+
+def test_seriralize_post_to_string():
+    x = BudgetType("post")
+    assert str(x) == "post"
+
+
+def test_seriralize_banner_to_byte():
+    x = BudgetType("banner")
+    assert bytes(x) == b'\x01'
+
+
+def test_seriralize_post_to_byte():
+    x = BudgetType("post")
+    assert bytes(x) == b'\x00'
