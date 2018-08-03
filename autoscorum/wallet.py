@@ -96,8 +96,10 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def list_buddget_owners(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_budget_owners', ["", limit]))
+    def list_buddget_owners(self, limit: int=100, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'database_api', 'lookup_budget_owners', [budget_type, "", limit])
+        )
         try:
             return response['result']
         except KeyError:
@@ -207,8 +209,8 @@ class Wallet(object):
         result['memo'] = account['memo_key']
         return result
 
-    def get_budgets(self, owner_name: str):
-        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [[owner_name]]))
+    def get_budgets(self, owner_name: str, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, [owner_name]]))
         try:
             return response['result']
         except KeyError:
@@ -253,7 +255,6 @@ class Wallet(object):
         op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, object_type)
 
         signing_key = self.account(owner).get_active_private()
-        print("Wallet signing key: %s" % signing_key)
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def delegate_scorumpower(self, delegator, delegatee, scorumpower: Amount):

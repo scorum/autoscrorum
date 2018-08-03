@@ -408,7 +408,7 @@ class FullObjectId():
         return self.Id
 
 
-class Enum8(Uint8):
+class Enum8(Uint64):
     def __init__(self, selection):
         assert selection in self.options or \
             isinstance(selection, int) and len(self.options) < selection, \

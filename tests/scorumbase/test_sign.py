@@ -70,4 +70,4 @@ def test_create_budget_to_bytes_serialization():
            'deadline': "2018-08-03T10:13:13",
            'type': "post"})
 
-    assert hexlify(bytes(op)) == b'000c696e697464656c6567617465027b7d00e40b540200000009534352000000009b2a645bb92a645b'
+    assert hexlify(bytes(op)) == b'00000000000000000c696e697464656c6567617465027b7d00e40b540200000009534352000000009b2a645bb92a645b'

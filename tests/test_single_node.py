@@ -262,7 +262,7 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
 
 def test_create_budget(wallet: Wallet):
     owner = DEFAULT_WITNESS
-    print(wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(30), fmt_time_from_now(60)))
+    print(wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40)))
     budget = wallet.get_budgets(owner)[0]
     print(budget)
 
