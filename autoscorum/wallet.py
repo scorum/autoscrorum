@@ -96,6 +96,23 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def list_all_accounts(self):
+        limit = 100
+        names = []
+        last = ""
+        while True:
+            accs = self.list_accounts(limit, last)
+
+            if len(names) == 0:
+                names += accs
+            else:
+                names += accs[1:]
+
+            if len(accs) < limit or names[-1] == last:
+                break
+            last = accs[-1]
+        return names
+
     def list_buddget_owners(self, limit: int=100, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body(
             'call', 'database_api', 'lookup_budget_owners', [budget_type, "", limit])

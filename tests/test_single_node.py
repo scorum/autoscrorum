@@ -63,6 +63,29 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
         assert wallet.get_account_scr_balance(account.name) == amount
 
 
+def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
+    accs_sp = Amount("0 SP")
+    accs_scr = Amount("0 SCR")
+    names = wallet.list_accounts()
+    accs = wallet.get_accounts(names)
+    for acc in accs:
+        print(acc)
+        accs_scr += Amount(acc["balance"])
+        accs_sp += Amount(acc["scorumpower"])
+    accs_cc = accs_scr + accs_sp
+    print("Accs - total SCR: %s, total SP: %s, sum: %s" % (str(accs_scr), str(accs_sp), str(accs_cc)))
+
+    dgp = wallet.get_dynamic_global_properties()
+    dgp_cc = Amount(dgp["circulating_capital"])
+    dgp_sp = Amount(dgp["total_scorumpower"])
+    dgp_scr = Amount(dgp.get("total_scr", Amount("0 SCR")))
+    print("DGP - total SCR: %s, total SP: %s, sum: %s" % (str(dgp_scr), str(dgp_sp), str(dgp_cc)))
+
+    assert accs_sp == dgp_sp
+    assert accs_scr == dgp_scr
+    assert accs_cc == dgp_cc
+
+
 def test_transfer(wallet: Wallet):
     initdelegate_balance_before = wallet.get_account_scr_balance('initdelegate')
     amount = initdelegate_balance_before - Amount('5.000000000 SCR')

@@ -1,18 +1,14 @@
+import csv
 import datetime
 import json
 import logging
 from copy import deepcopy
 
-from autoscorum.wallet import Wallet
-from graphenebase.amount import Amount
 from sortedcontainers import SortedSet
 
-
-FIFA_BLOCK_NUM = 3725076
-
-# reward operations
-O_AUTHOR_REWARD = "author_reward"
-O_COMMENT_REWARD = "comment_reward"
+from autoscorum.wallet import Wallet
+from graphenebase.amount import Amount
+from collections import defaultdict
 
 # CHAIN_ID = "d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"  # testnet
 CHAIN_ID = "db4007d45f04c1403a7e66a5c66b5b1cdfc2dde8b5335d1d2f116d592ca3dbb1"  # mainnet
@@ -44,23 +40,9 @@ def get_total_net_rhsres(posts_to_be_rewarded, all_posts):
     return total_net_rshares
 
 
-def list_accounts(address):
+def list_all_accounts(address):
     with Wallet(CHAIN_ID, address) as wallet:
-        limit = 100
-        names = []
-        last = ""
-        while True:
-            accs = wallet.list_accounts(limit, last)
-
-            if len(names) == 0:
-                names += accs
-            else:
-                names += accs[1:]
-
-            if len(accs) < limit or names[-1] == last:
-                break
-            last = accs[-1]
-        return names
+        return wallet.list_all_accounts()
 
 
 def get_accounts(names, address):
@@ -77,9 +59,9 @@ def get_posts(address):
         return posts
 
 
-def get_operations_in_fifa_block(address):
+def get_operations_in_block(address, num):
     with Wallet(CHAIN_ID, address) as w:
-        operations = w.get_ops_in_block(FIFA_BLOCK_NUM, 2)
+        operations = w.get_ops_in_block(num, 2)
         save_to_file("all_operations.json", operations)
         return operations
 
@@ -89,7 +71,7 @@ def get_fifa_operations(operations, cashout_posts):
     additional_ops = []
     for num, data in operations:
         op = data["op"][0]
-        if op != O_COMMENT_REWARD:
+        if op != "comment_reward":
             continue
         addr = "%s:%s" % (data["op"][1]["author"], data["op"][1]["permlink"])
         if addr in cashout_posts:
@@ -175,6 +157,10 @@ def comparison_str(expected: Amount, actual: Amount):
 
 def to_date(date: str):
     return datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
+
+
+def percentage(dividend, divisor, precision=5):
+    return "%.{}f%%".format(precision) % (100 * dividend / divisor) if divisor else "inf%"
 
 
 def _add_parent_posts(base_posts, all_posts):
@@ -443,11 +429,55 @@ def check_expected_accounts_received_reward(accounts_before, accounts_after):
         logging.info("check_expected_accounts_received_reward - OK")
 
 
-def main():
-    addr_before = "localhost:8091"
-    addr_after = "localhost:8093"
+def write_posts_stats(posts, fifa_pool):
+    with open("fifa_posts_result.csv", "w") as csvfile:
+        authors_payouts = defaultdict(Amount)
+        writer = csv.writer(csvfile, delimiter=";")
+        writer.writerow([
+            "author", "actual_reward_by_net_rshares_distribution", "fifa_percent", "post_author_payout",
+            "payout_percent", "net_rshares", "permlink"
+        ])
+        for addr, post in posts.items():
+            reward = post["expected_reward"]
+            if reward > Amount("0 SP"):
+                fifa_percent = percentage(reward.amount, fifa_pool.amount)
+                author, permlink = addr.split(":")
+                author_payout = Amount(post["author_payout_sp_value"])
+                payout_percent = percentage(reward.amount, author_payout.amount)
+                writer.writerow([
+                    author, str(reward), fifa_percent, str(author_payout), payout_percent,
+                    int(post["net_rshares"]), permlink
+                ])
+                authors_payouts[author] += author_payout
+        return authors_payouts
 
-    names = list_accounts(addr_before)
+
+def write_accounts_stats(accounts, authors_payouts, fifa_pool):
+    with open("fifa_accounts_result.csv", "w") as csvfile:
+        writer = csv.writer(csvfile, delimiter=";")
+        writer.writerow([
+            "name", "actual_reward_by_net_rshares_distribution", "fifa_percent", "author_posts_payouts",
+            "payout_percent",
+            "balance_before_fifa", "gain_percent", "potential_reward_by_sp_distribution", "exp_posting_percent"
+        ])
+        for name, acc in accounts.items():
+            reward = acc["expected_reward"]
+            if reward > Amount("0 SP"):
+                fifa_percent = percentage(reward.amount, fifa_pool.amount)
+                author_payout = authors_payouts[name]
+                payout_percent = percentage(reward.amount, author_payout.amount)
+                balance = Amount(acc["scorumpower"])
+                gain_percent = percentage(reward.amount, balance.amount)
+                exp_posting_reward = acc["expected_posting_reward"]
+                exp_posting_percent = percentage(exp_posting_reward.amount, fifa_pool.amount)
+                writer.writerow([
+                    name, str(reward), fifa_percent, str(author_payout), payout_percent, str(balance), gain_percent,
+                    exp_posting_reward, exp_posting_percent
+                ])
+
+
+def main(addr_before, addr_after, fifa_block):
+    names = list_all_accounts(addr_before)
     accounts_before = get_accounts(names, addr_before)
     posts_before = get_posts(addr_before)
     posts_to_be_rewarded = find_posts_to_be_rewarded(posts_before)
@@ -458,7 +488,7 @@ def main():
     save_to_file("accounts_before.json", accounts_before)
 
     logging.info("Collecting data after fifa payment.")
-    ops = get_operations_in_fifa_block(addr_after)
+    ops = get_operations_in_block(addr_after, fifa_block)
     fifa_operations, additional_ops = get_fifa_operations(ops, cashout_posts)
     accounts_after = get_accounts(names, addr_after)
     calc_accounts_actual_rewards(accounts_after, fifa_operations)
@@ -484,42 +514,8 @@ def main():
     check_balances_of_expected_accounts_increased(accounts_before, accounts_after)
     check_balances_of_expected_accounts_not_increased(accounts_before, accounts_after)
 
-
-def circulation_capital_check():
-    # addr_before = "rpc1-mainnet-weu.scorum.com:8001"
-    # addr_after = "rpc1-mainnet-weu-v2.scorum.com:8001"
-    import time
-    addr = "localhost:11090"
-    data = {
-        "accs_total_sp": Amount("0 SP"), "accs_total_scr": Amount("0 SP"), "accs_cc": Amount("0 SP"),
-        "chain_cc": Amount("0 SP"), "chain_sp": Amount("0 SP"), "chain_scr": Amount("0 SP")
-    }
-    for i in range(0, 10):
-        logging.info(str(" %s " % addr).center(100, "="))
-        total_sp = Amount("0 SP")
-        total_scr = Amount("0 SCR")
-        names = list_accounts(addr)
-        accs = get_accounts(names, addr)
-        for name in accs:
-            total_scr += Amount(accs[name]["balance"])
-            total_sp += Amount(accs[name]["scorumpower"])
-        logging.info("Total SCR from accs: %s (%s)" % (str(total_scr), str(total_scr - data["accs_total_scr"])))
-        logging.info("Total SP from accs: %s (%s)" % (str(total_sp), str(total_sp - data["accs_total_sp"])))
-        accs_cc = total_sp + total_scr
-        logging.info("Circulating capital from accs: %s (%s)" % (str(accs_cc), str(accs_cc - data["accs_cc"])))
-        capital = get_dynamic_global_properties(addr)
-        chain_cc = Amount(capital["circulating_capital"])
-        chain_sp = Amount(capital["total_scorumpower"])
-        chain_scr = Amount(capital.get("total_scr", Amount("0 SCR")))
-        logging.info("Total SCR from get_chain_capital: %s (%s)" % (str(chain_scr), str(chain_scr - data["chain_scr"])))
-        logging.info("Total SP from get_chain_capital: %s (%s)" % (str(chain_sp), str(chain_sp - data["chain_sp"])))
-        logging.info("Circulating capital from get_chain_capital: %s (%s)" % (str(chain_cc), str(chain_cc - data["chain_cc"])))
-        logging.info("Accs CC == Chain CC: %s, diff: %s" % (accs_cc == chain_cc, str(accs_cc - chain_cc)))
-        time.sleep(10)
-        data.update({
-            "accs_total_sp": total_sp, "accs_total_scr": total_scr, "accs_cc": accs_cc,
-            "chain_cc": chain_cc, "chain_sp": chain_sp, "chain_scr": chain_scr
-        })
+    payouts = write_posts_stats(posts_before, fifa_pool_before)
+    write_accounts_stats(accounts_before, payouts, fifa_pool_before)
 
 
 if __name__ == "__main__":
@@ -529,5 +525,4 @@ if __name__ == "__main__":
     )
 
     logging.info("Collecting data before fifa payment.")
-    main()
-    # circulation_capital_check()
+    main(addr_before="localhost:8091", addr_after="localhost:8093", fifa_block=3755542)
