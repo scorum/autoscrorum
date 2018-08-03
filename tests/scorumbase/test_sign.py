@@ -61,4 +61,13 @@ def test_signed_transaction():
     assert(str(p) == "SCR5bgzuweaHx231escVuPVxgudSyUWdKAH7fKgxZfp3nKSirzFRa")
 
 
-# def test_sign_create_account():
+def test_create_budget_to_bytes_serialization():
+    op = operations.CreateBudget(
+        **{'owner': "initdelegate",
+           'json_metadata': "{}",
+           'balance': "10.000000000 SCR",
+           'start': "2018-08-03T10:12:43",
+           'deadline': "2018-08-03T10:13:13",
+           'type': "post"})
+
+    assert hexlify(bytes(op)) == b'000c696e697464656c6567617465027b7d00e40b540200000009534352000000009b2a645bb92a645b'
