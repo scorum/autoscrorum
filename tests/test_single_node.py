@@ -69,7 +69,6 @@ def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
     names = wallet.list_accounts()
     accs = wallet.get_accounts(names)
     for acc in accs:
-        print(acc)
         accs_scr += Amount(acc["balance"])
         accs_sp += Amount(acc["scorumpower"])
     accs_cc = accs_scr + accs_sp
@@ -508,6 +507,7 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
     assert posts[0]["id"] > posts[1]["id"], "Posts were not created in correct order"
 
 
+@pytest.mark.skip("Takes too long for automatic checks")
 def test_get_discussions_by_author_order(wallet: Wallet):
     import time
     post = {
