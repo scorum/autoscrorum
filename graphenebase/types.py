@@ -408,16 +408,22 @@ class FullObjectId():
         return self.Id
 
 
-class Enum8(Uint8):
+class Enum64(Uint64):
     def __init__(self, selection):
         assert selection in self.options or \
             isinstance(selection, int) and len(self.options) < selection, \
             "Options are %s. Given '%s'" % (
                 self.options, selection)
         if selection in self.options:
-            super(Enum8, self).__init__(self.options.index(selection))
+            super(Enum64, self).__init__(self.options.index(selection))
         else:
-            super(Enum8, self).__init__(selection)
+            super(Enum64, self).__init__(selection)
 
     def __str__(self):
         return str(self.options[self.data])
+
+
+class BudgetType(Enum64):
+    def __init__(self, selection):
+        self.options = ["post", "banner"]
+        super(BudgetType, self).__init__(selection)

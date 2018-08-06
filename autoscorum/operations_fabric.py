@@ -143,13 +143,14 @@ def account_witness_vote_operation(account, witness, approve):
     )
 
 
-def create_budget_operation(owner, permlink, balance: Amount, deadline):
+def create_budget_operation(owner, json_metadata, balance: Amount, start, deadline, object_type):
     return operations.CreateBudget(
         **{'owner': owner,
-           'content_permlink': permlink,
+           'json_metadata': json_metadata,
            'balance': str(balance),
-           'deadline': deadline
-           }
+           'start': start,
+           'deadline': deadline,
+           'type': object_type}
     )
 
 

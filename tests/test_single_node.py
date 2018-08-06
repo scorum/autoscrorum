@@ -261,15 +261,17 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
 
 
 def test_create_budget(wallet: Wallet):
-    wallet.create_budget(DEFAULT_WITNESS, Amount("10.000000000 SCR"), fmt_time_from_now(30))
-    budget = wallet.get_budgets(DEFAULT_WITNESS)[0]
+    owner = DEFAULT_WITNESS
+    print(wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40)))
+    budget = wallet.get_budgets(owner)[0]
+    print(budget)
 
     per_block_for_10_blocks_budget = Amount('1.000000000 SCR')
     per_block_for_9_blocks_budget = Amount('1.034482758 SCR')
 
-    assert DEFAULT_WITNESS in wallet.list_buddget_owners()
+    assert owner in wallet.list_buddget_owners()
     assert Amount(budget['per_block']) in (per_block_for_10_blocks_budget, per_block_for_9_blocks_budget)
-    assert budget['owner'] == DEFAULT_WITNESS
+    assert budget['owner'] == owner
 
 
 @pytest.mark.xfail(reason='BLOC-207')
@@ -318,7 +320,7 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     open budget with large amount and short lifetime to instantly increase reward pool which enforce balancer to
     increase content reward
     '''
-    wallet.create_budget(DEFAULT_WITNESS, Amount("10000.000000000 SCR"), fmt_time_from_now(30))
+    wallet.create_budget(DEFAULT_WITNESS, Amount("10000.000000000 SCR"), fmt_time_from_now(), fmt_time_from_now(30))
 
     content_reward_after_budget_open = get_reward_per_block()
     assert content_reward_after_budget_open > content_reward_after_balancer_decrease, \

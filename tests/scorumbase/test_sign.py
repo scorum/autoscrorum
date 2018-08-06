@@ -59,6 +59,3 @@ def test_signed_transaction():
     p = PublicKey(public_keys[0])
 
     assert(str(p) == "SCR5bgzuweaHx231escVuPVxgudSyUWdKAH7fKgxZfp3nKSirzFRa")
-
-
-# def test_sign_create_account():

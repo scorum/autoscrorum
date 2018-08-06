@@ -12,7 +12,7 @@ class Node(object):
 
     GENESIS_FILE = 'genesis.json'
     CONFIG_FILE = 'config.ini'
-    ALL_LOG = 'all.log'
+    NODE_LOG = 'node.log'
     SHARED_MEMORY_BIN = 'shared_memory.bin'
     SHARED_MEMORY_META = 'shared_memory.meta'
     BLOCK_LOG = 'block_log'
@@ -71,7 +71,7 @@ class Node(object):
 
         self.genesis_path = os.path.join(self.work_dir, self.GENESIS_FILE)
         self.config_path = os.path.join(self.work_dir, self.CONFIG_FILE)
-        self.logs_path = os.path.join(self.work_dir, 'logs', self.ALL_LOG)
+        self.logs_path = os.path.join(self.work_dir, 'logs', self.NODE_LOG)
 
     def generate_configs(self):
         if not os.path.exists(self.work_dir):
