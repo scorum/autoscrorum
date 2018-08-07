@@ -395,6 +395,41 @@ def test_post_comment(wallet: Wallet):
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
 
 
+def test_get_discussions_by_created(wallet: Wallet):
+    # TODO: improve test by creating posts within single block
+    alice_post_kwargs = {
+        'author': 'alice',
+        'permlink': 'alice-post',
+        'parent_author': '',
+        'parent_permlink': 'football',
+        'title': 'alice football title',
+        'body': 'alice football body',
+        'json_metadata': '{"tags":["football"]}'
+    }
+    bob_post_kwargs = {
+        'author': 'bob',
+        'permlink': 'bob-post',
+        'parent_author': '',
+        'parent_permlink': 'hockey',
+        'title': 'bob hockey title',
+        'body': 'bob hockey body',
+        'json_metadata': '{"tags":["hockey"]}'
+    }
+    alice_post = wallet.post_comment(**alice_post_kwargs)
+    bob_post = wallet.post_comment(**bob_post_kwargs)
+
+    assert 'error' not in alice_post, "creation alice_post failed"
+    assert 'error' not in bob_post, "creation bob_post failed"
+
+    posts = wallet.get_discussions_by(
+        "created", **{"tags": ["hockey", "football"], "limit": 100, "tags_logical_and": False}
+    )
+    assert len(posts) == 2
+    # check that returned latest created post
+    assert posts[0]["permlink"] == "bob-post" and posts[0]["author"] == "bob"
+    assert posts[1]["permlink"] == "alice-post" and posts[1]["author"] == "alice"
+
+
 MIN_BLOCKS_TO_SAVE_INDEX = 21
 
 
