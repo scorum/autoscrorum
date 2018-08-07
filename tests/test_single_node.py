@@ -11,6 +11,8 @@ from autoscorum.node import Node
 from autoscorum.utils import fmt_time_from_now
 from autoscorum.wallet import Wallet
 from graphenebase.amount import Amount
+from multiprocessing import Pool
+from functools import partial
 from tests.common import (
     generate_blocks, check_logs_on_errors, check_file_creation
 )
@@ -396,7 +398,6 @@ def test_post_comment(wallet: Wallet):
 
 
 def test_get_discussions_by_created(wallet: Wallet):
-    # TODO: improve test by creating posts within single block
     alice_post_kwargs = {
         'author': 'alice',
         'permlink': 'alice-post',
@@ -426,8 +427,56 @@ def test_get_discussions_by_created(wallet: Wallet):
     )
     assert len(posts) == 2
     # check that returned latest created post
-    assert posts[0]["permlink"] == "bob-post" and posts[0]["author"] == "bob"
-    assert posts[1]["permlink"] == "alice-post" and posts[1]["author"] == "alice"
+    assert posts[0]["permlink"] == "bob-post" and posts[0]["author"] == "bob", \
+        "Posts were not created in correct order"
+    assert posts[1]["permlink"] == "alice-post" and posts[1]["author"] == "alice", \
+        "Posts were not created in correct order"
+
+
+def post_comment(post_kwargs, node):
+    with Wallet(node.get_chain_id(), node.rpc_endpoint, node.genesis.get_accounts()) as w:
+        w.login("", "")
+        w.get_api_by_name('database_api')
+        w.get_api_by_name('network_broadcast_api')
+        return w.post_comment(**post_kwargs)
+
+
+def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
+    alice_post_kwargs = {
+        'author': 'alice',
+        'permlink': 'alice-post',
+        'parent_author': '',
+        'parent_permlink': 'football',
+        'title': 'alice football title',
+        'body': 'alice football body',
+        'json_metadata': '{"tags":["football"]}'
+    }
+    bob_post_kwargs = {
+        'author': 'bob',
+        'permlink': 'bob-post',
+        'parent_author': '',
+        'parent_permlink': 'hockey',
+        'title': 'bob hockey title',
+        'body': 'bob hockey body',
+        'json_metadata': '{"tags":["hockey"]}'
+    }
+
+    posts_kwargs = [alice_post_kwargs, bob_post_kwargs]
+
+    p = Pool(processes=len(posts_kwargs))
+    # ugly workaround to create posts within same block
+    result = p.map(partial(post_comment, node=node), posts_kwargs)
+    assert 'error' not in result[0], "creation alice_post failed"
+    assert 'error' not in result[1], "creation bob_post failed"
+    assert result[0]["block_num"] == result[1]["block_num"], "posts are not created in single block"
+
+    posts = wallet.get_discussions_by(
+        "created", **{"tags": ["hockey", "football"], "limit": 100, "tags_logical_and": False}
+    )
+    assert len(posts) == 2
+    # check that returned latest created post
+    # as id increments after creation, so latest post should have higher id num
+    assert posts[0]["id"] > posts[1]["id"], "Posts were not created in correct order"
 
 
 MIN_BLOCKS_TO_SAVE_INDEX = 21
