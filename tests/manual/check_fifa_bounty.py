@@ -188,7 +188,7 @@ def find_posts_to_be_rewarded(posts):
     posts_to_be_rewarded = [
         address for address, post in posts.items()
         if int(post["net_rshares"]) > 0
-           and to_date(post["cashout_time"]) < datetime.datetime.utcnow()
+           and to_date(post["cashout_time"]) < to_date("2018-08-08T12:00:00")
     ]
 
     posts_to_be_rewarded = _add_parent_posts(posts_to_be_rewarded, posts)
@@ -200,7 +200,7 @@ def find_cashout_posts(posts):
     # for these posts expected other rewards in addition to fifa
     cashout_posts = [
         addr for addr, post in posts.items()
-        if to_date("1970-01-01T00:00:00") < to_date(post["cashout_time"]) < datetime.datetime.utcnow()
+        if to_date("1970-01-01T00:00:00") < to_date(post["cashout_time"]) < to_date("2018-08-08T12:00:00")
         and int(post["net_rshares"]) > 0
     ]
     cashout_posts = _add_parent_posts(cashout_posts, posts)
@@ -525,4 +525,4 @@ if __name__ == "__main__":
     )
 
     logging.info("Collecting data before fifa payment.")
-    main(addr_before="localhost:8091", addr_after="localhost:8093", fifa_block=3755542)
+    main(addr_before="localhost:8091", addr_after="localhost:8093", fifa_block=3902818)
