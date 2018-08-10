@@ -19,8 +19,26 @@ from tests.common import (
 from tests.conftest import DEFAULT_WITNESS
 
 
+def test_node_logs(node, wallet):
+    """
+    Check logs of running node (logs are created, updated, there are no errors).
+
+    :param Node node: Running node
+    :param Wallet wallet: Wallet client to communicate with node
+    """
+    check_file_creation(node.logs_path)
+    prev_size = 0
+    for i in range(1, 5):  # or any max number of blocks
+        wallet.get_block(i, wait_for_block=True)
+        node.read_logs()
+        curr_size = len(node.logs)
+        assert curr_size > prev_size, "Node logs are not updated."
+        prev_size = curr_size
+        check_logs_on_errors(node.logs)
+
+
 def test_block_production(wallet: Wallet, node: Node):
-    block = wallet.get_block(1)
+    block = wallet.get_block(1, wait_for_block=True)
 
     assert block['witness'] == node.config['witness'][1:-1]
 
@@ -43,24 +61,6 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
 
     for account, amount in genesis.genesis_accounts:
         assert wallet.get_account_scr_balance(account.name) == amount
-
-
-def test_node_logs(node, wallet):
-    """
-    Check logs of running node (logs are created, updated, there are no errors).
-
-    :param Node node: Running node
-    :param Wallet wallet: Wallet client to communicate with node
-    """
-    check_file_creation(node.logs_path)
-    prev_size = 0
-    for i in range(1, 5):  # or any max number of blocks
-        wallet.get_block(i, wait_for_block=True)
-        node.read_logs()
-        curr_size = len(node.logs)
-        assert curr_size > prev_size, "Node logs are not updated."
-        prev_size = curr_size
-        check_logs_on_errors(node.logs)
 
 
 def test_transfer(wallet: Wallet):
