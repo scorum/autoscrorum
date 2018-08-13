@@ -11,14 +11,34 @@ from autoscorum.node import Node
 from autoscorum.utils import fmt_time_from_now
 from autoscorum.wallet import Wallet
 from graphenebase.amount import Amount
+from multiprocessing import Pool
+from functools import partial
 from tests.common import (
     generate_blocks, check_logs_on_errors, check_file_creation
 )
 from tests.conftest import DEFAULT_WITNESS
 
 
+def test_node_logs(node, wallet):
+    """
+    Check logs of running node (logs are created, updated, there are no errors).
+
+    :param Node node: Running node
+    :param Wallet wallet: Wallet client to communicate with node
+    """
+    check_file_creation(node.logs_path)
+    prev_size = 0
+    for i in range(1, 5):  # or any max number of blocks
+        wallet.get_block(i, wait_for_block=True)
+        node.read_logs()
+        curr_size = len(node.logs)
+        assert curr_size > prev_size, "Node logs are not updated."
+        prev_size = curr_size
+        check_logs_on_errors(node.logs)
+
+
 def test_block_production(wallet: Wallet, node: Node):
-    block = wallet.get_block(1)
+    block = wallet.get_block(1, wait_for_block=True)
 
     assert block['witness'] == node.config['witness'][1:-1]
 
@@ -41,24 +61,6 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
 
     for account, amount in genesis.genesis_accounts:
         assert wallet.get_account_scr_balance(account.name) == amount
-
-
-def test_node_logs(node, wallet):
-    """
-    Check logs of running node (logs are created, updated, there are no errors).
-
-    :param Node node: Running node
-    :param Wallet wallet: Wallet client to communicate with node
-    """
-    check_file_creation(node.logs_path)
-    prev_size = 0
-    for i in range(1, 5):  # or any max number of blocks
-        wallet.get_block(i, wait_for_block=True)
-        node.read_logs()
-        curr_size = len(node.logs)
-        assert curr_size > prev_size, "Node logs are not updated."
-        prev_size = curr_size
-        check_logs_on_errors(node.logs)
 
 
 def test_transfer(wallet: Wallet):
@@ -393,6 +395,88 @@ def test_post_comment(wallet: Wallet):
 
     comment_level_2 = wallet.get_comments(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'], 2)[0]
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
+
+
+def test_get_discussions_by_created(wallet: Wallet):
+    alice_post_kwargs = {
+        'author': 'alice',
+        'permlink': 'alice-post',
+        'parent_author': '',
+        'parent_permlink': 'football',
+        'title': 'alice football title',
+        'body': 'alice football body',
+        'json_metadata': '{"tags":["football"]}'
+    }
+    bob_post_kwargs = {
+        'author': 'bob',
+        'permlink': 'bob-post',
+        'parent_author': '',
+        'parent_permlink': 'hockey',
+        'title': 'bob hockey title',
+        'body': 'bob hockey body',
+        'json_metadata': '{"tags":["hockey"]}'
+    }
+    alice_post = wallet.post_comment(**alice_post_kwargs)
+    bob_post = wallet.post_comment(**bob_post_kwargs)
+
+    assert 'error' not in alice_post, "creation alice_post failed"
+    assert 'error' not in bob_post, "creation bob_post failed"
+
+    posts = wallet.get_discussions_by(
+        "created", **{"tags": ["hockey", "football"], "limit": 100, "tags_logical_and": False}
+    )
+    assert len(posts) == 2
+    # check that returned latest created post
+    assert posts[0]["permlink"] == "bob-post" and posts[0]["author"] == "bob", \
+        "Posts were not created in correct order"
+    assert posts[1]["permlink"] == "alice-post" and posts[1]["author"] == "alice", \
+        "Posts were not created in correct order"
+
+
+def post_comment(post_kwargs, node):
+    with Wallet(node.get_chain_id(), node.rpc_endpoint, node.genesis.get_accounts()) as w:
+        w.login("", "")
+        w.get_api_by_name('database_api')
+        w.get_api_by_name('network_broadcast_api')
+        return w.post_comment(**post_kwargs)
+
+
+def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
+    alice_post_kwargs = {
+        'author': 'alice',
+        'permlink': 'alice-post',
+        'parent_author': '',
+        'parent_permlink': 'football',
+        'title': 'alice football title',
+        'body': 'alice football body',
+        'json_metadata': '{"tags":["football"]}'
+    }
+    bob_post_kwargs = {
+        'author': 'bob',
+        'permlink': 'bob-post',
+        'parent_author': '',
+        'parent_permlink': 'hockey',
+        'title': 'bob hockey title',
+        'body': 'bob hockey body',
+        'json_metadata': '{"tags":["hockey"]}'
+    }
+
+    posts_kwargs = [alice_post_kwargs, bob_post_kwargs]
+
+    p = Pool(processes=len(posts_kwargs))
+    # ugly workaround to create posts within same block
+    result = p.map(partial(post_comment, node=node), posts_kwargs)
+    assert 'error' not in result[0], "creation alice_post failed"
+    assert 'error' not in result[1], "creation bob_post failed"
+    assert result[0]["block_num"] == result[1]["block_num"], "posts are not created in single block"
+
+    posts = wallet.get_discussions_by(
+        "created", **{"tags": ["hockey", "football"], "limit": 100, "tags_logical_and": False}
+    )
+    assert len(posts) == 2
+    # check that returned latest created post
+    # as id increments after creation, so latest post should have higher id num
+    assert posts[0]["id"] > posts[1]["id"], "Posts were not created in correct order"
 
 
 MIN_BLOCKS_TO_SAVE_INDEX = 21
