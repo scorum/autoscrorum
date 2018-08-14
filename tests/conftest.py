@@ -17,11 +17,17 @@ SCORUMD_BIN_PATH = which('scorumd')
 
 DEFAULT_WITNESS = "initdelegate"
 
+ENV_MAINNET = "mainnet"
+ENV_TESTNET = "testnet"
+ENV_DEVELOP = "develop"
+ENVIRONMENTS = [ENV_TESTNET, ENV_MAINNET, ENV_DEVELOP]
+
 
 def pytest_addoption(parser):
     parser.addoption('--target', action='store', default=SCORUMD_BIN_PATH, help='specify path to scorumd')
     parser.addoption('--image', action='store', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
     parser.addoption('--use-local-image', action='store_false', help='dont rebuild image')
+    parser.addoption('--environment',  choices=ENVIRONMENTS, default=ENV_DEVELOP, help='Set environment of node')
 
 
 @pytest.fixture(scope='session')
@@ -119,7 +125,8 @@ def default_config(docker):
 
 
 @pytest.fixture(scope='function')
-def config(default_config, genesis):
+def config(default_config, genesis, request):
+    default_config.environment = request.config.getoption("--environment")
     witness = genesis.get_account(DEFAULT_WITNESS)
     default_config['rpc-endpoint'] = '0.0.0.0:8090'
     default_config['genesis-json'] = 'genesis.json'

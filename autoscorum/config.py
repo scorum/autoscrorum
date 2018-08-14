@@ -3,6 +3,7 @@ from copy import deepcopy
 
 class Config(object):
     def __init__(self):
+        self.environment = None
         self.params = {}
 
     def __getitem__(self, item):
