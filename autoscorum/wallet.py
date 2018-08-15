@@ -267,7 +267,6 @@ class Wallet(object):
         op = operations.transfer_operation(_from, to, amount, memo)
 
         signing_key = self.account(_from).get_active_private()
-        print("Wallet signing key: %s" % signing_key)
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):

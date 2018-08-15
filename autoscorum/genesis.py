@@ -67,7 +67,6 @@ class Genesis(object):
         account = self.get_account(name)
         if account:
             account.set_signing_key()
-            print("Genesis signing key: %s" % account.get_active_private())
             self.witness_candidates.append(account)
 
     def add_founder_acc(self, name, percent: float):

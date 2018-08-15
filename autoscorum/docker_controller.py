@@ -2,9 +2,11 @@ import os
 import shutil
 import tempfile
 from contextlib import contextmanager
+import time
 
 import docker
 from docker.errors import ImageNotFound
+from requests.exceptions import ReadTimeout
 
 from .node import Node
 from .node import SCORUM_BIN
@@ -47,15 +49,30 @@ class DockerController:
             pass
 
     @contextmanager
-    def run_node(self, node: Node, image: str=None):
+    def run_node(self, node: Node, image: str=None, retries=5):
         if image:
             self.set_image(image)
+        kwargs = {
+            "image": self._image,
+            "detach": True, "auto_remove": True, "environment": {'NODE': 'full'},
+            "volumes": {node.work_dir: {'bind': CONFIG_DIR, 'mode': 'rw'}}
+        }
+        timer = 1
+        time_to_wait = retries * 10
+        container = None
+        while timer < time_to_wait and not container:
+            try:
+                container = self.docker.containers.run(**kwargs)
+            except ReadTimeout as e:
+                print("Read timeout exception: %s" % str(e))
+            except Exception as e:
+                print("Unknown exception: %s" % str(e))
+            finally:
+                time.sleep(0.1)
+                timer += 1
 
-        container = self.docker.containers.run(
-            self._image,
-            detach=True, auto_remove=True, environment={'NODE': 'full'},
-            volumes={node.work_dir: {'bind': CONFIG_DIR, 'mode': 'rw'}}
-        )
+        if not container:
+            raise RuntimeError("Could not run docker container with image %s" % str(image))
 
         node.rpc_endpoint = "{ip}:{port}".format(
             ip=self.get_ip(container), port=node.config.get_rpc_port()
