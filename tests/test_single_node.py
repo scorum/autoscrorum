@@ -262,18 +262,11 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
     assert error.value == response['error']['data']['code']
 
 
-def test_create_budget(wallet: Wallet):
+def test_create_budget_locked(wallet: Wallet):
     owner = DEFAULT_WITNESS
-    print(wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40)))
-    budget = wallet.get_budgets(owner)[0]
-    print(budget)
-
-    per_block_for_10_blocks_budget = Amount('1.000000000 SCR')
-    per_block_for_9_blocks_budget = Amount('1.034482758 SCR')
-
-    assert owner in wallet.list_buddget_owners()
-    assert Amount(budget['per_block']) in (per_block_for_10_blocks_budget, per_block_for_9_blocks_budget)
-    assert budget['owner'] == owner
+    result = wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40))
+    print(result)
+    assert "error" in result, "on production operation should be locked"
 
 
 @pytest.mark.xfail(reason='BLOC-207')
@@ -356,12 +349,15 @@ def test_post_comment(wallet: Wallet):
     assert 'error' not in wallet.post_comment(**comment_level_1_kwargs).keys(), 'post creation failed'
     assert 'error' not in wallet.post_comment(**comment_level_2_kwargs).keys(), 'post creation failed'
 
+    time_config = wallet.get_config()
+
     def validate_cashout_interval(comment: dict):
         time_format = '%Y-%m-%dT%H:%M:%S'
         date_start = datetime.datetime.strptime(comment['created'], time_format)
         date_finish = datetime.datetime.strptime(comment['cashout_time'], time_format)
         delta = date_finish - date_start
-        assert delta.total_seconds()/3600/24 == 7.0
+        cashout_window = int(time_config["SCORUM_CASHOUT_WINDOW_SECONDS"])
+        assert delta.total_seconds() == cashout_window
 
     def validate_url(comment: dict):
         if comment['parent_author']:
