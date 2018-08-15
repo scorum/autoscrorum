@@ -5,7 +5,8 @@ from contextlib import contextmanager
 import time
 
 import docker
-from docker.errors import ImageNotFound, DockerException
+from docker.errors import ImageNotFound
+from requests.exceptions import ReadTimeout
 
 from .node import Node
 from .node import SCORUM_BIN
@@ -62,9 +63,14 @@ class DockerController:
         while timer < time_to_wait and not container:
             try:
                 container = self.docker.containers.run(**kwargs)
-            except DockerException:
+            except ReadTimeout as e:
+                print("Read timeout exception: %s" % str(e))
+            except Exception as e:
+                print("Unknown exception: %s" % str(e))
+            finally:
                 time.sleep(0.1)
                 timer += 1
+
         if not container:
             raise RuntimeError("Could not run docker container with image %s" % str(image))
 
