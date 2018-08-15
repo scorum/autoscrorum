@@ -460,6 +460,7 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
     posts_kwargs = [alice_post_kwargs, bob_post_kwargs]
 
     p = Pool(processes=len(posts_kwargs))
+    wallet.get_block(2, wait_for_block=True)
     # ugly workaround to create posts within same block
     result = p.map(partial(post_comment, node=node), posts_kwargs)
     assert 'error' not in result[0], "creation alice_post failed"
