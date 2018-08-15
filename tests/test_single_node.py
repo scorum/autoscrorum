@@ -262,11 +262,20 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
     assert error.value == response['error']['data']['code']
 
 
-def test_create_budget_locked(wallet: Wallet):
+def test_create_budget(wallet: Wallet):
     owner = DEFAULT_WITNESS
     result = wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40))
     print(result)
-    assert "error" in result, "on production operation should be locked"
+
+    budget = wallet.get_budgets(owner)[0]
+    print(budget)
+
+    per_block_for_10_blocks_budget = Amount('1.000000000 SCR')
+    per_block_for_9_blocks_budget = Amount('1.034482758 SCR')
+
+    assert owner in wallet.list_buddget_owners()
+    assert Amount(budget['per_block']) in (per_block_for_10_blocks_budget, per_block_for_9_blocks_budget)
+    assert budget['owner'] == owner
 
 
 @pytest.mark.xfail(reason='BLOC-207')
