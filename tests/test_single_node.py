@@ -4,14 +4,14 @@ from multiprocessing import Pool
 
 import pytest
 
-from autoscorum.account import Account
-from autoscorum.config import Config
-from autoscorum.docker_controller import DockerController
-from autoscorum.errors import Errors
-from autoscorum.genesis import Genesis
-from autoscorum.node import Node
-from autoscorum.utils import fmt_time_from_now
-from autoscorum.wallet import Wallet
+from src.account import Account
+from src.config import Config
+from src.docker_controller import DockerController
+from src.errors import Errors
+from src.genesis import Genesis
+from src.node import Node
+from src.utils import fmt_time_from_now
+from src.wallet import Wallet
 from graphenebase.amount import Amount
 from tests.common import (
     generate_blocks, check_logs_on_errors, check_file_creation

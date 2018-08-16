@@ -4,7 +4,7 @@ from hashlib import sha256
 
 from .config import Config
 
-TEST_TEMP_DIR = '/tmp/autoscorum'
+TEST_TEMP_DIR = '/tmp/src'
 SCORUM_BIN = 'scorumd'
 
 

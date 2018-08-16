@@ -3,7 +3,7 @@ import json
 import time
 from binascii import unhexlify
 
-import autoscorum.operations_fabric as operations
+import src.operations_fabric as operations
 from graphenebase.amount import Amount
 from graphenebase.signedtransactions import SignedTransaction
 from .account import Account

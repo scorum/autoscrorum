@@ -2,7 +2,7 @@ import re
 import os
 import time
 
-from autoscorum.wallet import Wallet
+from src.wallet import Wallet
 
 
 def check_logs_on_errors(logs):
