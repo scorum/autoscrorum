@@ -20,6 +20,17 @@ def pytest_addoption(parser):
     parser.addoption('--target', action='store', default=SCORUMD_BIN_PATH, help='specify path to scorumd')
     parser.addoption('--image', action='store', default=DEFAULT_IMAGE_NAME, help='specify image for tests run')
     parser.addoption('--use-local-image', action='store_false', help='dont rebuild image')
+    parser.addoption(
+        '--long-term', action='store_true',
+        help='Include long-term tests. Could take significantly long time.'
+    )
+
+
+@pytest.fixture(autouse=True)
+def skip_long_term(request):
+    if request.node.get_marker("skip_long_term"):
+        if not request.config.getoption("--long-term"):
+            pytest.skip("Long term tests are skipped. Use '--long-term' to enable it.")
 
 
 @pytest.fixture(scope='session')

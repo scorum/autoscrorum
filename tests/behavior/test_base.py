@@ -1,3 +1,5 @@
+import pytest
+
 from graphenebase.amount import Amount
 from src.genesis import Genesis
 from src.node import Node
@@ -52,6 +54,7 @@ def test_genesis_block(wallet: Wallet, genesis: Genesis):
 MIN_BLOCKS_TO_SAVE_INDEX = 21
 
 
+@pytest.mark.skip_long_term
 def test_replay_blockchain(config, genesis, docker):
     """
     Test replay state of Node.
@@ -81,6 +84,7 @@ def test_replay_blockchain(config, genesis, docker):
     check_logs_on_errors(node.logs)
 
 
+@pytest.mark.skip_long_term
 def test_restart_node(config, genesis, docker):
     """
     Test restart of the node.

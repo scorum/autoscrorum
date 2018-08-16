@@ -1,3 +1,5 @@
+import time
+
 import pytest
 
 from src.node import Node
@@ -79,9 +81,8 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
     assert posts[0]["id"] > posts[1]["id"], "Posts were not created in correct order"
 
 
-@pytest.mark.skip("Takes too long for automatic checks")
+@pytest.mark.skip_long_term
 def test_get_discussions_by_author_order(wallet: Wallet):
-    import time
     post = {
         'author': DEFAULT_WITNESS,
         'parent_author': '',
@@ -92,11 +93,12 @@ def test_get_discussions_by_author_order(wallet: Wallet):
     }
     permlinks = ["initdelefate-post-%d" % i for i in range(1, 4)]
 
+    post_creation_interval = int(int(wallet.get_config()["SCORUM_MIN_ROOT_COMMENT_INTERVAL"]) / 1000000)
     for permlink in permlinks:
         post["permlink"] = permlink
         res = wallet.post_comment(**post)
         assert 'error' not in res.keys(), 'post creation failed: %s' % res
-        time.sleep(360)
+        time.sleep(post_creation_interval)
 
     discussions = wallet.get_discussions_by(
         "author", **{"start_author": DEFAULT_WITNESS, "limit": 3, "start_permlink": permlinks[0]}
