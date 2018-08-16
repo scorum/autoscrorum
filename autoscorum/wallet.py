@@ -89,12 +89,29 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def list_accounts(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', ["", limit]))
+    def list_accounts(self, limit: int=100, start_name: str=""):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', [start_name, limit]))
         try:
             return response['result']
         except KeyError:
             return response
+
+    def list_all_accounts(self):
+        limit = 100
+        names = []
+        last = ""
+        while True:
+            accs = self.list_accounts(limit, last)
+
+            if len(names) == 0:
+                names += accs
+            else:
+                names += accs[1:]
+
+            if len(accs) < limit or names[-1] == last:
+                break
+            last = accs[-1]
+        return names
 
     def list_buddget_owners(self, limit: int=100, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body(
@@ -187,12 +204,15 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_account(self, name: str):
-        response = self.rpc.send(self.json_rpc_body('get_accounts', [name]))
+    def get_accounts(self, names: list):
+        response = self.rpc.send(self.json_rpc_body('get_accounts', names))
         try:
-            return response['result'][0]
+            return response['result']
         except KeyError:
             return response
+
+    def get_account(self, name: str):
+        return self.get_accounts([name])[0]
 
     def get_account_scr_balance(self, name: str):
         return Amount(self.get_account(name)['balance'])
@@ -211,6 +231,13 @@ class Wallet(object):
 
     def get_budgets(self, owner_name: str, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, [owner_name]]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_chain_capital(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'chain_api', 'get_chain_capital', [], _id=1))
         try:
             return response['result']
         except KeyError:
@@ -347,6 +374,13 @@ class Wallet(object):
     def get_stats_for_interval(self, time_from: str, time_to: str):  # %Y-%m-%dT%H:%M:%S
         response = self.rpc.send(self.json_rpc_body(
             'call', 'blockchain_statistics_api', 'get_stats_for_interval', [time_from, time_to]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_posts_and_comments(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', []))
         try:
             return response['result']
         except KeyError:
