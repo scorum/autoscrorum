@@ -2,7 +2,7 @@ import os
 import tempfile
 from hashlib import sha256
 
-from .config import Config
+from src.config import Config
 
 TEST_TEMP_DIR = '/tmp/src'
 SCORUM_BIN = 'scorumd'

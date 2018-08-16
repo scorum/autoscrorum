@@ -1,15 +1,15 @@
 import os
 import shutil
 import tempfile
-from contextlib import contextmanager
 import time
+from contextlib import contextmanager
 
 import docker
 from docker.errors import ImageNotFound
 from requests.exceptions import ReadTimeout
 
-from .node import Node
-from .node import SCORUM_BIN
+from src.node import Node
+from src.node import SCORUM_BIN
 
 DEFAULT_IMAGE_NAME = 'autonode'
 CONFIG_DIR = '/var/lib/scorumd'
@@ -49,7 +49,7 @@ class DockerController:
             pass
 
     @contextmanager
-    def run_node(self, node: Node, image: str=None, retries=5):
+    def run_node(self, node: Node, image: str = None, retries=5):
         if image:
             self.set_image(image)
         kwargs = {
