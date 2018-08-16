@@ -1,4 +1,6 @@
 import datetime
+from functools import partial
+from multiprocessing import Pool
 
 import pytest
 
@@ -11,8 +13,6 @@ from autoscorum.node import Node
 from autoscorum.utils import fmt_time_from_now
 from autoscorum.wallet import Wallet
 from graphenebase.amount import Amount
-from multiprocessing import Pool
-from functools import partial
 from tests.common import (
     generate_blocks, check_logs_on_errors, check_file_creation
 )
@@ -74,15 +74,15 @@ def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
     accs_cc = accs_scr + accs_sp
     print("Accs - total SCR: %s, total SP: %s, sum: %s" % (str(accs_scr), str(accs_sp), str(accs_cc)))
 
-    dgp = wallet.get_dynamic_global_properties()
-    dgp_cc = Amount(dgp["circulating_capital"])
-    dgp_sp = Amount(dgp["total_scorumpower"])
-    dgp_scr = Amount(dgp.get("total_scr", Amount("0 SCR")))
-    print("DGP - total SCR: %s, total SP: %s, sum: %s" % (str(dgp_scr), str(dgp_sp), str(dgp_cc)))
+    chain_capital = wallet.get_chain_capital()
+    chain_cc = Amount(chain_capital["circulating_capital"])
+    chain_sp = Amount(chain_capital["total_scorumpower"])
+    chain_scr = Amount(chain_capital["total_scr"])
+    print("Chain capital - total SCR: %s, total SP: %s, sum: %s" % (str(chain_scr), str(chain_sp), str(chain_cc)))
 
-    assert accs_sp == dgp_sp
-    assert accs_scr == dgp_scr
-    assert accs_cc == dgp_cc
+    assert accs_sp == chain_sp
+    assert accs_scr == chain_scr
+    assert accs_cc == chain_cc
 
 
 def test_transfer(wallet: Wallet):
@@ -205,7 +205,7 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
                                              owner=test_account_owner_pub_key,
                                              active=test_account_active_pub_key,
                                              posting=test_accout_posting_pub_key,
-                                             memo=test_account_memo_key,))
+                                             memo=test_account_memo_key, ))
     assert creator_balance_before == wallet.get_account_scr_balance(DEFAULT_WITNESS)
 
     assert wallet.get_account(valid_name)['recovery_account'] == DEFAULT_WITNESS
@@ -246,8 +246,8 @@ def test_registration_schedule(wallet: Wallet, genesis: Genesis):
 
         for s in schedule:
             if total_accounts <= s['users']:
-                return registration_bonus*s['bonus_percent']//100
-        return registration_bonus*schedule[-1]['bonus_percent']//100
+                return registration_bonus * s['bonus_percent'] // 100
+        return registration_bonus * schedule[-1]['bonus_percent'] // 100
 
     registration_schedule = list(genesis['registration_schedule'])
     total_users_in_schedule = 0
@@ -288,6 +288,7 @@ def test_create_budget(wallet: Wallet):
     owner = DEFAULT_WITNESS
     result = wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40))
     print(result)
+    assert "error" not in result, "Could not create budget for '%s', error msg : %s" % (owner, result['error'])
 
     budget = wallet.get_budgets(owner)[0]
     print(budget)
@@ -315,7 +316,7 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
         witness_reward = wallet.get_account_sp_balance(DEFAULT_WITNESS) - sp_balance_before_block_confirm
         full_content_reward = wallet.get_circulating_capital() - circulating_capital_before
 
-        activity_content_reward = full_content_reward*95/100
+        activity_content_reward = full_content_reward * 95 / 100
         assert witness_reward == full_content_reward - activity_content_reward, 'witness reward per block != expected'
         return full_content_reward
 
@@ -324,7 +325,7 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
         days_in_month = 30
         days_in_2_years = 730
         rewards_supply = Amount(genesis['rewards_supply'])
-        rewards_per_block = rewards_supply*days_in_month/days_in_2_years/blocks_per_month
+        rewards_per_block = rewards_supply * days_in_month / days_in_2_years / blocks_per_month
         return rewards_per_block
 
     '''
@@ -392,12 +393,12 @@ def test_post_comment(wallet: Wallet):
 
     def validate_url(comment: dict):
         if comment['parent_author']:
-            assert comment['url'] == '/{category}/@{root_author}/{root_permlink}#@{author}/{permlink}'\
-                                  .format(category=comment['category'],
-                                          root_author=post['author'],
-                                          root_permlink=post['permlink'],
-                                          author=comment['author'],
-                                          permlink=comment['permlink'])
+            assert comment['url'] == '/{category}/@{root_author}/{root_permlink}#@{author}/{permlink}' \
+                .format(category=comment['category'],
+                        root_author=post['author'],
+                        root_permlink=post['permlink'],
+                        author=comment['author'],
+                        permlink=comment['permlink'])
         else:
             assert comment['url'] == '/{}/@{}/{}'.format(comment['category'], comment['author'], comment['permlink'])
 

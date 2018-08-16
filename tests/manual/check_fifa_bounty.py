@@ -2,13 +2,13 @@ import csv
 import datetime
 import json
 import logging
+from collections import defaultdict
 from copy import deepcopy
 
 from sortedcontainers import SortedSet
 
 from autoscorum.wallet import Wallet
 from graphenebase.amount import Amount
-from collections import defaultdict
 
 # CHAIN_ID = "d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"  # testnet
 CHAIN_ID = "db4007d45f04c1403a7e66a5c66b5b1cdfc2dde8b5335d1d2f116d592ca3dbb1"  # mainnet
@@ -188,7 +188,7 @@ def find_posts_to_be_rewarded(posts):
     posts_to_be_rewarded = [
         address for address, post in posts.items()
         if int(post["net_rshares"]) > 0
-           and to_date(post["cashout_time"]) < to_date("2018-08-08T12:00:00")
+        and to_date(post["cashout_time"]) < to_date("2018-08-08T12:00:00")
     ]
 
     posts_to_be_rewarded = _add_parent_posts(posts_to_be_rewarded, posts)
@@ -374,7 +374,7 @@ def check_accounts_fund_reward_distribution(accounts_before, accounts_after):
         expected = accounts_before[name]["expected_reward"]
         actual = accounts_after[name]["actual_reward"]
         msg = "Account actual and expected rewards are not equal: %s, name '%s'" % \
-            (comparison_str(expected, actual), name)
+              (comparison_str(expected, actual), name)
         # assert Amount("-0.000005 SP") <= actual - expected <= Amount("0.000005 SP"), msg
         if Amount("-0.000005 SP") <= actual - expected <= Amount("0.000005 SP"):
             continue
@@ -390,7 +390,7 @@ def check_posts_fund_reward_distribution(posts_before, posts_after):
         expected = posts_before[address]["expected_reward"]
         actual = posts_after[address]["actual_reward"]
         msg = "Post actual and expected rewards are not equal: %s, author_permlink '%s'" % \
-            (comparison_str(expected, actual), address)
+              (comparison_str(expected, actual), address)
         if Amount("-0.000005 SP") <= actual - expected <= Amount("0.000005 SP"):
             continue
         logging.error(msg)
@@ -404,7 +404,7 @@ def check_expected_posts_received_reward(posts_before, posts_after):
     rewarded_posts = set(
         address for address in posts_after
         if posts_after[address]["actual_reward"] > Amount("0 SP")
-            or posts_after[address]["commenting_reward"] > Amount("0 SP")
+        or posts_after[address]["commenting_reward"] > Amount("0 SP")
     )
     missing = posts_to_reward.difference(rewarded_posts)
     if missing:
@@ -503,7 +503,7 @@ def main(addr_before, addr_after, fifa_block):
     check_expected_posts_received_reward(posts_before, posts_after)
     check_comments_expected_reward_sum_equal_to_fifa_pull_size(posts_before, fifa_pool_before)
     check_comments_actual_reward_sum_equal_to_fifa_pull_size(posts_after, fifa_pool_before)
-    check_posts_fund_reward_distribution(posts_before,  posts_after)
+    check_posts_fund_reward_distribution(posts_before, posts_after)
 
     check_expected_accounts_received_reward(accounts_before, accounts_after)
     check_accounts_expected_reward_sum_equal_to_fifa_pool_size(accounts_before, fifa_pool_before)
