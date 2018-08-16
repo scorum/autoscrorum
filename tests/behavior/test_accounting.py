@@ -5,7 +5,7 @@ from src.account import Account
 from src.errors import Errors
 from src.genesis import Genesis
 from src.wallet import Wallet
-from tests.conftest import DEFAULT_WITNESS
+from tests.common import DEFAULT_WITNESS
 
 test_account_memo_key = 'SCR52jUWZchsz6hVD13PzZrQP94mcbJL5seYxnm46Uk6D9tmJdGJh'
 test_account_owner_pub_key = 'SCR695t7HG9WMA2HnZkPGnjQkBDXza1WQLKhztdhrN9VwqMJr3WK4'

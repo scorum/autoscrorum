@@ -11,11 +11,9 @@ from src.node import Node
 from src.node import TEST_TEMP_DIR
 from src.utils import which
 from src.wallet import Wallet
-from tests.common import check_file_creation
+from tests.common import check_file_creation, DEFAULT_WITNESS
 
 SCORUMD_BIN_PATH = which('scorumd')
-
-DEFAULT_WITNESS = "initdelegate"
 
 
 def pytest_addoption(parser):

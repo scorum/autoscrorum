@@ -4,7 +4,7 @@ from graphenebase.amount import Amount
 from src.genesis import Genesis
 from src.utils import fmt_time_from_now
 from src.wallet import Wallet
-from tests.conftest import DEFAULT_WITNESS
+from tests.common import DEFAULT_WITNESS
 
 
 def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):

@@ -1,12 +1,8 @@
-from functools import partial
-from multiprocessing import Pool
-
 import pytest
 
 from src.node import Node
 from src.wallet import Wallet
-from tests.common import post_comment
-from tests.conftest import DEFAULT_WITNESS
+from tests.common import parallel_create_posts, DEFAULT_WITNESS
 
 
 def test_get_discussions_by_created(wallet: Wallet):
@@ -67,10 +63,9 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
 
     posts_kwargs = [alice_post_kwargs, bob_post_kwargs]
 
-    p = Pool(processes=len(posts_kwargs))
     wallet.get_block(2, wait_for_block=True)
     # ugly workaround to create posts within same block
-    result = p.map(partial(post_comment, node=node), posts_kwargs)
+    result = parallel_create_posts(posts_kwargs, node)
     assert 'error' not in result[0], "creation alice_post failed"
     assert 'error' not in result[1], "creation bob_post failed"
     assert result[0]["block_num"] == result[1]["block_num"], "posts are not created in single block"

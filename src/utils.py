@@ -23,3 +23,7 @@ def write_to_tempfile(content):
 def fmt_time_from_now(secs=0):
     time_format = '%Y-%m-%dT%H:%M:%S%Z'
     return datetime.utcfromtimestamp(time.time() + int(secs)).strftime(time_format)
+
+
+def to_date(date: str, fmt="%Y-%m-%dT%H:%M:%S"):
+    return datetime.strptime(date, fmt)

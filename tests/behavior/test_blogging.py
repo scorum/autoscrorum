@@ -1,5 +1,4 @@
-import datetime
-
+from src.utils import to_date
 from src.wallet import Wallet
 
 
@@ -33,9 +32,8 @@ def test_post_comment(wallet: Wallet):
     time_config = wallet.get_config()
 
     def validate_cashout_interval(comment: dict):
-        time_format = '%Y-%m-%dT%H:%M:%S'
-        date_start = datetime.datetime.strptime(comment['created'], time_format)
-        date_finish = datetime.datetime.strptime(comment['cashout_time'], time_format)
+        date_start = to_date(comment['created'])
+        date_finish = to_date(comment['cashout_time'])
         delta = date_finish - date_start
         cashout_window = int(time_config["SCORUM_CASHOUT_WINDOW_SECONDS"])
         assert delta.total_seconds() == cashout_window

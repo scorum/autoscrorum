@@ -1,8 +1,13 @@
-import re
 import os
+import re
 import time
+from functools import partial
+from multiprocessing import Pool
 
 from src.wallet import Wallet
+
+
+DEFAULT_WITNESS = "initdelegate"
 
 
 def check_logs_on_errors(logs):
@@ -58,3 +63,8 @@ def post_comment(post_kwargs, node):
         w.get_api_by_name('database_api')
         w.get_api_by_name('network_broadcast_api')
         return w.post_comment(**post_kwargs)
+
+
+def parallel_create_posts(posts, node):
+    p = Pool(processes=len(posts))
+    return p.map(partial(post_comment, node=node), posts)
