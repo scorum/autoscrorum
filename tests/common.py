@@ -50,3 +50,11 @@ def generate_blocks(node, docker, num=1):
                 time_to_wait=3 * num  # 3 sec on each block
             )
             return w.get_dynamic_global_properties()['head_block_number']
+
+
+def post_comment(post_kwargs, node):
+    with Wallet(node.get_chain_id(), node.rpc_endpoint, node.genesis.get_accounts()) as w:
+        w.login("", "")
+        w.get_api_by_name('database_api')
+        w.get_api_by_name('network_broadcast_api')
+        return w.post_comment(**post_kwargs)

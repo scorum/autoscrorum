@@ -14,7 +14,7 @@ from src.utils import fmt_time_from_now
 from src.wallet import Wallet
 from graphenebase.amount import Amount
 from tests.common import (
-    generate_blocks, check_logs_on_errors, check_file_creation
+    generate_blocks, check_logs_on_errors, check_file_creation, post_comment
 )
 from tests.conftest import DEFAULT_WITNESS
 
@@ -461,14 +461,6 @@ def test_get_discussions_by_created(wallet: Wallet):
         "Posts were not created in correct order"
 
 
-def post_comment(post_kwargs, node):
-    with Wallet(node.get_chain_id(), node.rpc_endpoint, node.genesis.get_accounts()) as w:
-        w.login("", "")
-        w.get_api_by_name('database_api')
-        w.get_api_by_name('network_broadcast_api')
-        return w.post_comment(**post_kwargs)
-
-
 def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
     alice_post_kwargs = {
         'author': 'alice',
@@ -525,7 +517,6 @@ def test_get_discussions_by_author_order(wallet: Wallet):
         post["permlink"] = permlink
         res = wallet.post_comment(**post)
         assert 'error' not in res.keys(), 'post creation failed: %s' % res
-        print("Post created.")
         time.sleep(360)
 
     discussions = wallet.get_discussions_by(
@@ -566,6 +557,7 @@ def test_replay_blockchain(config, genesis, docker):
     last_block = generate_blocks(node, docker)  # node was stopped
     assert last_block >= blocks_num, \
         "Was generated %s blocks, should be >= %s" % (last_block, blocks_num)
+    node.read_logs()
     check_logs_on_errors(node.logs)
 
 
@@ -590,6 +582,7 @@ def test_restart_node(config, genesis, docker):
     last_block = generate_blocks(node, docker)  # node was stopped
     assert last_block >= blocks_num, \
         "Was generated %s blocks, should be >= %s" % (last_block, blocks_num)
+    node.read_logs()
     check_logs_on_errors(node.logs)
 
 
