@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import time
 from contextlib import contextmanager
@@ -27,3 +28,27 @@ def fmt_time_from_now(secs=0):
 
 def to_date(date: str, fmt="%Y-%m-%dT%H:%M:%S"):
     return datetime.strptime(date, fmt)
+
+
+def create_dir(path, rewrite=False):
+    try:
+        os.mkdir(path)
+    except FileExistsError:
+        if rewrite:
+            remove_dir_tree(path)
+            os.mkdir(path)
+
+
+def create_temp_dir(path, prefix=""):
+    return tempfile.mkdtemp(prefix=prefix, dir=path)
+
+
+def remove_dir_tree(path):
+    try:
+        shutil.rmtree(path)
+    except FileNotFoundError:
+        pass
+
+
+def remove_file(path):
+    os.remove(path)

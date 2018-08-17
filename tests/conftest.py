@@ -1,5 +1,4 @@
-import os
-import shutil
+from os.path import join, isfile
 
 import pytest
 
@@ -9,7 +8,7 @@ from src.docker_controller import DockerController
 from src.genesis import Genesis
 from src.node import Node
 from src.node import TEST_TEMP_DIR
-from src.utils import which
+from src.utils import which, remove_dir_tree, create_dir
 from src.wallet import Wallet
 from tests.common import check_file_creation, DEFAULT_WITNESS
 
@@ -40,23 +39,22 @@ def rebuild_image(request):
 
 @pytest.fixture(scope='session')
 def bin_path(request, image):
-    if image is DEFAULT_IMAGE_NAME:
-        target = request.config.getoption('--target')
-        if not target:
-            pytest.fail('scorumd is not installed, specify path with --target={path}')
+    if image is not DEFAULT_IMAGE_NAME:
+        return
 
-        possible_locations = [target,
-                              os.path.join(target, 'scorumd'),
-                              os.path.join(target, 'programs/scorumd/scorumd')]
+    target = request.config.getoption('--target')
+    if not target:
+        pytest.fail('scorumd is not installed, specify path with --target={path}')
 
-        for location in possible_locations:
-            if os.path.isfile(location):
-                return location
+    possible_locations = [target,
+                          join(target, 'scorumd'),
+                          join(target, 'programs/scorumd/scorumd')]
 
-        fail_message = 'scorumd not found, checked locations:\n'+' \n'.join(possible_locations)
+    for location in possible_locations:
+        if isfile(location):
+            return location
 
-        pytest.fail(fail_message)
-    return None
+    pytest.fail('scorumd not found, checked locations:\n'+' \n'.join(possible_locations))
 
 
 @pytest.fixture(scope='session')
@@ -64,20 +62,9 @@ def image(request):
     return request.config.getoption('--image')
 
 
-@pytest.fixture(scope='function', autouse=True)
+@pytest.fixture(scope='session', autouse=True)
 def temp_dir():
-    try:
-        os.mkdir(TEST_TEMP_DIR)
-    except FileExistsError:
-        shutil.rmtree(TEST_TEMP_DIR)
-        os.mkdir(TEST_TEMP_DIR)
-
-    yield
-
-    try:
-        shutil.rmtree(TEST_TEMP_DIR)
-    except FileNotFoundError:
-        pass
+    create_dir(TEST_TEMP_DIR)
 
 
 @pytest.fixture(scope='function')
@@ -116,7 +103,7 @@ def genesis(request):
     return g
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def default_config(docker):
     n = Node()  # node without pre-generated config file
     with docker.run_node(n):  # generate by binary default config
@@ -124,7 +111,8 @@ def default_config(docker):
 
     cfg = Config()
     cfg.read(n.config_path)
-    return cfg
+    yield cfg
+    remove_dir_tree(n.work_dir)
 
 
 @pytest.fixture(scope='function')
@@ -151,6 +139,8 @@ def node(config, genesis, docker):
     if n.logging:
         n.read_logs()
         print(n.logs)
+
+    remove_dir_tree(n.work_dir)
 
 
 @pytest.fixture(scope='session')
