@@ -91,17 +91,18 @@ def test_get_discussions_by_author_order(wallet: Wallet):
         'body': 'initdelegate post body',
         'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'
     }
-    permlinks = ["initdelefate-post-%d" % i for i in range(1, 4)]
+    permlinks = ["initdelegate-post-%d" % i for i in range(1, 5)]
 
     post_creation_interval = int(int(wallet.get_config()["SCORUM_MIN_ROOT_COMMENT_INTERVAL"]) / 1000000)
     for permlink in permlinks:
         post["permlink"] = permlink
         res = wallet.post_comment(**post)
         assert 'error' not in res.keys(), 'post creation failed: %s' % res
-        time.sleep(post_creation_interval)
+        if permlink != permlinks[-1]:
+            time.sleep(post_creation_interval)  # 5 min for each post on prod
 
     discussions = wallet.get_discussions_by(
-        "author", **{"start_author": DEFAULT_WITNESS, "limit": 3, "start_permlink": permlinks[0]}
+        "author", **{"start_author": DEFAULT_WITNESS, "limit": len(permlinks)}
     )
     total_posts = len(permlinks)
     for current in range(0, total_posts):
