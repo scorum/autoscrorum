@@ -244,13 +244,6 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_chain_capital(self):
-        response = self.rpc.send(self.json_rpc_body('call', 'chain_api', 'get_chain_capital', [], _id=1))
-        try:
-            return response['result']
-        except KeyError:
-            return response
-
     def get_witness(self, name: str):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_witness_by_account', [name]))
         try:
