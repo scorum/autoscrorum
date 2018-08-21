@@ -2,15 +2,15 @@ import json
 from collections import namedtuple
 
 from graphenebase.amount import Amount
-from .account import Account
-from .utils import fmt_time_from_now
+from src.account import Account
+from src.utils import fmt_time_from_now
 
 GenesisAccount = namedtuple("GenesisAccount", ["account", "amount"])
 
 
 class Genesis(object):
     def __init__(self):
-        self.genesis_accounts = []   # list(GenesisAccount))
+        self.genesis_accounts = []  # list(GenesisAccount))
         self.witness_candidates = []  # list(Account)
         self.founders = set()  # set((str, float))
         self.reg_committee = set()  # set(str)

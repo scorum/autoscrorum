@@ -1,5 +1,4 @@
 import csv
-import datetime
 import json
 import logging
 from collections import defaultdict
@@ -7,7 +6,8 @@ from copy import deepcopy
 
 from sortedcontainers import SortedSet
 
-from autoscorum.wallet import Wallet
+from src.wallet import Wallet
+from src.utils import to_date
 from graphenebase.amount import Amount
 
 # CHAIN_ID = "d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"  # testnet
@@ -153,10 +153,6 @@ def comparison_str(expected: Amount, actual: Amount):
     delta = expected - actual
     percent = "%.2f%%" % round((actual.amount / expected.amount) * 100, 9) if expected.amount else "inf%"
     return "actual '%s', expected '%s', delta '%s', percent '%s'" % (str(actual), str(expected), str(delta), percent)
-
-
-def to_date(date: str):
-    return datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
 
 
 def percentage(dividend, divisor, precision=5):

@@ -1,8 +1,13 @@
-import re
 import os
+import re
 import time
+from functools import partial
+from multiprocessing import Pool
 
-from autoscorum.wallet import Wallet
+from src.wallet import Wallet
+
+
+DEFAULT_WITNESS = "initdelegate"
 
 
 def check_logs_on_errors(logs):
@@ -50,3 +55,16 @@ def generate_blocks(node, docker, num=1):
                 time_to_wait=3 * num  # 3 sec on each block
             )
             return w.get_dynamic_global_properties()['head_block_number']
+
+
+def post_comment(post_kwargs, node):
+    with Wallet(node.get_chain_id(), node.rpc_endpoint, node.genesis.get_accounts()) as w:
+        w.login("", "")
+        w.get_api_by_name('database_api')
+        w.get_api_by_name('network_broadcast_api')
+        return w.post_comment(**post_kwargs)
+
+
+def parallel_create_posts(posts, node):
+    p = Pool(processes=len(posts))
+    return p.map(partial(post_comment, node=node), posts)

@@ -3,12 +3,12 @@ import json
 import time
 from binascii import unhexlify
 
-import autoscorum.operations_fabric as operations
+import src.operations_fabric as operations
 from graphenebase.amount import Amount
 from graphenebase.signedtransactions import SignedTransaction
-from .account import Account
-from .rpc_client import RpcClient
-from .utils import fmt_time_from_now
+from src.account import Account
+from src.rpc_client import RpcClient
+from src.utils import fmt_time_from_now
 
 
 class Wallet(object):
@@ -89,7 +89,7 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def list_accounts(self, limit: int=100, start_name: str=""):
+    def list_accounts(self, limit: int = 100, start_name: str = ""):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', [start_name, limit]))
         try:
             return response['result']
@@ -113,7 +113,7 @@ class Wallet(object):
             last = accs[-1]
         return names
 
-    def list_buddget_owners(self, limit: int=100, budget_type="post"):
+    def list_buddget_owners(self, limit: int = 100, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body(
             'call', 'database_api', 'lookup_budget_owners', [budget_type, "", limit])
         )
@@ -129,7 +129,7 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def list_witnesses(self, limit: int=100):
+    def list_witnesses(self, limit: int = 100):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_witness_accounts', ["", limit]))
         try:
             return response['result']
@@ -173,6 +173,7 @@ class Wallet(object):
     def get_block(self, num: int, **kwargs):
         def request():
             return self.rpc.send(self.json_rpc_body('get_block', num, api='blockchain_history_api'))
+
         wait = kwargs.get('wait_for_block', False)
 
         response = request()
@@ -182,7 +183,7 @@ class Wallet(object):
             return response
         if wait and not block:
             timer = 1
-            time_to_wait = kwargs.get('time_to_wait', 10)*10
+            time_to_wait = kwargs.get('time_to_wait', 10) * 10
             while timer < time_to_wait and not block:
                 time.sleep(0.1)
                 timer += 1
@@ -231,13 +232,6 @@ class Wallet(object):
 
     def get_budgets(self, owner_name: str, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, [owner_name]]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
-
-    def get_chain_capital(self):
-        response = self.rpc.send(self.json_rpc_body('call', 'chain_api', 'get_chain_capital', [], _id=1))
         try:
             return response['result']
         except KeyError:
@@ -351,7 +345,8 @@ class Wallet(object):
             return response
 
     def get_comments(self, parent_author, parent_permlink, depth):
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_comments', [parent_author, parent_permlink, str(depth)]))
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'tags_api', 'get_comments', [parent_author, parent_permlink, str(depth)]))
         try:
             return response['result']
         except KeyError:
@@ -365,7 +360,8 @@ class Wallet(object):
             return response
 
     def get_discussions_by(self, by_what, **kwargs):
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
         try:
             return response['result']
         except KeyError:
@@ -390,9 +386,9 @@ class Wallet(object):
                        creator: str,
                        newname: str,
                        owner: str,
-                       active: str=None,
-                       posting: str=None,
-                       fee: Amount=None,
+                       active: str = None,
+                       posting: str = None,
+                       fee: Amount = None,
                        memo=None,
                        json_meta={},
                        additional_owner_keys=[],
@@ -424,8 +420,8 @@ class Wallet(object):
                                     creator: str,
                                     newname: str,
                                     owner: str,
-                                    active: str=None,
-                                    posting: str=None,
+                                    active: str = None,
+                                    posting: str = None,
                                     memo=None,
                                     json_meta={},
                                     additional_owner_keys=[],
@@ -461,7 +457,8 @@ class Wallet(object):
                                operations=ops)
 
         tx.sign(keys, self.chain_id)
-        response = self.rpc.send(self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()]))
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()]))
 
         try:
             return response['result']

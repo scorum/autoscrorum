@@ -99,7 +99,7 @@ main()
 		args="$@"
 	fi
 
-	pipenv run py.test --pylama --junitxml=result.xml ${args}
+	pipenv run py.test -n `nproc` --pylama --junitxml=result.xml ${args}
 	return $?
 }
 
