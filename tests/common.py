@@ -4,8 +4,9 @@ import time
 from functools import partial
 from multiprocessing import Pool
 
-from src.wallet import Wallet
+from delayed_assert import expect, assert_expectations
 
+from src.wallet import Wallet
 
 DEFAULT_WITNESS = "initdelegate"
 
@@ -68,3 +69,29 @@ def post_comment(post_kwargs, node):
 def parallel_create_posts(posts, node):
     p = Pool(processes=len(posts))
     return p.map(partial(post_comment, node=node), posts)
+
+
+def validate_response(required_params, response):
+    for param in required_params:
+        try:
+            key, value = param
+        except ValueError:
+            key = param
+            value = str  # default type for most fields
+        val_type = type(value)
+        if val_type == type:  # e.g. if was passed type, not value
+            val_type = value
+        expect(key in response, "Parameter '%s' is missing in response: %s" % (key, response))
+        if key in response:
+            expect(
+                isinstance(response[key], val_type),
+                "Parameter '%s' has invalid value type '%s', expected '%s': %s" %
+                (key, type(response[key]), val_type, response)
+            )
+            if val_type != value and isinstance(response[key], val_type):
+                expect(
+                    response[key] == value,
+                    "Parameter '%s' has invalid value '%s', expected '%s': %s" %
+                    (key, response[key], value, response)
+                )
+    assert_expectations()
