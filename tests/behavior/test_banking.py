@@ -1,5 +1,6 @@
 from graphenebase.amount import Amount
 from src.wallet import Wallet
+from tests.common import expect, assert_expectations
 
 
 def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
@@ -19,9 +20,32 @@ def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
     chain_scr = Amount(chain_capital["total_scr"])
     print("Chain capital - total SCR: %s, total SP: %s, sum: %s" % (str(chain_scr), str(chain_sp), str(chain_cc)))
 
-    assert accs_sp == chain_sp
-    assert accs_scr == chain_scr
-    assert accs_cc == chain_cc
+    expect(accs_sp == chain_sp)
+    expect(accs_scr == chain_scr)
+    expect(accs_cc == chain_cc)
+    assert_expectations()
+
+
+def test_circulation_capital_fields_sum(wallet: Wallet):
+    scr_summands = [
+        "active_voters_balancer_scr", "content_balancer_scr", "content_reward_fund_scr_balance",
+        "dev_pool_scr_balance", "registration_pool_balance", "total_scr"
+    ]
+
+    sp_summands = [
+        "active_voters_balancer_sp", "fund_budget_balance", "content_reward_fifa_world_cup_2018_bounty_fund_sp_balance",
+        "content_reward_fund_sp_balance", "dev_pool_sp_balance", "witness_reward_in_sp_migration_fund",
+        "total_scorumpower"
+    ]
+
+    chain_capital = wallet.get_chain_capital()
+    circulating_scr = sum([Amount(chain_capital[s]) for s in scr_summands], Amount("0 SCR"))
+    circulating_sp = sum([Amount(chain_capital[s]) for s in sp_summands], Amount("0 SP"))
+
+    expect(circulating_scr == Amount(chain_capital["circulating_scr"]))
+    expect(circulating_sp == Amount(chain_capital["circulating_sp"]))
+    expect(circulating_scr + circulating_sp == Amount(chain_capital["total_supply"]))
+    assert_expectations()
 
 
 def test_transfer(wallet: Wallet):
