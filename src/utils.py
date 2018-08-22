@@ -30,7 +30,7 @@ def to_date(date: str, fmt="%Y-%m-%dT%H:%M:%S"):
     return datetime.strptime(date, fmt)
 
 
-def total_seconds(date: str,fmt="%Y-%m-%dT%H:%M:%S"):
+def total_seconds(date: str, fmt="%Y-%m-%dT%H:%M:%S"):
     return (to_date(date, fmt) - datetime(1970, 1, 1)).total_seconds()
 
 
