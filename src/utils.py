@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import time
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def which(file):
@@ -26,8 +26,13 @@ def fmt_time_from_now(secs=0):
     return datetime.utcfromtimestamp(time.time() + int(secs)).strftime(time_format)
 
 
-def to_date(date: str, fmt="%Y-%m-%dT%H:%M:%S"):
-    return datetime.strptime(date, fmt)
+def to_date(date: str, fmt="%Y-%m-%dT%H:%M:%S", tmdelta=None, op="+"):
+    if not tmdelta:
+        tmdelta = {}
+    if op == "+":
+        return datetime.strptime(date, fmt) + timedelta(**tmdelta)
+    if op == "-":
+        return datetime.strptime(date, fmt) - timedelta(**tmdelta)
 
 
 def total_seconds(date: str, fmt="%Y-%m-%dT%H:%M:%S"):
