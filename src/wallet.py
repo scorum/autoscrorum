@@ -382,6 +382,20 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def debug_has_hardfork(self, hardfork_id):
+        response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_has_hardfork', [hardfork_id]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def debug_set_hardfork(self, hardfork_id):
+        response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_set_hardfork', [hardfork_id]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def create_account(self,
                        creator: str,
                        newname: str,
