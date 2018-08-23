@@ -20,6 +20,10 @@ def transfer_to_scorumpower_operation(_from, to, amount: Amount):
            })
 
 
+def withdraw(account: str, scorumpower: Amount):
+    return operations.WithdrawScorumpower(**{"account": account, "scorumpower": str(scorumpower)})
+
+
 def account_create_operation(creator: str,
                              fee: Amount,
                              name: str,

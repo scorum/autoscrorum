@@ -1,6 +1,9 @@
+import pytest
+import time
+
 from graphenebase.amount import Amount
 from src.wallet import Wallet
-from tests.common import expect, assert_expectations
+from tests.common import expect, assert_expectations, DEFAULT_WITNESS
 
 
 def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
@@ -91,3 +94,83 @@ def test_transfer_to_vesting(wallet: Wallet):
 
     assert initdelegate_scr_balance_after == initdelegate_scr_balance_before - amount
     assert alice_sp_balance_after == alice_sp_balance_before + amount
+
+
+accounts_amounts = [
+    (DEFAULT_WITNESS, Amount("10.000000000 SP")), ("alice", Amount("20.000000000 SP")),
+    ("bob", Amount("50.000000000 SP"))
+]
+
+
+@pytest.mark.parametrize("account,amount", accounts_amounts)
+def test_account_active_withdraw(wallet: Wallet, account, amount):
+    response = wallet.withdraw(account, amount)
+
+    assert "error" not in response, "withdraw_scorumpower operation failed: %s" % response["error"]
+
+    transfers = wallet.get_account_transfers(account)
+
+    expect(len(transfers) == 1, "Was created more withdrawals then was expected.")
+
+    withdraw = transfers[0][1]
+
+    expect(withdraw["status"] == "active")
+    expect(Amount(withdraw["withdrawn"]) == Amount("0 SP"))  # e.g. any payment was not provided yet
+    expect(withdraw["op"][0] == "withdraw_scorumpower")
+    expect(Amount(withdraw["op"][1]["scorumpower"]) == amount)
+    expect(withdraw["op"][1]["account"] == account)
+    assert_expectations()
+
+
+@pytest.mark.parametrize("account,amount", accounts_amounts)
+def test_account_zero_withdraw(wallet: Wallet, account, amount):
+    response = wallet.withdraw(account, amount)
+    assert "error" not in response, "withdraw_scorumpower operation failed: %s" % response["error"]
+
+    response = wallet.withdraw(account, Amount("0 SP"))
+    assert "error" not in response, "zero withdraw_scorumpower operation failed: %s" % response["error"]
+
+    transfers = wallet.get_account_transfers(account)
+    expect(len(transfers) == 2, "Was created more withdrawals then was expected.")
+    expect(transfers[0][1]["status"] == "interrupted")
+    expect(transfers[1][1]["status"] == "empty")
+    assert_expectations()
+
+
+@pytest.mark.skip("On production this test will take a year. Run it only manually.")
+@pytest.mark.parametrize("account,amount", [accounts_amounts[1]])
+def test_account_final_withdraw(wallet: Wallet, account, amount):
+    response = wallet.withdraw(account, amount)
+    assert "error" not in response, "withdraw_scorumpower operation failed: %s" % response["error"]
+
+    account_before = wallet.get_account(account)
+
+    constants = wallet.get_config()
+    intervals = constants["SCORUM_VESTING_WITHDRAW_INTERVALS"]
+
+    single_payment = amount / intervals
+
+    interval_sec = constants["SCORUM_VESTING_WITHDRAW_INTERVAL_SECONDS"]
+
+    for i in range(1, intervals + 1):
+        time.sleep(interval_sec + 1)
+
+        expected_withdraw = single_payment * i
+
+        transfers = wallet.get_account_transfers(account)
+        expect(len(transfers) == 1, "Was created more withdrawals then was expected.")
+
+        withdrawn = Amount(transfers[0][1]["withdrawn"])
+        expect(withdrawn == expected_withdraw, "step: %d, actual '%s', expected '%s'" % (i, withdrawn, expected_withdraw))
+
+        account_after = wallet.get_account(account)
+        sp_change = Amount(account_before["scorumpower"]) - Amount(account_after["scorumpower"])
+        expect(sp_change == expected_withdraw, "step: %d, actual '%s', expected '%s'" % (i, sp_change, expected_withdraw))
+
+        scr_change = Amount(account_after["balance"]) - Amount(account_before["balance"])
+        expect(scr_change == expected_withdraw, "step: %d, actual '%s', expected '%s'" % (i, scr_change, expected_withdraw))
+
+        assert_expectations()
+
+        if i == intervals:
+            assert transfers[0][1]["status"] == "finished"

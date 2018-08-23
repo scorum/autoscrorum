@@ -149,7 +149,7 @@ class Wallet(object):
         transfers = ["sp", "scr"]
         assert _from in transfers
         assert to in transfers
-        assert _from != "sp" and to != "sp", "Not supported sp_to_sp transfers."
+        assert _from != to or _from != "sp" and to != "sp", "Not supported sp_to_sp transfers."
         response = self.rpc.send(self.json_rpc_body(
             'call', 'account_history_api',
             'get_account_%s_to_%s_transfers' % (_from, to),
@@ -288,6 +288,12 @@ class Wallet(object):
         op = operations.transfer_operation(_from, to, amount, memo)
 
         signing_key = self.account(_from).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def withdraw(self, account: str, scorumpower: Amount):
+        op = operations.withdraw(account, scorumpower)
+
+        signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
