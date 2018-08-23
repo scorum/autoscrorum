@@ -1,9 +1,12 @@
+import pytest
+
 from src.utils import to_date
 from src.wallet import Wallet
+from tests.common import DEFAULT_WITNESS, expect, assert_expectations
 
 
 def test_post_comment(wallet: Wallet):
-    post_kwargs = {'author': 'initdelegate',
+    post_kwargs = {'author': DEFAULT_WITNESS,
                    'permlink': 'initdelegate-post-1',
                    'parent_author': '',
                    'parent_permlink': 'football',
@@ -70,3 +73,46 @@ def test_post_comment(wallet: Wallet):
 
     comment_level_2 = wallet.get_comments(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'], 2)[0]
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
+
+
+@pytest.mark.skip("BLOC-475")
+@pytest.mark.long_term
+def test_active_sp_holder_reward(wallet: Wallet):
+    post_kwargs = {'author': DEFAULT_WITNESS,
+                   'permlink': 'initdelegate-post-1',
+                   'parent_author': '',
+                   'parent_permlink': 'football',
+                   'title': 'initdelegate post title',
+                   'body': 'initdelegate post body',
+                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
+    assert 'error' not in wallet.post_comment(**post_kwargs).keys(), 'post creation failed'
+    assert 'error' not in wallet.vote(DEFAULT_WITNESS, DEFAULT_WITNESS, "initdelegate-post-1"), "Vote operation failed"
+
+    account_before = wallet.get_account(DEFAULT_WITNESS)
+    print(account_before)
+
+    dgp_before = wallet.get_dynamic_global_properties()
+    print(dgp_before)
+
+    # 1000000 - microseconds to seconds; 3 seconds to generate one block
+    # ~ 20 blocks for 1 min; 201600 for one week
+    blocks_to_wait = int(wallet.get_config()["SCORUM_ACTIVE_SP_HOLDERS_REWARD_PERIOD"] / 1000000 / 3) + 1
+
+    for i in range(1, blocks_to_wait):  # 1 - node start, 2 - post create, 3 - vote for post
+        wallet.get_block(i, wait_for_block=True)
+        ops = wallet.get_ops_in_block(i)
+        rewards = [data["op"][1] for _, data in ops if data["op"][0] == "active_sp_holders_reward"]
+        if rewards:
+            break
+
+    account_after = wallet.get_account(DEFAULT_WITNESS)
+    print(account_after)
+
+    dgp_after = wallet.get_dynamic_global_properties()
+    print(dgp_after)
+
+    # expect(account_before["balance"] == account_after["balance"])
+    expect(account_before["scorumpower"] != account_after["scorumpower"])
+    # expect(dgp_before["total_pending_scr"] != dgp_after["total_pending_scr"])
+    expect(dgp_before["total_pending_sp"] != dgp_after["total_pending_sp"])
+    assert_expectations()
