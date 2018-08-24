@@ -6,7 +6,7 @@ from .types import (
     Varint32, Int64, String, Bytes, Void,
     Array, PointInTime, Signature, Bool,
     Set, Fixed_array, Optional, Static_variant,
-    Map, Id, VoteId, ObjectId, BudgetType,
+    Map, Id, VoteId, ObjectId, BudgetType, JsonObj
 )
 from .objects import GrapheneObject, isArgsThisClass
 from .account import PublicKey
@@ -240,7 +240,7 @@ class ProposalCreate(GrapheneObject):
                 OrderedDict([
                     ('creator', String(kwargs['creator'])),
                     ('lifetime_sec', Uint32(kwargs['lifetime_sec'])),
-                    ('operation', kwargs['operation'])
+                    ('operation', Static_variant(GrapheneObject(kwargs["op_data"]), operations[kwargs["op_name"]]))
                 ]))
 
 

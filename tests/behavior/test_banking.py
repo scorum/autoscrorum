@@ -174,3 +174,12 @@ def test_account_final_withdraw(wallet: Wallet, account, amount):
 
         if i == intervals:
             assert transfers[0][1]["status"] == "finished"
+
+
+def test_devpool_active_withdraw(wallet: Wallet):
+    response = wallet.withdraw_vesting(DEFAULT_WITNESS, Amount("10.000000000 SP"))
+
+    assert "error" not in response, "devpool_withdraw_vesting operation failed: %s" % response["error"]
+
+    print(response)
+

@@ -35,3 +35,15 @@ def test_serialize_create_budget_to_byte():
 
     result_bin = b'00000000000000000c696e697464656c6567617465027b7d00e40b540200000009534352000000009b2a645bb92a645b'
     assert hexlify(bytes(op)) == result_bin
+
+
+def test_serialize_proposal_create():
+    op = operations.ProposalCreate(**{
+        "creator": "initdelegate", "lifetime_sec": 86400,
+        "op_data": {"vesting_shares": "10.000000000 SP"},
+        "op_name": "development_committee_withdraw_vesting"
+    })
+
+    result_bin = b'00000000000000000c696e697464656c6567617465027b7d00e40b540200000009534352000000009b2a645bb92a645b'
+    # result_bin = b'0c696e697464656c6567617465805101000631302e303030303030303030205350'
+    assert hexlify(bytes(op)) == result_bin
