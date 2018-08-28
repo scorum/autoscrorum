@@ -160,6 +160,13 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def get_development_committee(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_development_committee', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def get_devcommittee_transfers(self, _from="sp", to="scr", starts=-1, limit=100):
         transfers = ["sp", "scr"]
         assert _from in transfers and to == "scr", "History is allowed only scr-scr and sp-scr transfers."

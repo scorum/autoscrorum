@@ -3,7 +3,9 @@ import time
 
 from graphenebase.amount import Amount
 from src.wallet import Wallet
-from tests.common import expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork, validate_response
+from tests.common import (
+    expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork, validate_response, validate_error_response
+)
 
 
 def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
@@ -179,24 +181,19 @@ def test_account_final_withdraw(wallet: Wallet, account, amount):
 def test_devcommittee_active_withdraw(wallet: Wallet):
     amount = Amount("10.000000000 SP")
 
-    response = wallet.withdraw_vesting(DEFAULT_WITNESS, amount)
-    validate_response(response, wallet.withdraw_vesting.__name__)
+    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, amount), wallet.withdraw_vesting.__name__)
 
     proposals = wallet.list_proposals()
-    validate_response(response, wallet.list_proposals.__name__)
-    expect(len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals))
+    validate_response(proposals, wallet.list_proposals.__name__)
+    assert len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
 
-    proposal_id = proposals[0]["id"]
-    response = wallet.proposal_vote(DEFAULT_WITNESS, proposal_id)
-    validate_response(response, wallet.proposal_vote.__name__)
+    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
 
     transfers = wallet.get_devcommittee_transfers()
     validate_response(transfers, wallet.get_devcommittee_transfers.__name__)
-    expect(len(transfers) == 1, "Was created more transfers then was expected.")
+    assert len(transfers) == 1, "Was created more transfers then was expected."
 
-    print(transfers)
     withdraw = transfers[0]
-
     expect(withdraw["status"] == "active")
     expect(Amount(withdraw["withdrawn"]) == Amount("0 SP"))  # e.g. any payment was not provided yet
     expect(withdraw["op"][0] == "proposal_virtual")
@@ -210,27 +207,20 @@ def test_devcommittee_zero_withdraw_2hf(wallet: Wallet):
     apply_hardfork(wallet, 2)
 
     amount = Amount("99.000000000 SP")
-    response = wallet.withdraw_vesting(DEFAULT_WITNESS, amount)
-    validate_response(response, wallet.withdraw_vesting.__name__)
+    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, amount), wallet.withdraw_vesting.__name__)
 
     proposals = wallet.list_proposals()
-    validate_response(response, wallet.list_proposals.__name__)
+    validate_response(proposals, wallet.list_proposals.__name__)
     expect(len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals))
 
-    proposal_id = proposals[0]["id"]
-    response = wallet.proposal_vote(DEFAULT_WITNESS, proposal_id)
-    validate_response(response, wallet.proposal_vote.__name__)
-
-    response = wallet.withdraw_vesting(DEFAULT_WITNESS, Amount("0 SP"))
-    validate_response(response, wallet.withdraw_vesting.__name__)
+    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
+    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, Amount("0 SP")), wallet.withdraw_vesting.__name__)
 
     proposals = wallet.list_proposals()
-    validate_response(response, wallet.list_proposals.__name__)
+    validate_response(proposals, wallet.list_proposals.__name__)
     expect(len(proposals) == 1, "Was created %d proposals, expected one: %s" % (len(proposals), proposals))
 
-    proposal_id = proposals[0]["id"]
-    response = wallet.proposal_vote(DEFAULT_WITNESS, proposal_id)
-    validate_response(response, wallet.proposal_vote.__name__)
+    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
 
     transfers = wallet.get_devcommittee_transfers()
     validate_response(transfers, wallet.get_devcommittee_transfers.__name__)
@@ -238,3 +228,17 @@ def test_devcommittee_zero_withdraw_2hf(wallet: Wallet):
     expect(transfers[0]["status"] == "empty")
     expect(transfers[1]["status"] == "interrupted")
     assert_expectations()
+
+
+def test_devcommittee_withdraw_gt_pool(wallet: Wallet):
+    devcommittee = wallet.get_development_committee()
+    validate_response(devcommittee, wallet.get_development_committee.__name__)
+
+    amount = Amount(devcommittee["sp_balance"]) + Amount("100.000000000 SP")
+    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, amount), wallet.withdraw_vesting.__name__)
+
+    proposals = wallet.list_proposals()
+    validate_response(proposals, wallet.list_proposals.__name__)
+    expect(len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals))
+
+    validate_error_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
