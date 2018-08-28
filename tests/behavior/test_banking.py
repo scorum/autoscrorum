@@ -3,11 +3,7 @@ import time
 
 from graphenebase.amount import Amount
 from src.wallet import Wallet
-from tests.common import expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork
-
-
-def validate_response(response, op: str):
-    assert "error" not in response, "%s operation failed: %s" % (op, response["error"])
+from tests.common import expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork, validate_response
 
 
 def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):

@@ -71,7 +71,13 @@ def parallel_create_posts(posts, node):
     return p.map(partial(post_comment, node=node), posts)
 
 
-def validate_response(required_params, response):
+def validate_response(response, op: str, required_params=None):
+
+    assert "error" not in response, "%s operation failed: %s" % (op, response["error"])
+
+    if not required_params:
+        required_params = []
+
     for param in required_params:
         try:
             key, value = param

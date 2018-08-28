@@ -3,7 +3,7 @@ import pytest
 from src.utils import to_date, date_to_str
 from src.wallet import Wallet
 from graphenebase.amount import Amount
-from tests.common import DEFAULT_WITNESS, expect, assert_expectations, apply_hardfork
+from tests.common import DEFAULT_WITNESS, expect, assert_expectations, apply_hardfork, validate_response
 
 
 def test_post_comment(wallet: Wallet):
@@ -29,9 +29,9 @@ def test_post_comment(wallet: Wallet):
                               'body': 'alice comment body',
                               'json_metadata': '{"tags":["comment", "initdelegate_posts", "alice_tag"]}'}
 
-    assert 'error' not in wallet.post_comment(**post_kwargs).keys(), 'post creation failed'
-    assert 'error' not in wallet.post_comment(**comment_level_1_kwargs).keys(), 'post creation failed'
-    assert 'error' not in wallet.post_comment(**comment_level_2_kwargs).keys(), 'post creation failed'
+    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
+    validate_response(wallet.post_comment(**comment_level_1_kwargs), wallet.post_comment.__name__)
+    validate_response(wallet.post_comment(**comment_level_2_kwargs), wallet.post_comment.__name__)
 
     time_config = wallet.get_config()
 
@@ -101,8 +101,8 @@ def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, account):
                    'title': 'initdelegate post title',
                    'body': 'initdelegate post body',
                    'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
-    assert 'error' not in wallet.post_comment(**post_kwargs).keys(), 'post creation failed'
-    assert 'error' not in wallet.vote(account, account, "initdelegate-post-1"), "Vote operation failed"
+    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
+    validate_response(wallet.vote(account, account, "initdelegate-post-1"), wallet.vote.__name__)
 
     account_before = wallet.get_account(account)
     dgp_before = wallet.get_dynamic_global_properties()
