@@ -160,6 +160,19 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def get_devcommittee_transfers(self, _from="sp", to="scr", starts=-1, limit=100):
+        transfers = ["sp", "scr"]
+        assert _from in transfers and to == "scr", "History is allowed only scr-scr and sp-scr transfers."
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'devcommittee_history_api',
+            'get_%s_to_%s_transfers' % (_from, to),
+            [starts, limit]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def get_last_block_duration_in_microseconds(self):
         response = self.rpc.send(self.json_rpc_body('call',
                                                     'node_monitoring_api',
@@ -306,6 +319,12 @@ class Wallet(object):
         op = operations.transfer_to_scorumpower_operation(_from, to, amount)
         signing_key = self.account(_from).get_active_private()
 
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def proposal_vote(self, account: str, proposal_id: int):
+        op = operations.proposal_vote_operation(account, proposal_id)
+
+        signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):

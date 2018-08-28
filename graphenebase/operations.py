@@ -244,6 +244,20 @@ class ProposalCreate(GrapheneObject):
                 ]))
 
 
+class ProposalVote(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('voting_account', String(kwargs['voting_account'])),
+                    ('proposal_id', Uint64(kwargs['proposal_id']))
+                ]))
+
+
 class DevelopmentCommitteeWithdrawVesting(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):

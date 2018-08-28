@@ -6,6 +6,10 @@ from src.wallet import Wallet
 from tests.common import expect, assert_expectations, DEFAULT_WITNESS
 
 
+def validate_response(response, op: str):
+    assert "error" not in response, "%s operation failed: %s" % (op, response["error"])
+
+
 def test_circulation_capital_equal_sum_accounts_balances(wallet: Wallet):
     accs_sp = Amount("0 SP")
     accs_scr = Amount("0 SCR")
@@ -106,7 +110,7 @@ accounts_amounts = [
 def test_account_active_withdraw(wallet: Wallet, account, amount):
     response = wallet.withdraw(account, amount)
 
-    assert "error" not in response, "withdraw_scorumpower operation failed: %s" % response["error"]
+    validate_response(response, wallet.withdraw.__name__)
 
     transfers = wallet.get_account_transfers(account)
 
@@ -125,10 +129,10 @@ def test_account_active_withdraw(wallet: Wallet, account, amount):
 @pytest.mark.parametrize("account,amount", accounts_amounts)
 def test_account_zero_withdraw(wallet: Wallet, account, amount):
     response = wallet.withdraw(account, amount)
-    assert "error" not in response, "withdraw_scorumpower operation failed: %s" % response["error"]
+    validate_response(response, wallet.withdraw.__name__)
 
     response = wallet.withdraw(account, Amount("0 SP"))
-    assert "error" not in response, "zero withdraw_scorumpower operation failed: %s" % response["error"]
+    validate_response(response, wallet.withdraw.__name__)
 
     transfers = wallet.get_account_transfers(account)
     expect(len(transfers) == 2, "Was created more withdrawals then was expected.")
@@ -141,7 +145,7 @@ def test_account_zero_withdraw(wallet: Wallet, account, amount):
 @pytest.mark.parametrize("account,amount", [accounts_amounts[1]])
 def test_account_final_withdraw(wallet: Wallet, account, amount):
     response = wallet.withdraw(account, amount)
-    assert "error" not in response, "withdraw_scorumpower operation failed: %s" % response["error"]
+    validate_response(response, wallet.withdraw.__name__)
 
     account_before = wallet.get_account(account)
 
@@ -176,10 +180,30 @@ def test_account_final_withdraw(wallet: Wallet, account, amount):
             assert transfers[0][1]["status"] == "finished"
 
 
-def test_devpool_active_withdraw(wallet: Wallet):
-    response = wallet.withdraw_vesting(DEFAULT_WITNESS, Amount("10.000000000 SP"))
+def test_devcommittee_active_withdraw(wallet: Wallet):
+    amount = Amount("10.000000000 SP")
 
-    assert "error" not in response, "devpool_withdraw_vesting operation failed: %s" % response["error"]
+    response = wallet.withdraw_vesting(DEFAULT_WITNESS, amount)
+    validate_response(response, wallet.withdraw_vesting.__name__)
 
-    print(response)
+    proposals = wallet.list_proposals()
+    validate_response(response, wallet.list_proposals.__name__)
+    expect(len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals))
 
+    proposal_id = proposals[0]["id"]
+    response = wallet.proposal_vote(DEFAULT_WITNESS, proposal_id)
+    validate_response(response, wallet.proposal_vote.__name__)
+
+    transfers = wallet.get_devcommittee_transfers()
+    validate_response(transfers, wallet.get_devcommittee_transfers.__name__)
+    expect(len(transfers) == 1, "Was created more transfers then was expected.")
+
+    print(transfers)
+    withdraw = transfers[0]
+
+    expect(withdraw["status"] == "active")
+    expect(Amount(withdraw["withdrawn"]) == Amount("0 SP"))  # e.g. any payment was not provided yet
+    expect(withdraw["op"][0] == "proposal_virtual")
+    expect(withdraw["op"][1]["proposal_op"][0] == "development_committee_withdraw_vesting")
+    expect(Amount(withdraw["op"][1]["proposal_op"][1]["vesting_shares"]) == amount)
+    assert_expectations()

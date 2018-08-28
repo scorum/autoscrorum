@@ -31,6 +31,12 @@ def devpool_withdraw_vesting(account: str, amount: Amount, lifetime: int):
     })
 
 
+def proposal_vote_operation(account: str, proposal_id: int):
+    return operations.ProposalVote(**{
+        "voting_account": account, "proposal_id": proposal_id
+    })
+
+
 def account_create_operation(creator: str,
                              fee: Amount,
                              name: str,
