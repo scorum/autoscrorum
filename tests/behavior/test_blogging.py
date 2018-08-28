@@ -1,6 +1,6 @@
 import pytest
 
-from src.utils import to_date
+from src.utils import to_date, date_to_str
 from src.wallet import Wallet
 from graphenebase.amount import Amount
 from tests.common import DEFAULT_WITNESS, expect, assert_expectations, apply_hardfork
@@ -76,9 +76,22 @@ def test_post_comment(wallet: Wallet):
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
 
 
-@pytest.mark.long_term
+@pytest.mark.skip_long_term
 @pytest.mark.parametrize("account", ["alice", "bob"])  # not witness -> we could check balance change
 def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, account):
+
+    def check_reward_operation(start, stop):
+        rewards = []
+        for i in range(start, stop):
+            wallet.get_block(i, wait_for_block=True)
+            ops = wallet.get_ops_in_block(i)
+            rewards = [data["op"][1] for _, data in ops if data["op"][0] == "active_sp_holders_reward"]
+            if rewards:
+                break
+        assert len(rewards) == 1, "Should be provided single active_sp_holder_reward payment."
+        assert rewards[0]["sp_holder"] == account, "Reward should be payed to specified user."
+        return Amount(rewards[0]["reward"])
+
     apply_hardfork(wallet, 2)
 
     post_kwargs = {'author': account,
@@ -99,27 +112,27 @@ def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, account):
     reward_period_sec = int(wallet.get_config()["SCORUM_ACTIVE_SP_HOLDERS_REWARD_PERIOD"] / 1000000)
     expected_cashout = to_date(account_before["last_vote_time"], tmdelta={"seconds": reward_period_sec})
     actual_cashout = to_date(account_before["active_sp_holders_cashout_time"])
-    expect(expected_cashout == actual_cashout, "Actual cashout time calculated incorrectly.")
+    expect(
+        actual_cashout == expected_cashout,
+        "Actual cashout time calculated incorrectly: '%s', expected '%s'" %
+        (date_to_str(actual_cashout), date_to_str(expected_cashout))
+    )
 
     blocks_to_wait = int(reward_period_sec / 3) + 1
     last_block = dgp_before["head_block_number"]
-    rewards = []
-    for i in range(last_block, last_block + blocks_to_wait):
-        wallet.get_block(i, wait_for_block=True)
-        ops = wallet.get_ops_in_block(i)
-        rewards = [data["op"][1] for _, data in ops if data["op"][0] == "active_sp_holders_reward"]
-        if rewards:
-            break
-    assert len(rewards) == 1, "Should be provided single active_sp_holder_reward payment."
-    assert rewards[0]["sp_holder"] == account, "Reward should be payed to specified user."
+    reward = check_reward_operation(last_block, last_block + blocks_to_wait)
 
     account_after = wallet.get_account(account)
     expect(account_before["balance"] == account_after["balance"])  # until advertising is locked
     expect(account_before["scorumpower"] != account_after["scorumpower"])
 
     reset_cashout = to_date(account_after["active_sp_holders_cashout_time"])
-    max_cashout = to_date("1969-12-31T23:59:59")
-    expect(reset_cashout == max_cashout, "Cashout time for active_sp_holder_reward was not reset.")
+    expected_cashout = to_date(account_before["active_sp_holders_cashout_time"], tmdelta={"seconds": reward_period_sec})
+    expect(
+        reset_cashout == expected_cashout,
+        "Cashout time for active_sp_holder_reward was not reset: '%s', expected '%s'" %
+        (date_to_str(reset_cashout), date_to_str(expected_cashout))
+    )
 
     dgp_after = wallet.get_dynamic_global_properties()
     expect(dgp_before["total_pending_scr"] == dgp_after["total_pending_scr"])  # until advertising is locked
@@ -128,10 +141,12 @@ def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, account):
     expect(dgp_before["total_scorumpower"] != dgp_after["total_scorumpower"])
 
     balance_change = Amount(account_after["scorumpower"]) - Amount(account_before["scorumpower"])
-    reward = Amount(rewards[0]["reward"])
     expect(
         balance_change == reward,
         "Balance change is not equal with reward: '%s', expected '%s'" % (balance_change, reward)
     )
 
     assert_expectations()
+
+    last_block = dgp_after["head_block_number"]
+    check_reward_operation(last_block + 1, last_block + blocks_to_wait)
