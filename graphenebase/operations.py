@@ -6,7 +6,7 @@ from .types import (
     Varint32, Int64, String, Bytes, Void,
     Array, PointInTime, Signature, Bool,
     Set, Fixed_array, Optional, Static_variant,
-    Map, Id, VoteId, ObjectId, BudgetType, JsonObj
+    Map, Id, VoteId, ObjectId, BudgetType
 )
 from .objects import GrapheneObject, isArgsThisClass
 from .account import PublicKey
@@ -240,7 +240,20 @@ class ProposalCreate(GrapheneObject):
                 OrderedDict([
                     ('creator', String(kwargs['creator'])),
                     ('lifetime_sec', Uint32(kwargs['lifetime_sec'])),
-                    ('operation', Static_variant(GrapheneObject(kwargs["op_data"]), operations[kwargs["op_name"]]))
+                    ('operation', Operation(kwargs['operation']))
+                ]))
+
+
+class DevelopmentCommitteeWithdrawVesting(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('vesting_shares', Amount(kwargs['amount']))
                 ]))
 
 

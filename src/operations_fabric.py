@@ -27,7 +27,7 @@ def withdraw(account: str, scorumpower: Amount):
 def devpool_withdraw_vesting(account: str, amount: Amount, lifetime: int):
     return operations.ProposalCreate(**{
         "creator": account, "lifetime_sec": lifetime,
-        "op_data": {"vesting_shares": str(amount)}, "op_name": "development_committee_withdraw_vesting"
+        "operation": operations.DevelopmentCommitteeWithdrawVesting(**{"amount": str(amount)})
     })
 
 
