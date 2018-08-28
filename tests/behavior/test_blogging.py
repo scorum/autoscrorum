@@ -3,7 +3,9 @@ import pytest
 from src.utils import to_date, date_to_str
 from src.wallet import Wallet
 from graphenebase.amount import Amount
-from tests.common import DEFAULT_WITNESS, expect, assert_expectations, apply_hardfork, validate_response
+from tests.common import (
+    DEFAULT_WITNESS, expect, assert_expectations, apply_hardfork, validate_response, validate_error_response
+)
 
 
 def test_post_comment(wallet: Wallet):
@@ -74,6 +76,46 @@ def test_post_comment(wallet: Wallet):
 
     comment_level_2 = wallet.get_comments(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'], 2)[0]
     validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
+
+
+@pytest.mark.parametrize("account", [DEFAULT_WITNESS, "alice", "bob"])
+def test_vote_operation(wallet: Wallet, account):
+    post_kwargs = {'author': account,
+                   'permlink': 'initdelegate-post-1',
+                   'parent_author': '',
+                   'parent_permlink': 'football',
+                   'title': 'initdelegate post title',
+                   'body': 'initdelegate post body',
+                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
+    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
+
+    validate_response(wallet.vote(account, account, "initdelegate-post-1"), wallet.vote.__name__)
+    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=-100), wallet.vote.__name__)
+
+    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=1000), wallet.vote.__name__)
+    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=-1000), wallet.vote.__name__)
+
+
+@pytest.mark.parametrize("account", [DEFAULT_WITNESS, "alice", "bob"])
+def test_vote_operation_2hf(wallet: Wallet, account):
+    apply_hardfork(wallet, 2)
+
+    post_kwargs = {'author': account,
+                   'permlink': 'initdelegate-post-1',
+                   'parent_author': '',
+                   'parent_permlink': 'football',
+                   'title': 'initdelegate post title',
+                   'body': 'initdelegate post body',
+                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
+    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
+
+    validate_response(wallet.vote(account, account, "initdelegate-post-1"), wallet.vote.__name__)
+    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=-100), wallet.vote.__name__)
+    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=-1000), wallet.vote.__name__)
+    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=10000), wallet.vote.__name__)
+
+    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=11111), wallet.vote.__name__)
+    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=-10001), wallet.vote.__name__)
 
 
 @pytest.mark.skip_long_term

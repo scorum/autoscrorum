@@ -103,6 +103,11 @@ def validate_response(response, op: str, required_params=None):
     assert_expectations()
 
 
+def validate_error_response(response, op: str, error_message="Assert Exception"):
+    assert "error" in response and error_message in response["error"]["message"], \
+        "%s operation should fail but passed with result: %s" % (op, response["error"])
+
+
 def apply_hardfork(wallet: Wallet, hf_id: int):
     assert hf_id > 0
     for i in range(1, hf_id + 1):
