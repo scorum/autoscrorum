@@ -3,7 +3,7 @@ import time
 
 from graphenebase.amount import Amount
 from src.wallet import Wallet
-from tests.common import expect, assert_expectations, DEFAULT_WITNESS
+from tests.common import expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork
 
 
 def validate_response(response, op: str):
@@ -206,4 +206,39 @@ def test_devcommittee_active_withdraw(wallet: Wallet):
     expect(withdraw["op"][0] == "proposal_virtual")
     expect(withdraw["op"][1]["proposal_op"][0] == "development_committee_withdraw_vesting")
     expect(Amount(withdraw["op"][1]["proposal_op"][1]["vesting_shares"]) == amount)
+    assert_expectations()
+
+
+def test_devcommittee_zero_withdraw_2hf(wallet: Wallet):
+    # on prev HF zero-withdraw was not allowed for devcommittee
+    apply_hardfork(wallet, 2)
+
+    amount = Amount("99.000000000 SP")
+    response = wallet.withdraw_vesting(DEFAULT_WITNESS, amount)
+    validate_response(response, wallet.withdraw_vesting.__name__)
+
+    proposals = wallet.list_proposals()
+    validate_response(response, wallet.list_proposals.__name__)
+    expect(len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals))
+
+    proposal_id = proposals[0]["id"]
+    response = wallet.proposal_vote(DEFAULT_WITNESS, proposal_id)
+    validate_response(response, wallet.proposal_vote.__name__)
+
+    response = wallet.withdraw_vesting(DEFAULT_WITNESS, Amount("0 SP"))
+    validate_response(response, wallet.withdraw_vesting.__name__)
+
+    proposals = wallet.list_proposals()
+    validate_response(response, wallet.list_proposals.__name__)
+    expect(len(proposals) == 1, "Was created %d proposals, expected one: %s" % (len(proposals), proposals))
+
+    proposal_id = proposals[0]["id"]
+    response = wallet.proposal_vote(DEFAULT_WITNESS, proposal_id)
+    validate_response(response, wallet.proposal_vote.__name__)
+
+    transfers = wallet.get_devcommittee_transfers()
+    validate_response(transfers, wallet.get_devcommittee_transfers.__name__)
+    expect(len(transfers) == 2, "Was created unexpected amount of transfers.")
+    expect(transfers[0]["status"] == "empty")
+    expect(transfers[1]["status"] == "interrupted")
     assert_expectations()
