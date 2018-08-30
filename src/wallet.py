@@ -146,10 +146,9 @@ class Wallet(object):
             return response
 
     def get_account_transfers(self, name: str, _from="sp", to="scr", starts=-1, limit=100):
-        transfers = ["sp", "scr"]
-        assert _from in transfers
-        assert to in transfers
-        assert _from != to or _from != "sp" and to != "sp", "Not supported sp_to_sp transfers."
+        transfer_types = ["sp", "scr"]
+        if _from not in transfer_types and to not in transfer_types or(_from == "sp" and to == "sp"):
+            raise ValueError("Supported only next types of transfers: scr-scr, scr-sp, sp-scr.")
         response = self.rpc.send(self.json_rpc_body(
             'call', 'account_history_api',
             'get_account_%s_to_%s_transfers' % (_from, to),
@@ -168,8 +167,9 @@ class Wallet(object):
             return response
 
     def get_devcommittee_transfers(self, _from="sp", to="scr", starts=-1, limit=100):
-        transfers = ["sp", "scr"]
-        assert _from in transfers and to == "scr", "History is allowed only scr-scr and sp-scr transfers."
+        transfer_types = ["sp", "scr"]
+        if _from not in transfer_types or to != "scr":
+            raise ValueError("History is allowed only for scr-scr and sp-scr devcommittee transfers.")
         response = self.rpc.send(self.json_rpc_body(
             'call', 'devcommittee_history_api',
             'get_%s_to_%s_transfers' % (_from, to),
