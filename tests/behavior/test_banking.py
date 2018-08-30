@@ -163,14 +163,23 @@ def test_account_final_withdraw(wallet: Wallet, account, amount):
         expect(len(transfers) == 1, "Was created more withdrawals then was expected.")
 
         withdrawn = Amount(transfers[0][1]["withdrawn"])
-        expect(withdrawn == expected_withdraw, "step: %d, actual '%s', expected '%s'" % (i, withdrawn, expected_withdraw))
+        expect(
+            withdrawn == expected_withdraw,
+            "step: %d, actual '%s', expected '%s'" % (i, withdrawn, expected_withdraw)
+        )
 
         account_after = wallet.get_account(account)
         sp_change = Amount(account_before["scorumpower"]) - Amount(account_after["scorumpower"])
-        expect(sp_change == expected_withdraw, "step: %d, actual '%s', expected '%s'" % (i, sp_change, expected_withdraw))
+        expect(
+            sp_change == expected_withdraw,
+            "step: %d, actual '%s', expected '%s'" % (i, sp_change, expected_withdraw)
+        )
 
         scr_change = Amount(account_after["balance"]) - Amount(account_before["balance"])
-        expect(scr_change == expected_withdraw, "step: %d, actual '%s', expected '%s'" % (i, scr_change, expected_withdraw))
+        expect(
+            scr_change == expected_withdraw,
+            "step: %d, actual '%s', expected '%s'" % (i, scr_change, expected_withdraw)
+        )
 
         assert_expectations()
 
@@ -181,7 +190,10 @@ def test_account_final_withdraw(wallet: Wallet, account, amount):
 def test_devcommittee_active_withdraw(wallet: Wallet):
     amount = Amount("10.000000000 SP")
 
-    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, amount), wallet.withdraw_vesting.__name__)
+    validate_response(
+        wallet.devcommittee_withdraw_vesting(DEFAULT_WITNESS, amount),
+        wallet.devcommittee_withdraw_vesting.__name__
+    )
 
     proposals = wallet.list_proposals()
     validate_response(proposals, wallet.list_proposals.__name__)
@@ -207,14 +219,20 @@ def test_devcommittee_zero_withdraw_2hf(wallet: Wallet):
     apply_hardfork(wallet, 2)
 
     amount = Amount("99.000000000 SP")
-    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, amount), wallet.withdraw_vesting.__name__)
+    validate_response(
+        wallet.devcommittee_withdraw_vesting(DEFAULT_WITNESS, amount),
+        wallet.devcommittee_withdraw_vesting.__name__
+    )
 
     proposals = wallet.list_proposals()
     validate_response(proposals, wallet.list_proposals.__name__)
     expect(len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals))
 
     validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
-    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, Amount("0 SP")), wallet.withdraw_vesting.__name__)
+    validate_response(
+        wallet.devcommittee_withdraw_vesting(DEFAULT_WITNESS, Amount("0 SP")),
+        wallet.devcommittee_withdraw_vesting.__name__
+    )
 
     proposals = wallet.list_proposals()
     validate_response(proposals, wallet.list_proposals.__name__)
@@ -235,7 +253,10 @@ def test_devcommittee_withdraw_gt_pool(wallet: Wallet):
     validate_response(devcommittee, wallet.get_development_committee.__name__)
 
     amount = Amount(devcommittee["sp_balance"]) + Amount("100.000000000 SP")
-    validate_response(wallet.withdraw_vesting(DEFAULT_WITNESS, amount), wallet.withdraw_vesting.__name__)
+    validate_response(
+        wallet.devcommittee_withdraw_vesting(DEFAULT_WITNESS, amount),
+        wallet.devcommittee_withdraw_vesting.__name__
+    )
 
     proposals = wallet.list_proposals()
     validate_response(proposals, wallet.list_proposals.__name__)

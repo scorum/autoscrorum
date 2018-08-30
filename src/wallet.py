@@ -316,7 +316,7 @@ class Wallet(object):
         signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def withdraw_vesting(self, account: str, scorumpower: Amount, lifetime=86400):
+    def devcommittee_withdraw_vesting(self, account: str, scorumpower: Amount, lifetime=86400):
         op = operations.devpool_withdraw_vesting(account, scorumpower, lifetime)
 
         signing_key = self.account(account).get_active_private()
