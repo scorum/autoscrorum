@@ -272,8 +272,8 @@ class Wallet(object):
         ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
         return ref_block_num, ref_block_prefix
 
-    def create_budget(self, owner, balance: Amount, start, deadline, json_metadata="{}", object_type="post"):
-        op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, object_type)
+    def create_budget(self, owner, balance: Amount, start, deadline, json_metadata="{}", budget_type="post"):
+        op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, budget_type)
 
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])

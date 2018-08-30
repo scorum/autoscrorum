@@ -7,6 +7,43 @@ from src.wallet import Wallet
 from tests.common import DEFAULT_WITNESS
 
 
+def is_operation_in_block(block, operation_name, operation_kwargs={}):
+    for tr in block['transactions']:
+        for op in tr['operations']:
+            op_name = op[0]
+            op_params = op[1]
+            if op_name == operation_name:
+                if all([op_params[key] == operation_kwargs[key] for key in operation_kwargs.keys()]):
+                    return True
+    return False
+
+
+@pytest.mark.parametrize('budget_type', ['banner', 'post'])
+def test_create_budget(wallet: Wallet, budget_type):
+    budget_kwargs = {'budget_type': budget_type,
+                     'owner': DEFAULT_WITNESS,
+                     'json_metadata': "{}",
+                     'balance': Amount("10.000000000 SCR"),
+                     'start': fmt_time_from_now(10),
+                     'deadline': fmt_time_from_now(40)}
+    balance_before_creation = wallet.get_account_scr_balance(budget_kwargs['owner'])
+    result = wallet.create_budget(**budget_kwargs)
+
+
+    assert "error" not in result, \
+        "Could not create budget for '%s', error msg : %s" % (budget_kwargs['owner'], result['error'])
+
+    block = wallet.get_block(result['block_num'])
+    assert is_operation_in_block(block, 'create_budget', budget_kwargs), \
+        'Operation is not presented in blockchain\n' \
+        '{}'.format(block)
+
+    balance_after_creation = wallet.get_account_scr_balance(budget_kwargs['owner'])
+    assert balance_before_creation - balance_after_creation == budget_kwargs['balance']
+
+    budgets_list = wallet.get_budgets(budget_kwargs['owner'], budget_kwargs['budget_type'])
+
+
 def test_create_budget(wallet: Wallet):
     owner = DEFAULT_WITNESS
     result = wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40))
