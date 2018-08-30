@@ -146,14 +146,34 @@ class Wallet(object):
             return response
 
     def get_account_transfers(self, name: str, _from="sp", to="scr", starts=-1, limit=100):
-        transfers = ["sp", "scr"]
-        assert _from in transfers
-        assert to in transfers
-        assert _from != "sp" and to != "sp", "Not supported sp_to_sp transfers."
+        transfer_types = ["sp", "scr"]
+        if _from not in transfer_types and to not in transfer_types or(_from == "sp" and to == "sp"):
+            raise ValueError("Supported only next types of transfers: scr-scr, scr-sp, sp-scr.")
         response = self.rpc.send(self.json_rpc_body(
             'call', 'account_history_api',
             'get_account_%s_to_%s_transfers' % (_from, to),
             [name, starts, limit]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_development_committee(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_development_committee', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_devcommittee_transfers(self, _from="sp", to="scr", starts=-1, limit=100):
+        transfer_types = ["sp", "scr"]
+        if _from not in transfer_types or to != "scr":
+            raise ValueError("History is allowed only for scr-scr and sp-scr devcommittee transfers.")
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'devcommittee_history_api',
+            'get_%s_to_%s_transfers' % (_from, to),
+            [starts, limit]
         ))
         try:
             return response['result']
@@ -290,10 +310,28 @@ class Wallet(object):
         signing_key = self.account(_from).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
+    def withdraw(self, account: str, scorumpower: Amount):
+        op = operations.withdraw(account, scorumpower)
+
+        signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def devcommittee_withdraw_vesting(self, account: str, scorumpower: Amount, lifetime=86400):
+        op = operations.devpool_withdraw_vesting(account, scorumpower, lifetime)
+
+        signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
         op = operations.transfer_to_scorumpower_operation(_from, to, amount)
         signing_key = self.account(_from).get_active_private()
 
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def proposal_vote(self, account: str, proposal_id: int):
+        op = operations.proposal_vote_operation(account, proposal_id)
+
+        signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):
@@ -377,6 +415,20 @@ class Wallet(object):
 
     def get_posts_and_comments(self):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def debug_has_hardfork(self, hardfork_id):
+        response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_has_hardfork', [hardfork_id]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def debug_set_hardfork(self, hardfork_id):
+        response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_set_hardfork', [hardfork_id]))
         try:
             return response['result']
         except KeyError:

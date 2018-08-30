@@ -4,7 +4,7 @@ import pytest
 
 from src.node import Node
 from src.wallet import Wallet
-from tests.common import parallel_create_posts, DEFAULT_WITNESS
+from tests.common import parallel_create_posts, DEFAULT_WITNESS, validate_response
 
 
 def test_get_discussions_by_created(wallet: Wallet):
@@ -29,12 +29,13 @@ def test_get_discussions_by_created(wallet: Wallet):
     alice_post = wallet.post_comment(**alice_post_kwargs)
     bob_post = wallet.post_comment(**bob_post_kwargs)
 
-    assert 'error' not in alice_post, "creation alice_post failed"
-    assert 'error' not in bob_post, "creation bob_post failed"
+    validate_response(alice_post, wallet.post_comment.__name__)
+    validate_response(bob_post, wallet.post_comment.__name__)
 
     posts = wallet.get_discussions_by(
         "created", **{"tags": ["hockey", "football"], "limit": 100, "tags_logical_and": False}
     )
+    validate_response(posts, wallet.get_discussions_by.__name__)
     assert len(posts) == 2
     # check that returned latest created post
     assert posts[0]["permlink"] == "bob-post" and posts[0]["author"] == "bob", \
@@ -97,7 +98,7 @@ def test_get_discussions_by_author_order(wallet: Wallet):
     for permlink in permlinks:
         post["permlink"] = permlink
         res = wallet.post_comment(**post)
-        assert 'error' not in res.keys(), 'post creation failed: %s' % res
+        validate_response(res, wallet.post_comment.__name__)
         if permlink != permlinks[-1]:
             time.sleep(post_creation_interval)  # 5 min for each post on prod
 
