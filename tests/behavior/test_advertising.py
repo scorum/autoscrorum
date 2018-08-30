@@ -4,7 +4,7 @@ from graphenebase.amount import Amount
 from src.genesis import Genesis
 from src.utils import fmt_time_from_now
 from src.wallet import Wallet
-from tests.common import DEFAULT_WITNESS
+from tests.common import DEFAULT_WITNESS, validate_response
 
 
 def is_operation_in_block(block, operation_name, operation_kwargs={}):
@@ -29,7 +29,6 @@ def test_create_budget(wallet: Wallet, budget_type):
     balance_before_creation = wallet.get_account_scr_balance(budget_kwargs['owner'])
     result = wallet.create_budget(**budget_kwargs)
 
-
     assert "error" not in result, \
         "Could not create budget for '%s', error msg : %s" % (budget_kwargs['owner'], result['error'])
 
@@ -46,9 +45,8 @@ def test_create_budget(wallet: Wallet, budget_type):
 
 def test_create_budget(wallet: Wallet):
     owner = DEFAULT_WITNESS
-    result = wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40))
-    print(result)
-    assert "error" not in result, "Could not create budget for '%s', error msg : %s" % (owner, result['error'])
+    response = wallet.create_budget(owner, Amount("10.000000000 SCR"), fmt_time_from_now(10), fmt_time_from_now(40))
+    validate_response(response, wallet.create_budget.__name__)
 
     budget = wallet.get_budgets(owner)[0]
     print(budget)

@@ -20,6 +20,23 @@ def transfer_to_scorumpower_operation(_from, to, amount: Amount):
            })
 
 
+def withdraw(account: str, scorumpower: Amount):
+    return operations.WithdrawScorumpower(**{"account": account, "scorumpower": str(scorumpower)})
+
+
+def devpool_withdraw_vesting(account: str, amount: Amount, lifetime: int):
+    return operations.ProposalCreate(**{
+        "creator": account, "lifetime_sec": lifetime,
+        "operation": operations.DevelopmentCommitteeWithdrawVesting(**{"amount": str(amount)})
+    })
+
+
+def proposal_vote_operation(account: str, proposal_id: int):
+    return operations.ProposalVote(**{
+        "voting_account": account, "proposal_id": proposal_id
+    })
+
+
 def account_create_operation(creator: str,
                              fee: Amount,
                              name: str,
