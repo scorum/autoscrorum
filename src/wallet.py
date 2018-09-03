@@ -382,12 +382,12 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_contents(self, content_query: list):
+    def get_contents(self, content_queries: list):
         """
-        :param list(dict) content_query: List of author/permlink pairs
+        :param list(dict) content_queries: List of author/permlink pairs
         :return:
         """
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_contents', [content_query]))
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_contents', [content_queries]))
         try:
             return response['result']
         except KeyError:
@@ -419,6 +419,17 @@ class Wallet(object):
     def get_posts_comments_by_author(self, **kwargs):
         response = self.rpc.send(
             self.json_rpc_body('call', 'tags_api', 'get_posts_comments_by_author', [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_parents(self, **content_query):
+        """
+        :param dict content_query: author/permlink pair
+        :return:
+        """
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_parents', [content_query]))
         try:
             return response['result']
         except KeyError:

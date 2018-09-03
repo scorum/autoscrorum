@@ -126,3 +126,17 @@ def test_get_posts_comments_by_author(wallet: Wallet):
     posts = wallet.get_posts_comments_by_author(**{"start_author": DEFAULT_WITNESS, "limit": len(permlinks)})
 
     assert len(posts) == len(permlinks)
+
+
+@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
+def test_get_parents(wallet: Wallet, posts):
+    for post in posts:
+        wallet.post_comment(**post)
+        content = wallet.get_content(post["author"], post["permlink"])
+        parents = wallet.get_parents(**{"author": post["author"], "permlink": post["permlink"]})
+        validate_response(parents, wallet.get_parents.__name__)
+        assert len(parents) == content["depth"]
+        current = post
+        for parent in parents:
+            assert current["parent_permlink"] == parent["permlink"]
+            current = parent
