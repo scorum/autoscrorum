@@ -416,6 +416,14 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def get_posts_comments_by_author(self, **kwargs):
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'tags_api', 'get_posts_comments_by_author', [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def get_stats_for_interval(self, time_from: str, time_to: str):  # %Y-%m-%dT%H:%M:%S
         response = self.rpc.send(self.json_rpc_body(
             'call', 'blockchain_statistics_api', 'get_stats_for_interval', [time_from, time_to]))
