@@ -375,8 +375,19 @@ class Wallet(object):
         signing_key = self.account(author).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def get_content(self, author, permlink):
+    def get_content(self, author, permlink=""):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_content', [author, permlink]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_contents(self, content_query: list):
+        """
+        :param list(dict) content_query: List of author/permlink pairs
+        :return:
+        """
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_contents', [content_query]))
         try:
             return response['result']
         except KeyError:

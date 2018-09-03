@@ -5,32 +5,14 @@ import pytest
 from src.node import Node
 from src.wallet import Wallet
 from tests.common import parallel_create_posts, DEFAULT_WITNESS, validate_response
+from tests.data import (
+    alice_post, bob_post, initdelegate_post, only_posts, post_with_comments, post_with_multilvl_comments
+)
 
 
 def test_get_discussions_by_created(wallet: Wallet):
-    alice_post_kwargs = {
-        'author': 'alice',
-        'permlink': 'alice-post',
-        'parent_author': '',
-        'parent_permlink': 'football',
-        'title': 'alice football title',
-        'body': 'alice football body',
-        'json_metadata': '{"tags":["football"]}'
-    }
-    bob_post_kwargs = {
-        'author': 'bob',
-        'permlink': 'bob-post',
-        'parent_author': '',
-        'parent_permlink': 'hockey',
-        'title': 'bob hockey title',
-        'body': 'bob hockey body',
-        'json_metadata': '{"tags":["hockey"]}'
-    }
-    alice_post = wallet.post_comment(**alice_post_kwargs)
-    bob_post = wallet.post_comment(**bob_post_kwargs)
-
-    validate_response(alice_post, wallet.post_comment.__name__)
-    validate_response(bob_post, wallet.post_comment.__name__)
+    validate_response(wallet.post_comment(**alice_post), wallet.post_comment.__name__)
+    validate_response(wallet.post_comment(**bob_post), wallet.post_comment.__name__)
 
     posts = wallet.get_discussions_by(
         "created", **{"tags": ["hockey", "football"], "limit": 100, "tags_logical_and": False}
@@ -45,30 +27,10 @@ def test_get_discussions_by_created(wallet: Wallet):
 
 
 def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
-    alice_post_kwargs = {
-        'author': 'alice',
-        'permlink': 'alice-post',
-        'parent_author': '',
-        'parent_permlink': 'football',
-        'title': 'alice football title',
-        'body': 'alice football body',
-        'json_metadata': '{"tags":["football"]}'
-    }
-    bob_post_kwargs = {
-        'author': 'bob',
-        'permlink': 'bob-post',
-        'parent_author': '',
-        'parent_permlink': 'hockey',
-        'title': 'bob hockey title',
-        'body': 'bob hockey body',
-        'json_metadata': '{"tags":["hockey"]}'
-    }
-
-    posts_kwargs = [alice_post_kwargs, bob_post_kwargs]
-
+    posts = [alice_post, bob_post]
     wallet.get_block(2, wait_for_block=True)
     # ugly workaround to create posts within same block
-    result = parallel_create_posts(posts_kwargs, node)
+    result = parallel_create_posts(posts, node)
     assert 'error' not in result[0], "creation alice_post failed"
     assert 'error' not in result[1], "creation bob_post failed"
     assert result[0]["block_num"] == result[1]["block_num"], "posts are not created in single block"
@@ -84,20 +46,12 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
 
 @pytest.mark.skip_long_term
 def test_get_discussions_by_author_order(wallet: Wallet):
-    post = {
-        'author': DEFAULT_WITNESS,
-        'parent_author': '',
-        'parent_permlink': 'football',
-        'title': 'initdelegate post title',
-        'body': 'initdelegate post body',
-        'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'
-    }
     permlinks = ["initdelegate-post-%d" % i for i in range(1, 5)]
 
     post_creation_interval = int(int(wallet.get_config()["SCORUM_MIN_ROOT_COMMENT_INTERVAL"]) / 1000000)
     for permlink in permlinks:
-        post["permlink"] = permlink
-        res = wallet.post_comment(**post)
+        initdelegate_post["permlink"] = permlink
+        res = wallet.post_comment(**initdelegate_post)
         validate_response(res, wallet.post_comment.__name__)
         if permlink != permlinks[-1]:
             time.sleep(post_creation_interval)  # 5 min for each post on prod
@@ -110,3 +64,19 @@ def test_get_discussions_by_author_order(wallet: Wallet):
         opposite = total_posts - current - 1
         assert permlinks[current] == discussions[opposite]["permlink"], \
             "Broken posts order, Post %d should be on %d position." % (current, opposite)
+
+
+@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
+def test_get_contents(wallet: Wallet, posts):
+    for post_kwargs in posts:
+        res = wallet.post_comment(**post_kwargs)
+        validate_response(res, wallet.post_comment.__name__)
+
+    response = wallet.get_contents([
+        {"author": p["author"], "permlink": p["permlink"]}
+        for p in posts
+    ])
+
+    validate_response(response, wallet.get_contents.__name__)
+
+    assert len(response) == len(only_posts), "Should be returned all created posts and comments"
