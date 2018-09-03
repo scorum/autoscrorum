@@ -1,39 +1,17 @@
 import pytest
 
+from graphenebase.amount import Amount
 from src.utils import to_date, date_to_str
 from src.wallet import Wallet
-from graphenebase.amount import Amount
 from tests.common import (
     DEFAULT_WITNESS, expect, assert_expectations, apply_hardfork, validate_response, validate_error_response
 )
+from tests.data import post_with_multilvl_comments, initdelegate_post, bob_comment_lv1, alice_comment_lv2
 
 
-def test_post_comment(wallet: Wallet):
-    post_kwargs = {'author': DEFAULT_WITNESS,
-                   'permlink': 'initdelegate-post-1',
-                   'parent_author': '',
-                   'parent_permlink': 'football',
-                   'title': 'initdelegate post title',
-                   'body': 'initdelegate post body',
-                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
-    comment_level_1_kwargs = {'author': 'bob',
-                              'permlink': 'bob-comment-1',
-                              'parent_author': 'initdelegate',
-                              'parent_permlink': 'initdelegate-post-1',
-                              'title': 'bob comment title',
-                              'body': 'bob comment body',
-                              'json_metadata': '{"tags":["comment", "initdelegate_posts", "bob_tag"]}'}
-    comment_level_2_kwargs = {'author': 'alice',
-                              'permlink': 'alice-comment-1',
-                              'parent_author': 'bob',
-                              'parent_permlink': 'bob-comment-1',
-                              'title': 'alice comment title',
-                              'body': 'alice comment body',
-                              'json_metadata': '{"tags":["comment", "initdelegate_posts", "alice_tag"]}'}
-
-    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
-    validate_response(wallet.post_comment(**comment_level_1_kwargs), wallet.post_comment.__name__)
-    validate_response(wallet.post_comment(**comment_level_2_kwargs), wallet.post_comment.__name__)
+def test_validate_get_content(wallet: Wallet):
+    for post in post_with_multilvl_comments:
+        validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
 
     time_config = wallet.get_config()
 
@@ -55,27 +33,25 @@ def test_post_comment(wallet: Wallet):
         else:
             assert comment['url'] == '/{}/@{}/{}'.format(comment['category'], comment['author'], comment['permlink'])
 
-    def validate_comment(comment, comment_kwargs, parent=None):
-        print(comment)
+    def validate_content(comment, comment_kwargs, parent=None):
         for key, value in comment_kwargs.items():
             assert comment[key] == value, '{} value differs from expected'.format(key)
-        assert comment['category'] == post_kwargs['parent_permlink']
+        assert comment['category'] == initdelegate_post['parent_permlink']
         expected_depth = parent['depth'] + 1 if parent else 0
         assert comment['depth'] == expected_depth
-        assert comment['root_title'] == post_kwargs['title']
+        assert comment['root_title'] == initdelegate_post['title']
         assert comment['root_comment'] == post['id']
         validate_cashout_interval(comment)
         validate_url(comment)
 
-    post = wallet.get_content(post_kwargs['author'], post_kwargs['permlink'])
-    validate_comment(post, post_kwargs)
+    post = wallet.get_content(initdelegate_post['author'], initdelegate_post['permlink'])
+    validate_content(post, initdelegate_post)
 
-    comment_level_1 = wallet.get_comments(post_kwargs['author'], post_kwargs['permlink'], 1)
-    assert len(comment_level_1) == 1, 'get_content_replies method should return only 1 level children'
-    validate_comment(comment_level_1[0], comment_level_1_kwargs, post)
+    comment_level_1 = wallet.get_content(bob_comment_lv1['author'], bob_comment_lv1['permlink'])
+    validate_content(comment_level_1, bob_comment_lv1, post)
 
-    comment_level_2 = wallet.get_comments(comment_level_1_kwargs['author'], comment_level_1_kwargs['permlink'], 2)[0]
-    validate_comment(comment_level_2, comment_level_2_kwargs, comment_level_1[0])
+    comment_level_2 = wallet.get_content(alice_comment_lv2['author'], alice_comment_lv2['permlink'])
+    validate_content(comment_level_2, alice_comment_lv2, comment_level_1)
 
 
 @pytest.mark.parametrize("account", [DEFAULT_WITNESS, "alice", "bob"])

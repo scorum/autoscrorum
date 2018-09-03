@@ -67,10 +67,22 @@ def test_get_discussions_by_author_order(wallet: Wallet):
 
 
 @pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
+def test_post_comment(wallet: Wallet, posts):
+    for post in posts:
+        validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
+
+
+@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
+def test_get_content(wallet: Wallet, posts):
+    for post in posts:
+        wallet.post_comment(**post)
+        validate_response(wallet.get_content(post['author'], post['permlink']), wallet.get_content.__name__)
+
+
+@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
 def test_get_contents(wallet: Wallet, posts):
-    for post_kwargs in posts:
-        res = wallet.post_comment(**post_kwargs)
-        validate_response(res, wallet.post_comment.__name__)
+    for post in posts:
+        wallet.post_comment(**post)
 
     response = wallet.get_contents([
         {"author": p["author"], "permlink": p["permlink"]}
@@ -80,3 +92,14 @@ def test_get_contents(wallet: Wallet, posts):
     validate_response(response, wallet.get_contents.__name__)
 
     assert len(response) == len(only_posts), "Should be returned all created posts and comments"
+
+
+@pytest.mark.parametrize('posts', [post_with_multilvl_comments])
+def test_get_comments(wallet: Wallet, posts):
+    for post in posts:
+        wallet.post_comment(**post)
+
+    for i in range(1, len(posts)):
+        comments = wallet.get_comments(posts[i - 1]["author"], posts[i - 1]["permlink"], i)
+        validate_response(comments, wallet.get_comments.__name__)
+        assert len(comments) == 1, "Should be returned single comment"
