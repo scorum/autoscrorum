@@ -4,9 +4,12 @@ from graphenebase.amount import Amount
 from src.utils import to_date, date_to_str
 from src.wallet import Wallet
 from tests.common import (
-    DEFAULT_WITNESS, expect, assert_expectations, apply_hardfork, validate_response, validate_error_response
+    expect, assert_expectations, apply_hardfork, validate_response, validate_error_response
 )
-from tests.data import post_with_multilvl_comments, initdelegate_post, bob_comment_lv1, alice_comment_lv2
+from tests.data import (
+    only_posts, post_with_multilvl_comments, initdelegate_post, bob_comment_lv1, alice_comment_lv2,
+    alice_post, bob_post
+)
 
 
 def test_validate_get_content(wallet: Wallet):
@@ -54,49 +57,35 @@ def test_validate_get_content(wallet: Wallet):
     validate_content(comment_level_2, alice_comment_lv2, comment_level_1)
 
 
-@pytest.mark.parametrize("account", [DEFAULT_WITNESS, "alice", "bob"])
-def test_vote_operation(wallet: Wallet, account):
-    post_kwargs = {'author': account,
-                   'permlink': 'initdelegate-post-1',
-                   'parent_author': '',
-                   'parent_permlink': 'football',
-                   'title': 'initdelegate post title',
-                   'body': 'initdelegate post body',
-                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
-    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
+@pytest.mark.parametrize("post", only_posts)
+def test_vote_operation(wallet: Wallet, post):
+    account = post["author"]
+    validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
 
-    validate_response(wallet.vote(account, account, "initdelegate-post-1"), wallet.vote.__name__)
-    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=-100), wallet.vote.__name__)
+    for weight in [100, -100]:
+        validate_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
-    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=1000), wallet.vote.__name__)
-    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=-1000), wallet.vote.__name__)
+    for weight in [1000, -1000]:
+        validate_error_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
 
-@pytest.mark.parametrize("account", [DEFAULT_WITNESS, "alice", "bob"])
-def test_vote_operation_2hf(wallet: Wallet, account):
+@pytest.mark.parametrize("post", only_posts)
+def test_vote_operation_2hf(wallet: Wallet, post):
     apply_hardfork(wallet, 2)
+    account = post["author"]
+    validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
 
-    post_kwargs = {'author': account,
-                   'permlink': 'initdelegate-post-1',
-                   'parent_author': '',
-                   'parent_permlink': 'football',
-                   'title': 'initdelegate post title',
-                   'body': 'initdelegate post body',
-                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
-    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
+    for weight in [100, -100, -1000, 10000]:
+        validate_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
-    validate_response(wallet.vote(account, account, "initdelegate-post-1"), wallet.vote.__name__)
-    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=-100), wallet.vote.__name__)
-    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=-1000), wallet.vote.__name__)
-    validate_response(wallet.vote(account, account, "initdelegate-post-1", weight=10000), wallet.vote.__name__)
-
-    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=11111), wallet.vote.__name__)
-    validate_error_response(wallet.vote(account, account, "initdelegate-post-1", weight=-10001), wallet.vote.__name__)
+    for weight in [11111, -10001]:
+        validate_error_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
 
 @pytest.mark.skip_long_term
-@pytest.mark.parametrize("account", ["alice", "bob"])  # not witness -> we could check balance change
-def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, account):
+@pytest.mark.parametrize("post", [alice_post, bob_post])  # not witness -> we could check balance change
+def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, post):
+    account = post["author"]
 
     def check_reward_operation(start, stop):
         rewards = []
@@ -112,14 +101,7 @@ def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, account):
 
     apply_hardfork(wallet, 2)
 
-    post_kwargs = {'author': account,
-                   'permlink': 'initdelegate-post-1',
-                   'parent_author': '',
-                   'parent_permlink': 'football',
-                   'title': 'initdelegate post title',
-                   'body': 'initdelegate post body',
-                   'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'}
-    validate_response(wallet.post_comment(**post_kwargs), wallet.post_comment.__name__)
+    validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
     validate_response(wallet.vote(account, account, "initdelegate-post-1"), wallet.vote.__name__)
 
     account_before = wallet.get_account(account)
