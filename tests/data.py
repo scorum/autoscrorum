@@ -7,7 +7,7 @@ alice_post = {
     'parent_permlink': 'football',
     'title': 'alice football title',
     'body': 'alice football body',
-    'json_metadata': '{"tags":["football"]}'
+    'json_metadata': '{"tags":["football", "sport", "test"]}'
 }
 
 bob_post = {
@@ -17,7 +17,7 @@ bob_post = {
     'parent_permlink': 'hockey',
     'title': 'bob hockey title',
     'body': 'bob hockey body',
-    'json_metadata': '{"tags":["hockey"]}'
+    'json_metadata': '{"tags":["hockey", "sport", "test"]}'
 }
 
 initdelegate_post = {
@@ -27,7 +27,7 @@ initdelegate_post = {
     'parent_permlink': 'football',
     'title': 'initdelegate post title',
     'body': 'initdelegate post body',
-    'json_metadata': '{"tags":["first_tag", "football", "initdelegate_posts"]}'
+    'json_metadata': '{"tags":["first_tag", "football", "sport", "initdelegate_posts", "test"]}'
 }
 
 only_posts = [alice_post, bob_post, initdelegate_post]

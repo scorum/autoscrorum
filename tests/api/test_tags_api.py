@@ -1,6 +1,7 @@
 import time
 
 import pytest
+import json
 
 from src.node import Node
 from src.wallet import Wallet
@@ -42,6 +43,29 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
     # check that returned latest created post
     # as id increments after creation, so latest post should have higher id num
     assert posts[0]["id"] > posts[1]["id"], "Posts were not created in correct order"
+
+
+@pytest.mark.parametrize(
+    'by_tags,exclude_tags,expected_cnt',
+    [
+        (["sport"], ["hockey"], 2), (["sport"], ["football"], 1), (["test"], ["sport"], 0),
+        (["sport"], ["hockey", "first_tag"], 1), (["football"], ["sport"], 0)
+    ]
+)
+def test_get_discussions_by_created_exclude_tags(wallet: Wallet, by_tags, exclude_tags, expected_cnt):
+    for post in only_posts:
+        wallet.post_comment(**post)
+
+    posts = wallet.get_discussions_by(
+        "created", **{
+            "tags": by_tags, "limit": 100, "tags_logical_and": False, "exclude_tags": exclude_tags
+        }
+    )
+    validate_response(posts, wallet.get_discussions_by.__name__)
+    assert len(posts) == expected_cnt
+    for post in posts:
+        tags = set(json.loads(post["json_metadata"])["tags"])
+        assert not tags.intersection(set(exclude_tags))
 
 
 @pytest.mark.skip_long_term
