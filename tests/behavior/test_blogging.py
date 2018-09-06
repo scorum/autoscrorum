@@ -6,7 +6,7 @@ from src.wallet import Wallet
 from tests.common import apply_hardfork, validate_response, validate_error_response
 from tests.data import (
     only_posts, post_with_multilvl_comments, initdelegate_post, bob_comment_lv1, alice_comment_lv2,
-    alice_post, bob_post
+    alice_post, bob_post, DEFAULT_WITNESS
 )
 
 
@@ -143,14 +143,14 @@ def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, post):
     check_reward_operation(last_block + 1, last_block + blocks_to_wait)
 
 
-@pytest.mark.parametrize("post", [alice_post, bob_post])  # not witness -> we could check balance change
-def test_active_sp_holder_reward_legacy_single_acc(wallet: Wallet, post):
-    account = post["author"]
-
+@pytest.mark.parametrize("post", only_posts)
+@pytest.mark.parametrize("accounts", [[DEFAULT_WITNESS], ["bob", "alice"], [DEFAULT_WITNESS, "alice", "bob"]])
+def test_active_sp_holder_reward_legacy(wallet: Wallet, post, accounts):
     op_name = "active_sp_holders_reward_legacy"
 
     validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
-    validate_response(wallet.vote(account, account, post["permlink"]), wallet.vote.__name__)
+    for acc in accounts:
+        validate_response(wallet.vote(acc, post["author"], post["permlink"]), wallet.vote.__name__)
 
     last_block = wallet.get_dynamic_global_properties()["head_block_number"]
 
@@ -159,5 +159,6 @@ def test_active_sp_holder_reward_legacy_single_acc(wallet: Wallet, post):
         wallet.get_block(i, wait_for_block=True)
         ops = wallet.get_ops_in_block(i)
         rewards = [data["op"][1]["rewarded"] for _, data in ops if data["op"][0] == op_name][0]
-        assert len(rewards) == 1, "Should be provided single '%s' operation." % op_name
-        assert rewards[0][0] == account, "Reward should be payed to specified user."
+        assert len(rewards) == len(accounts), "Was provided unexpected amount of '%s' operations." % op_name
+        for acc, _ in rewards:
+            assert acc in accounts, "Provided payment to unexpected account: '%s'" % acc
