@@ -123,8 +123,9 @@ def config(default_config, genesis):
     default_config['enable-stale-production'] = 'true'
     default_config['witness'] = '"{acc_name}"'.format(acc_name=witness.name)
     default_config['private-key'] = witness.get_signing_private()
-    default_config['public-api'] += ' tags_api node_monitoring_api debug_node_api devcommittee_history_api'
+    default_config['public-api'] += ' tags_api debug_node_api devcommittee_history_api'
     default_config["enable-plugin"] += ' witness tags debug_node'
+    default_config.pop('history-blacklist-ops', no_exception=True)
     return default_config
 
 

@@ -33,6 +33,14 @@ class Config(object):
     def get(self, key, default=None):
         return self.__getitem__(key) if self.__contains__(key) else default
 
+    def pop(self, key, no_exception=False):
+        try:
+            return self.params.pop(key)
+        except KeyError as e:
+            if no_exception:
+                return
+            raise e
+
     def dump(self):
         return '\n'.join([
             "{key} = {value}".format(key=key, value=value)
