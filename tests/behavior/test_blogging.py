@@ -3,14 +3,12 @@ import pytest
 from graphenebase.amount import Amount
 from src.utils import to_date, date_to_str
 from src.wallet import Wallet
-from tests.common import apply_hardfork, validate_response, validate_error_response
-from tests.data import (
-    only_posts, post_with_multilvl_comments, initdelegate_post, bob_comment_lv1, alice_comment_lv2,
-    alice_post, bob_post, DEFAULT_WITNESS
-)
+from tests.common import apply_hardfork, validate_response, validate_error_response, DEFAULT_WITNESS
 
 
-def test_validate_get_content(wallet: Wallet):
+def test_validate_get_content(
+        wallet: Wallet, post_with_multilvl_comments, initdelegate_post, bob_comment_lv1, alice_comment_lv2
+):
     for post in post_with_multilvl_comments:
         validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
 
@@ -55,7 +53,6 @@ def test_validate_get_content(wallet: Wallet):
     validate_content(comment_level_2, alice_comment_lv2, comment_level_1)
 
 
-@pytest.mark.parametrize("post", only_posts)
 def test_vote_operation(wallet: Wallet, post):
     account = post["author"]
     validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
@@ -67,7 +64,6 @@ def test_vote_operation(wallet: Wallet, post):
         validate_error_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
 
-@pytest.mark.parametrize("post", only_posts)
 def test_vote_operation_2hf(wallet: Wallet, post):
     apply_hardfork(wallet, 2)
     account = post["author"]
@@ -81,8 +77,8 @@ def test_vote_operation_2hf(wallet: Wallet, post):
 
 
 @pytest.mark.skip_long_term
-@pytest.mark.parametrize("post", [alice_post, bob_post])  # not witness -> we could check balance change
-def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, post):
+def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, not_witness_post):
+    post = not_witness_post
     account = post["author"]
 
     def check_reward_operation(start, stop):
@@ -143,7 +139,6 @@ def test_active_sp_holder_reward_single_acc_2hf(wallet: Wallet, post):
     check_reward_operation(last_block + 1, last_block + blocks_to_wait)
 
 
-@pytest.mark.parametrize("post", only_posts)
 @pytest.mark.parametrize("accounts", [[DEFAULT_WITNESS], ["bob", "alice"], [DEFAULT_WITNESS, "alice", "bob"]])
 def test_active_sp_holder_reward_legacy(wallet: Wallet, post, accounts):
     op_name = "active_sp_holders_reward_legacy"

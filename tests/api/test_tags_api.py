@@ -6,12 +6,9 @@ import json
 from src.node import Node
 from src.wallet import Wallet
 from tests.common import parallel_create_posts, DEFAULT_WITNESS, validate_response
-from tests.data import (
-    alice_post, bob_post, initdelegate_post, only_posts, post_with_comments, post_with_multilvl_comments
-)
 
 
-def test_get_discussions_by_created(wallet: Wallet):
+def test_get_discussions_by_created(wallet: Wallet, alice_post, bob_post):
     validate_response(wallet.post_comment(**alice_post), wallet.post_comment.__name__)
     validate_response(wallet.post_comment(**bob_post), wallet.post_comment.__name__)
 
@@ -27,7 +24,7 @@ def test_get_discussions_by_created(wallet: Wallet):
         "Posts were not created in correct order"
 
 
-def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
+def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node, alice_post, bob_post):
     posts = [alice_post, bob_post]
     wallet.get_block(2, wait_for_block=True)
     # ugly workaround to create posts within same block
@@ -52,7 +49,7 @@ def test_get_discussions_by_created_same_block(wallet: Wallet, node: Node):
         (["sport"], ["hockey", "first_tag"], 1), (["football"], ["sport"], 0)
     ]
 )
-def test_get_discussions_by_created_exclude_tags(wallet: Wallet, by_tags, exclude_tags, expected_cnt):
+def test_get_discussions_by_created_exclude_tags(wallet: Wallet, by_tags, exclude_tags, expected_cnt, only_posts):
     for post in only_posts:
         wallet.post_comment(**post)
 
@@ -69,7 +66,7 @@ def test_get_discussions_by_created_exclude_tags(wallet: Wallet, by_tags, exclud
 
 
 @pytest.mark.skip_long_term
-def test_get_discussions_by_author_order(wallet: Wallet):
+def test_get_discussions_by_author_order(wallet: Wallet, initdelegate_post):
     permlinks = ["initdelegate-post-%d" % i for i in range(1, 5)]
 
     post_creation_interval = int(int(wallet.get_config()["SCORUM_MIN_ROOT_COMMENT_INTERVAL"]) / 1000000)
@@ -91,20 +88,17 @@ def test_get_discussions_by_author_order(wallet: Wallet):
             "Broken posts order, Post %d should be on %d position." % (current, opposite)
 
 
-@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
 def test_post_comment(wallet: Wallet, posts):
     for post in posts:
         validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
 
 
-@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
 def test_get_content(wallet: Wallet, posts):
     for post in posts:
         wallet.post_comment(**post)
         validate_response(wallet.get_content(post['author'], post['permlink']), wallet.get_content.__name__)
 
 
-@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
 def test_get_contents(wallet: Wallet, posts):
     for post in posts:
         wallet.post_comment(**post)
@@ -116,11 +110,11 @@ def test_get_contents(wallet: Wallet, posts):
 
     validate_response(response, wallet.get_contents.__name__)
 
-    assert len(response) == len(only_posts), "Should be returned all created posts and comments"
+    assert len(response) == len(posts), "Should be returned all created posts and comments"
 
 
-@pytest.mark.parametrize('posts', [post_with_multilvl_comments])
-def test_get_comments(wallet: Wallet, posts):
+def test_get_comments(wallet: Wallet, post_with_multilvl_comments):
+    posts = post_with_multilvl_comments  # ugly workaround
     for post in posts:
         wallet.post_comment(**post)
 
@@ -131,7 +125,7 @@ def test_get_comments(wallet: Wallet, posts):
 
 
 @pytest.mark.skip("Method returns cashouted posts. Cashout for testnet is 2 hours")
-def test_get_posts_comments_by_author(wallet: Wallet):
+def test_get_posts_comments_by_author(wallet: Wallet, initdelegate_post):
     # REQUIREMENTS: return an array of posts and comments belonging to the given author that have reached cashout time.
     # This method should allow for pagination. The query should include field that will filter posts/comments that
     # have 0 SP rewards. The posts/comments should be sorted by last_payout field in the descending order.
@@ -152,7 +146,6 @@ def test_get_posts_comments_by_author(wallet: Wallet):
     assert len(posts) == len(permlinks)
 
 
-@pytest.mark.parametrize('posts', [only_posts, post_with_comments, post_with_multilvl_comments])
 def test_get_parents(wallet: Wallet, posts):
     for post in posts:
         wallet.post_comment(**post)
