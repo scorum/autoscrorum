@@ -120,7 +120,7 @@ def test_get_comments(wallet: Wallet, post_with_multilvl_comments):
 
 
 @pytest.mark.skip("Method returns cashouted posts. Cashout for testnet is 2 hours")
-def test_get_posts_comments_by_author(wallet: Wallet, initdelegate_post):
+def test_get_paid_posts_comments_by_author(wallet: Wallet, initdelegate_post):
     # REQUIREMENTS: return an array of posts and comments belonging to the given author that have reached cashout time.
     # This method should allow for pagination. The query should include field that will filter posts/comments that
     # have 0 SP rewards. The posts/comments should be sorted by last_payout field in the descending order.
@@ -136,7 +136,7 @@ def test_get_posts_comments_by_author(wallet: Wallet, initdelegate_post):
         if permlink != permlinks[-1]:
             time.sleep(post_creation_interval)  # 5 min for each post on prod
 
-    posts = wallet.get_posts_comments_by_author(**{"start_author": DEFAULT_WITNESS, "limit": len(permlinks)})
+    posts = wallet.get_paid_posts_comments_by_author(**{"start_author": DEFAULT_WITNESS, "limit": len(permlinks)})
 
     assert len(posts) == len(permlinks)
 

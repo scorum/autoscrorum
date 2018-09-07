@@ -416,9 +416,9 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_posts_comments_by_author(self, **kwargs):
+    def get_paid_posts_comments_by_author(self, **kwargs):
         response = self.rpc.send(
-            self.json_rpc_body('call', 'tags_api', 'get_posts_comments_by_author', [kwargs]))
+            self.json_rpc_body('call', 'tags_api', 'get_paid_posts_comments_by_author', [kwargs]))
         try:
             return response['result']
         except KeyError:
