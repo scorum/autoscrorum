@@ -88,11 +88,6 @@ def test_get_discussions_by_author_order(wallet: Wallet, initdelegate_post):
             "Broken posts order, Post %d should be on %d position." % (current, opposite)
 
 
-def test_post_comment(wallet: Wallet, posts):
-    for post in posts:
-        validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
-
-
 def test_get_content(wallet: Wallet, posts):
     for post in posts:
         wallet.post_comment(**post)

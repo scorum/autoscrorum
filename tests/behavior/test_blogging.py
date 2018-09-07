@@ -6,6 +6,11 @@ from src.wallet import Wallet
 from tests.common import apply_hardfork, validate_response, validate_error_response, DEFAULT_WITNESS
 
 
+def test_post_comment(wallet: Wallet, posts):
+    for post in posts:
+        validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
+
+
 def test_validate_get_content(
         wallet: Wallet, post_with_multilvl_comments, initdelegate_post, bob_comment_lv1, alice_comment_lv2
 ):
@@ -53,27 +58,34 @@ def test_validate_get_content(
     validate_content(comment_level_2, alice_comment_lv2, comment_level_1)
 
 
-def test_vote_operation(wallet: Wallet, post):
+@pytest.mark.parametrize('weight', [100, -100])
+def test_vote_operation_valid(wallet: Wallet, post, weight):
     account = post["author"]
     validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
-
-    for weight in [100, -100]:
-        validate_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
-
-    for weight in [1000, -1000]:
-        validate_error_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
+    validate_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
 
-def test_vote_operation_2hf(wallet: Wallet, post):
+@pytest.mark.parametrize('weight', [10000, -1000, 101, -731])
+def test_vote_operation_invalid(wallet: Wallet, post, weight):
+    account = post["author"]
+    validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
+    validate_error_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
+
+
+@pytest.mark.parametrize('weight', [50, 7251, -100, 10000])
+def test_vote_operation_2hf_valid(wallet: Wallet, post, weight):
     apply_hardfork(wallet, 2)
     account = post["author"]
     validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
+    validate_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
-    for weight in [100, -100, -1000, 10000]:
-        validate_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
-    for weight in [11111, -10001]:
-        validate_error_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
+@pytest.mark.parametrize('weight', [11111, -10001, 5, -15])
+def test_vote_operation_2hf_invalid(wallet: Wallet, post, weight):
+    apply_hardfork(wallet, 2)
+    account = post["author"]
+    validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
+    validate_error_response(wallet.vote(account, account, post["permlink"], weight=weight), wallet.vote.__name__)
 
 
 @pytest.mark.skip_long_term
