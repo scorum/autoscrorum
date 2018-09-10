@@ -375,8 +375,19 @@ class Wallet(object):
         signing_key = self.account(author).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def get_content(self, author, permlink):
+    def get_content(self, author, permlink=""):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_content', [author, permlink]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_contents(self, content_queries: list):
+        """
+        :param list(dict) content_queries: List of author/permlink pairs
+        :return:
+        """
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_contents', [content_queries]))
         try:
             return response['result']
         except KeyError:
@@ -400,6 +411,25 @@ class Wallet(object):
     def get_discussions_by(self, by_what, **kwargs):
         response = self.rpc.send(
             self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_paid_posts_comments_by_author(self, **kwargs):
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'tags_api', 'get_paid_posts_comments_by_author', [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_parents(self, **content_query):
+        """
+        :param dict content_query: author/permlink pair
+        :return:
+        """
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_parents', [content_query]))
         try:
             return response['result']
         except KeyError:

@@ -126,5 +126,6 @@ def apply_hardfork(wallet: Wallet, hf_id: int):
     assert hf_id > 0
     for i in range(1, hf_id + 1):
         wallet.get_block(i + 1, wait_for_block=True)
-        assert wallet.debug_has_hardfork(i - 1)
         wallet.debug_set_hardfork(i)
+        wallet.get_block(i + 2, wait_for_block=True)
+        assert wallet.debug_has_hardfork(i)
