@@ -5,6 +5,10 @@ from tests.common import DEFAULT_WITNESS, validate_response
 # TODO: change check of str type to graphenebase.amount.Amount type for any balance, budget, fund, etc. fields
 
 
+def test_get_block(wallet: Wallet):
+    validate_response(wallet.get_block(1, wait_for_block=True), wallet.get_block.__name__)
+
+
 def test_get_account(wallet: Wallet):
     response = wallet.get_account(DEFAULT_WITNESS)
     validate_response(response, wallet.get_account.__name__, [

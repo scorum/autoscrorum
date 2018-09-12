@@ -54,7 +54,7 @@ class DockerController:
             self.set_image(image)
         kwargs = {
             "image": self._image,
-            "detach": True, "auto_remove": True, "environment": {'NODE': 'full'},
+            "detach": True, "auto_remove": True, "environment": {'NODE': 'rpc'},
             "volumes": {node.work_dir: {'bind': CONFIG_DIR, 'mode': 'rw'}}
         }
         timer = 1

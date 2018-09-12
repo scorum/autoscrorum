@@ -15,7 +15,7 @@ def test_get_discussions_by_created(wallet: Wallet, alice_post, bob_post):
     posts = wallet.get_discussions_by(
         "created", **{"tags": ["hockey", "football"], "limit": 100, "tags_logical_and": False}
     )
-    validate_response(posts, wallet.get_discussions_by.__name__)
+    validate_response(posts, wallet.get_discussions_by.__name__ + "_created")
     assert len(posts) == 2
     # check that returned latest created post
     assert posts[0]["permlink"] == "bob-post" and posts[0]["author"] == "bob", \
