@@ -5,7 +5,7 @@ from graphenebase.types import Id, Uint16, OrderedDict
 from graphenebase.objects import GrapheneObject
 
 
-markets = [
+MARKETS = [
     "result_home_market",
     "result_draw_market",
     "result_away_market",
@@ -28,8 +28,8 @@ class Market:
     @staticmethod
     def get_market_id(name: str):
         try:
-            return markets.index(name)
-        except ValueError as e:
+            return MARKETS.index(name)
+        except ValueError:
             raise Exception("no such market %s" % name)
 
     @staticmethod
