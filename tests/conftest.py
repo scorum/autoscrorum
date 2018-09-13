@@ -1,7 +1,5 @@
 from os.path import join, isfile
 
-import pytest
-
 from src.config import Config
 from src.docker_controller import DEFAULT_IMAGE_NAME
 from src.docker_controller import DockerController
@@ -10,7 +8,8 @@ from src.node import Node
 from src.node import TEST_TEMP_DIR
 from src.utils import which, remove_dir_tree, create_dir
 from src.wallet import Wallet
-from tests.common import check_file_creation, DEFAULT_WITNESS
+from tests.common import check_file_creation
+from tests.data import *
 
 SCORUMD_BIN_PATH = which('scorumd')
 
@@ -123,12 +122,19 @@ def config(default_config, genesis):
     default_config['enable-stale-production'] = 'true'
     default_config['witness'] = '"{acc_name}"'.format(acc_name=witness.name)
     default_config['private-key'] = witness.get_signing_private()
+
+
     default_config['public-api'] += ' tags_api ' \
                                     'node_monitoring_api ' \
                                     'debug_node_api ' \
                                     'devcommittee_history_api ' \
                                     'advertising_api '
+
+
+
+    default_config['public-api'] += ' tags_api debug_node_api devcommittee_history_api'
     default_config["enable-plugin"] += ' witness tags debug_node'
+    default_config.pop('history-blacklist-ops')
     return default_config
 
 

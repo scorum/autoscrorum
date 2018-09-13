@@ -14,6 +14,8 @@ from .chains import default_prefix
 from .objects import Operation
 from .operationids import operations
 
+from .betting import Game, Market
+
 asset_precision = {
     "SCR": 9,
     "SP": 9,
@@ -87,7 +89,7 @@ class Permission(GrapheneObject):
 class Demooepration(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
-                self.data = args[0].data
+            self.data = args[0].data
         else:
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
@@ -393,4 +395,24 @@ class DelegateScorumPower(GrapheneObject):
                     ('delegator', String(kwargs["delegator"])),
                     ('delegatee', String(kwargs["delegatee"])),
                     ('scorumpower', Amount(kwargs["scorumpower"])),
+                ]))
+
+
+class CreateGame(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+
+            markets = [Market(m) for m in kwargs['markets']]
+
+            super().__init__(
+                OrderedDict([
+                    ('moderator', String(kwargs['moderator'])),
+                    ('name', String(kwargs["name"])),
+                    ('start', PointInTime(kwargs['start'])),
+                    ('game', Game(kwargs['game'])),
+                    ('markets', Array(markets))
                 ]))

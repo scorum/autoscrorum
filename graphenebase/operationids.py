@@ -35,6 +35,13 @@ operations = {
     'close_budget_by_advertising_moderator':      33,
     'update_budget':                              34,
 
+    # betting
+    "create_game": 48,
+    "cancel_game": 49,
+    "update_game_markets": 50,
+    "update_game_start_time": 51,
+    "post_game_results": 52,
+
     # virtual operations
     'author_reward':                              35,
     'comment_benefactor_reward':                  36,
@@ -56,6 +63,7 @@ operations = {
     'devpool_to_devpool_vesting_withdraw':        52,
     'proposal_virtual_operation':                 53,
 
+    # proposal operations
     'registration_committee_add_member':          0,
     'registration_committee_exclude_member':      1,
     'registration_committee_change_quorum':       2,
