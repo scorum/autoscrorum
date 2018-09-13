@@ -1,8 +1,8 @@
-import os
-import tempfile
 from hashlib import sha256
+from os.path import join
 
-from .config import Config
+from src.config import Config
+from src.utils import create_temp_dir, remove_file
 
 TEST_TEMP_DIR = '/tmp/autoscorum'
 SCORUM_BIN = 'scorumd'
@@ -53,7 +53,7 @@ class Node(object):
             if (not clean_logs and file == self.BLOCK_LOG) \
                     or (not remove_index and file == self.BLOCK_LOG_INDEX):
                 continue
-            os.remove(os.path.join(self.work_dir, 'blockchain', file))
+            remove_file(join(self.work_dir, 'blockchain', file))
 
     def _setup(self):
         self.chain_params = {
@@ -65,18 +65,13 @@ class Node(object):
             self.config = Config()
             self.config['witness'] = '"dummy"'
 
-        self.work_dir = tempfile.mkdtemp(
-            prefix=self.config['witness'][1:-1], dir=TEST_TEMP_DIR
-        )
+        self.work_dir = create_temp_dir(TEST_TEMP_DIR, self.config['witness'][1:-1])
 
-        self.genesis_path = os.path.join(self.work_dir, self.GENESIS_FILE)
-        self.config_path = os.path.join(self.work_dir, self.CONFIG_FILE)
-        self.logs_path = os.path.join(self.work_dir, 'logs', self.NODE_LOG)
+        self.genesis_path = join(self.work_dir, self.GENESIS_FILE)
+        self.config_path = join(self.work_dir, self.CONFIG_FILE)
+        self.logs_path = join(self.work_dir, 'logs', self.NODE_LOG)
 
     def generate_configs(self):
-        if not os.path.exists(self.work_dir):
-            os.makedirs(self.work_dir)
-
         if self.genesis is not None:
             with open(self.genesis_path, 'w') as gfd:  # genesis file descriptor
                 g = self.genesis.dump()

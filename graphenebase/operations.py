@@ -6,13 +6,15 @@ from .types import (
     Varint32, Int64, String, Bytes, Void,
     Array, PointInTime, Signature, Bool,
     Set, Fixed_array, Optional, Static_variant,
-    Map, Id, VoteId, ObjectId, BudgetType,
+    Map, Id, VoteId, ObjectId, BudgetType
 )
 from .objects import GrapheneObject, isArgsThisClass
 from .account import PublicKey
 from .chains import default_prefix
 from .objects import Operation
 from .operationids import operations
+
+from .betting import Game, Market
 
 asset_precision = {
     "SCR": 9,
@@ -87,7 +89,7 @@ class Permission(GrapheneObject):
 class Demooepration(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
-                self.data = args[0].data
+            self.data = args[0].data
         else:
             if len(args) == 1 and len(kwargs) == 0:
                 kwargs = args[0]
@@ -144,6 +146,20 @@ class TransferToScorumpower(GrapheneObject):
                     ('from', String(kwargs["from"])),
                     ('to', String(kwargs["to"])),
                     ('amount', Amount(kwargs["amount"])),
+                ]))
+
+
+class WithdrawScorumpower(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('account', String(kwargs['account'])),
+                    ('scorumpower', Amount(kwargs['scorumpower']))
                 ]))
 
 
@@ -226,7 +242,34 @@ class ProposalCreate(GrapheneObject):
                 OrderedDict([
                     ('creator', String(kwargs['creator'])),
                     ('lifetime_sec', Uint32(kwargs['lifetime_sec'])),
-                    ('operation', kwargs['operation'])
+                    ('operation', Operation(kwargs['operation']))
+                ]))
+
+
+class ProposalVote(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('voting_account', String(kwargs['voting_account'])),
+                    ('proposal_id', Uint64(kwargs['proposal_id']))
+                ]))
+
+
+class DevelopmentCommitteeWithdrawVesting(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('vesting_shares', Amount(kwargs['amount']))
                 ]))
 
 
@@ -321,4 +364,24 @@ class DelegateScorumPower(GrapheneObject):
                     ('delegator', String(kwargs["delegator"])),
                     ('delegatee', String(kwargs["delegatee"])),
                     ('scorumpower', Amount(kwargs["scorumpower"])),
+                ]))
+
+
+class CreateGame(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+
+            markets = [Market(m) for m in kwargs['markets']]
+
+            super().__init__(
+                OrderedDict([
+                    ('moderator', String(kwargs['moderator'])),
+                    ('name', String(kwargs["name"])),
+                    ('start', PointInTime(kwargs['start'])),
+                    ('game', Game(kwargs['game'])),
+                    ('markets', Array(markets))
                 ]))

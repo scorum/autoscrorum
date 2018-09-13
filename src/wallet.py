@@ -3,12 +3,12 @@ import json
 import time
 from binascii import unhexlify
 
-import autoscorum.operations_fabric as operations
+import src.operations_fabric as operations
 from graphenebase.amount import Amount
 from graphenebase.signedtransactions import SignedTransaction
-from .account import Account
-from .rpc_client import RpcClient
-from .utils import fmt_time_from_now
+from src.account import Account
+from src.rpc_client import RpcClient
+from src.utils import fmt_time_from_now
 
 
 class Wallet(object):
@@ -89,14 +89,31 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def list_accounts(self, limit: int=100):
-        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', ["", limit]))
+    def list_accounts(self, limit: int = 100, start_name: str = ""):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', [start_name, limit]))
         try:
             return response['result']
         except KeyError:
             return response
 
-    def list_buddget_owners(self, limit: int=100, budget_type="post"):
+    def list_all_accounts(self):
+        limit = 100
+        names = []
+        last = ""
+        while True:
+            accs = self.list_accounts(limit, last)
+
+            if len(names) == 0:
+                names += accs
+            else:
+                names += accs[1:]
+
+            if len(accs) < limit or names[-1] == last:
+                break
+            last = accs[-1]
+        return names
+
+    def list_buddget_owners(self, limit: int = 100, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body(
             'call', 'database_api', 'lookup_budget_owners', [budget_type, "", limit])
         )
@@ -112,7 +129,7 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def list_witnesses(self, limit: int=100):
+    def list_witnesses(self, limit: int = 100):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_witness_accounts', ["", limit]))
         try:
             return response['result']
@@ -129,14 +146,34 @@ class Wallet(object):
             return response
 
     def get_account_transfers(self, name: str, _from="sp", to="scr", starts=-1, limit=100):
-        transfers = ["sp", "scr"]
-        assert _from in transfers
-        assert to in transfers
-        assert _from != "sp" and to != "sp", "Not supported sp_to_sp transfers."
+        transfer_types = ["sp", "scr"]
+        if _from not in transfer_types and to not in transfer_types or(_from == "sp" and to == "sp"):
+            raise ValueError("Supported only next types of transfers: scr-scr, scr-sp, sp-scr.")
         response = self.rpc.send(self.json_rpc_body(
             'call', 'account_history_api',
             'get_account_%s_to_%s_transfers' % (_from, to),
             [name, starts, limit]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_development_committee(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_development_committee', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_devcommittee_transfers(self, _from="sp", to="scr", starts=-1, limit=100):
+        transfer_types = ["sp", "scr"]
+        if _from not in transfer_types or to != "scr":
+            raise ValueError("History is allowed only for scr-scr and sp-scr devcommittee transfers.")
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'devcommittee_history_api',
+            'get_%s_to_%s_transfers' % (_from, to),
+            [starts, limit]
         ))
         try:
             return response['result']
@@ -156,6 +193,7 @@ class Wallet(object):
     def get_block(self, num: int, **kwargs):
         def request():
             return self.rpc.send(self.json_rpc_body('get_block', num, api='blockchain_history_api'))
+
         wait = kwargs.get('wait_for_block', False)
 
         response = request()
@@ -165,7 +203,7 @@ class Wallet(object):
             return response
         if wait and not block:
             timer = 1
-            time_to_wait = kwargs.get('time_to_wait', 10)*10
+            time_to_wait = kwargs.get('time_to_wait', 10) * 10
             while timer < time_to_wait and not block:
                 time.sleep(0.1)
                 timer += 1
@@ -187,12 +225,15 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_account(self, name: str):
-        response = self.rpc.send(self.json_rpc_body('get_accounts', [name]))
+    def get_accounts(self, names: list):
+        response = self.rpc.send(self.json_rpc_body('get_accounts', names))
         try:
-            return response['result'][0]
+            return response['result']
         except KeyError:
             return response
+
+    def get_account(self, name: str):
+        return self.get_accounts([name])[0]
 
     def get_account_scr_balance(self, name: str):
         return Amount(self.get_account(name)['balance'])
@@ -269,10 +310,28 @@ class Wallet(object):
         signing_key = self.account(_from).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
+    def withdraw(self, account: str, scorumpower: Amount):
+        op = operations.withdraw(account, scorumpower)
+
+        signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def devcommittee_withdraw_vesting(self, account: str, scorumpower: Amount, lifetime=86400):
+        op = operations.devpool_withdraw_vesting(account, scorumpower, lifetime)
+
+        signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
         op = operations.transfer_to_scorumpower_operation(_from, to, amount)
         signing_key = self.account(_from).get_active_private()
 
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def proposal_vote(self, account: str, proposal_id: int):
+        op = operations.proposal_vote_operation(account, proposal_id)
+
+        signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):
@@ -316,15 +375,27 @@ class Wallet(object):
         signing_key = self.account(author).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def get_content(self, author, permlink):
+    def get_content(self, author, permlink=""):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_content', [author, permlink]))
         try:
             return response['result']
         except KeyError:
             return response
 
+    def get_contents(self, content_queries: list):
+        """
+        :param list(dict) content_queries: List of author/permlink pairs
+        :return:
+        """
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_contents', [content_queries]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def get_comments(self, parent_author, parent_permlink, depth):
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_comments', [parent_author, parent_permlink, str(depth)]))
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'tags_api', 'get_comments', [parent_author, parent_permlink, str(depth)]))
         try:
             return response['result']
         except KeyError:
@@ -338,7 +409,27 @@ class Wallet(object):
             return response
 
     def get_discussions_by(self, by_what, **kwargs):
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_paid_posts_comments_by_author(self, **kwargs):
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'tags_api', 'get_paid_posts_comments_by_author', [kwargs]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_parents(self, **content_query):
+        """
+        :param dict content_query: author/permlink pair
+        :return:
+        """
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_parents', [content_query]))
         try:
             return response['result']
         except KeyError:
@@ -352,13 +443,34 @@ class Wallet(object):
         except KeyError:
             return response
 
+    def get_posts_and_comments(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def debug_has_hardfork(self, hardfork_id):
+        response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_has_hardfork', [hardfork_id]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def debug_set_hardfork(self, hardfork_id):
+        response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_set_hardfork', [hardfork_id]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def create_account(self,
                        creator: str,
                        newname: str,
                        owner: str,
-                       active: str=None,
-                       posting: str=None,
-                       fee: Amount=None,
+                       active: str = None,
+                       posting: str = None,
+                       fee: Amount = None,
                        memo=None,
                        json_meta={},
                        additional_owner_keys=[],
@@ -390,8 +502,8 @@ class Wallet(object):
                                     creator: str,
                                     newname: str,
                                     owner: str,
-                                    active: str=None,
-                                    posting: str=None,
+                                    active: str = None,
+                                    posting: str = None,
                                     memo=None,
                                     json_meta={},
                                     additional_owner_keys=[],
@@ -427,7 +539,8 @@ class Wallet(object):
                                operations=ops)
 
         tx.sign(keys, self.chain_id)
-        response = self.rpc.send(self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()]))
+        response = self.rpc.send(
+            self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()]))
 
         try:
             return response['result']

@@ -46,10 +46,19 @@ class Amount(dict):
             string = ''.join(list_to_insert)
             return string
 
+        negative = False
+        if self.amount < 0:
+            negative = True
+            self["amount"] *= -1
+
         amount_string = str(self.amount)
-        if len(amount_string) < prec:
+        if len(amount_string) <= prec:
             amount_string = insert_zeroes_at_start(amount_string)
-        return add_dot_separator(amount_string)
+        amount_string = add_dot_separator(amount_string)
+        if negative:
+            amount_string = "-" + amount_string
+            self["amount"] *= -1
+        return amount_string
 
     def __str__(self):
         return "{} {}".format(
