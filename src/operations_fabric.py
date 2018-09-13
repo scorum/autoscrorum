@@ -217,3 +217,13 @@ def delegate_scorumpower(delegator, delegatee, scorumpower):
            'delegatee': delegatee,
            'scorumpower': str(scorumpower)}
     )
+
+
+def create_game(moderator, name, game, start, markets):
+    return operations.CreateGame(
+        **{'moderator': moderator,
+           'name': name,
+           'game': game,
+           'start': start,
+           'markets': markets}
+    )
