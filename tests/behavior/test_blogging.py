@@ -6,9 +6,8 @@ from src.wallet import Wallet
 from tests.common import apply_hardfork, validate_response, validate_error_response, DEFAULT_WITNESS
 
 
-def test_post_comment(wallet: Wallet, posts):
-    for post in posts:
-        validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
+def test_post_comment(wallet: Wallet, post):
+    validate_response(wallet.post_comment(**post), wallet.post_comment.__name__)
 
 
 def test_validate_get_content(
