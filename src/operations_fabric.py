@@ -160,14 +160,31 @@ def account_witness_vote_operation(account, witness, approve):
     )
 
 
-def create_budget_operation(owner, json_metadata, balance: Amount, start, deadline, object_type):
+def create_budget_operation(owner, json_metadata, balance: Amount, start, deadline, budget_type):
     return operations.CreateBudget(
         **{'owner': owner,
            'json_metadata': json_metadata,
            'balance': str(balance),
            'start': start,
            'deadline': deadline,
-           'type': object_type}
+           'type': budget_type}
+    )
+
+
+def close_budget_operation(owner, id, budget_type):
+    return operations.CloseBudget(
+        **{'owner': owner,
+           'id': id,
+           'type': budget_type}
+    )
+
+
+def update_budget_operation(budget_type, id, owner, json_metadata):
+    return operations.UpdateBudget(
+        **{'type': budget_type,
+           'id': id,
+           'owner': owner,
+           'json_metadata': json_metadata}
     )
 
 

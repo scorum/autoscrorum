@@ -292,11 +292,30 @@ class Wallet(object):
         ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
         return ref_block_num, ref_block_prefix
 
-    def create_budget(self, owner, balance: Amount, start, deadline, json_metadata="{}", budget_type="post"):
-        op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, budget_type)
+    def create_budget(self, owner, balance, start, deadline, json_metadata="{}", type="post"):
+        op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, type)
 
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def close_budget(self, type, id, owner):
+        op = operations.close_budget_operation(owner, id, type)
+
+        signing_key = self.account(owner).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def update_budget(self, type, budget_id, owner, json_metadata):
+        op = operations.update_budget_operation(type, budget_id, owner, json_metadata)
+
+        signing_key = self.account(owner).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def get_current_winners(self, type='post'):
+        response = self.rpc.send(self.json_rpc_body('call', 'advertising_api', 'get_current_winners', [type]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def delegate_scorumpower(self, delegator, delegatee, scorumpower: Amount):
         op = operations.delegate_scorumpower(delegator, delegatee, scorumpower)
