@@ -197,10 +197,9 @@ def test_update_budget(wallet: Wallet, budget_type):
         'before: {}\n' \
         'after: {}'.format(budget_kwargs, budget)
 
-    print(wallet.get_current_winners(budget_kwargs['type']))
-
 
 def test_get_current_winners(wallet: Wallet):
+    pass
 
 
 
