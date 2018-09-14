@@ -3,7 +3,10 @@ from binascii import hexlify
 from graphenebase.types import BudgetType
 from graphenebase.amount import Amount
 from graphenebase.signedtransactions import SignedTransaction
-from src.operations_fabric import devpool_withdraw_vesting, create_budget_operation
+from src.operations_fabric import (
+    devpool_withdraw_vesting, create_budget_operation, development_committee_empower_advertising_moderator,
+    close_budget_by_advertising_moderator
+)
 
 
 def test_serialize_banner_to_string():
@@ -40,4 +43,20 @@ def test_serialize_devpool_withdraw_vesting_proposal_create_to_byte():
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
 
     result_bin = b'1d0c696e697464656c6567617465805101000600e40b54020000000953500000000000'
+    assert hexlify(bytes(signed_ops.data[0])) == result_bin
+
+
+def test_serialize_development_committee_empower_advertising_moderator_to_byte():
+    op = development_committee_empower_advertising_moderator("initdelegate", "alice", 86400)
+    signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
+
+    result_bin = b'1d0c696e697464656c6567617465805101000805616c696365'
+    assert hexlify(bytes(signed_ops.data[0])) == result_bin
+
+
+def test_serialize_close_budget_by_advertising_moderator_to_byte():
+    op = close_budget_by_advertising_moderator("initdelegate", 1, "post")
+    signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
+
+    result_bin = b'21000000000000000001000000000000000c696e697464656c6567617465'
     assert hexlify(bytes(signed_ops.data[0])) == result_bin

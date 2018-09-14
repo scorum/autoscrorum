@@ -304,6 +304,19 @@ class DevelopmentCommitteeWithdrawVesting(GrapheneObject):
                 ]))
 
 
+class DevelopmentCommitteeEmpowerAdvertisingModerator(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('account', String(kwargs['account']))
+                ]))
+
+
 class WitnessProps(GrapheneObject):
     def __init__(self, *args, **kwargs):
         if isArgsThisClass(self, args):
@@ -415,4 +428,19 @@ class CreateGame(GrapheneObject):
                     ('start', PointInTime(kwargs['start'])),
                     ('game', Game(kwargs['game'])),
                     ('markets', Array(markets))
+                ]))
+
+
+class CloseBudgetByAdvertisingModerator(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('budget_type', BudgetType(kwargs['type'])),
+                    ('budget_id', Int64(kwargs["budget_id"])),
+                    ('moderator', String(kwargs["moderator"]))
                 ]))
