@@ -71,5 +71,6 @@ operations = {
     'development_committee_exclude_member':       4,
     'development_committee_change_quorum':        5,
     'development_committee_withdraw_vesting':     6,
-    'development_committee_transfer':             7
+    'development_committee_transfer':             7,
+    'development_committee_empower_advertising_moderator': 8
 }

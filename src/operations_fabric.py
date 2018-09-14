@@ -244,3 +244,23 @@ def create_game(moderator, name, game, start, markets):
            'start': start,
            'markets': markets}
     )
+
+
+def development_committee_empower_advertising_moderator(initiator, moderator, lifetime_sec):
+    return operations.ProposalCreate(
+        **{
+            "creator": initiator,
+            "lifetime_sec": lifetime_sec,
+            "operation": operations.DevelopmentCommitteeEmpowerAdvertisingModerator(**{"account": moderator})
+        }
+    )
+
+
+def close_budget_by_advertising_moderator(moderator, budget_id, budget_type):
+    return operations.CloseBudgetByAdvertisingModerator(
+        **{
+            "moderator": moderator,
+            "budget_id": budget_id,
+            "type": budget_type
+        }
+    )

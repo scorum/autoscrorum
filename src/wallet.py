@@ -304,6 +304,12 @@ class Wallet(object):
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
+    def close_budget_by_advertising_moderator(self, moderator, budget_id, budget_type="post"):
+        op = operations.close_budget_by_advertising_moderator(moderator, budget_id, budget_type)
+
+        signing_key = self.account(moderator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
     def update_budget(self, type, budget_id, owner, json_metadata):
         op = operations.update_budget_operation(type, budget_id, owner, json_metadata)
 
@@ -339,6 +345,12 @@ class Wallet(object):
         op = operations.devpool_withdraw_vesting(account, scorumpower, lifetime)
 
         signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def development_committee_empower_advertising_moderator(self, initiator: str, moderator: str, lifetime=86400):
+        op = operations.development_committee_empower_advertising_moderator(initiator, moderator, lifetime)
+
+        signing_key = self.account(initiator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
