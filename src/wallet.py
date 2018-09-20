@@ -443,8 +443,8 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_posts_and_comments(self):
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', []))
+    def get_posts_and_comments(self, **discussion_query):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', [discussion_query]))
         try:
             return response['result']
         except KeyError:
