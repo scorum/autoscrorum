@@ -8,7 +8,7 @@ from src.wallet import Wallet
 from tests.common import DEFAULT_WITNESS, validate_response
 
 
-def is_operation_in_block(block, operation_name, operation_kwargs={}):
+def is_operation_in_block(block, operation_name, operation_kwargs):
     for tr in block['transactions']:
         for op in tr['operations']:
             op_name = op[0]
@@ -28,7 +28,7 @@ def find_budget_id(budgets_list, budget_object):
             budget_object['per_block'] = budget['per_block']
 
 
-def update_budget_balance(wallet, budget_object={}):
+def update_budget_balance(wallet, budget_object):
     budgets_list = wallet.get_budgets(budget_object['owner'], budget_object['type'])
     budget_object.pop('balance', None)
 
@@ -274,3 +274,89 @@ def test_budget_impact_on_rewards(wallet: Wallet, genesis: Genesis):
     content_reward_after_budget_open = get_reward_per_block()
     assert content_reward_after_budget_open > content_reward_after_balancer_decrease, \
         'content reward not increased after budget open'
+
+
+def empower_advertising_moderator(wallet, account):
+    validate_response(
+        wallet.development_committee_empower_advertising_moderator(DEFAULT_WITNESS, account),
+        wallet.development_committee_empower_advertising_moderator.__name__
+    )
+
+    proposals = wallet.list_proposals()
+    validate_response(proposals, wallet.list_proposals.__name__)
+    assert len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
+
+    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
+
+
+def update_budget_time(budget, start=0, deadline=30):
+    budget.update({
+        'start': fmt_time_from_now(start),
+        'deadline': fmt_time_from_now(deadline)
+    })
+
+
+@pytest.mark.parametrize('moderator', ['alice', 'bob'])
+def test_close_budget_by_moderator_before_starttime(wallet: Wallet, budget, moderator):
+    update_budget_time(budget, start=30)
+    budget_balance = Amount(budget["balance"])
+    balance_before = wallet.get_account_scr_balance(budget["owner"])
+
+    validate_response(wallet.create_budget(**budget), wallet.create_budget.__name__)
+    update_budget_balance(wallet, budget)  # update budget params / set budget id
+
+    balance_after_create = wallet.get_account_scr_balance(budget["owner"])
+
+    assert balance_before - balance_after_create == budget_balance
+
+    empower_advertising_moderator(wallet, moderator)
+    response = wallet.close_budget_by_advertising_moderator(moderator, budget["id"], budget["type"])
+    validate_response(response, wallet.close_budget_by_advertising_moderator.__name__)
+
+    balance_after_close = wallet.get_account_scr_balance(budget["owner"])
+    assert balance_after_close == balance_after_create + budget_balance
+
+
+@pytest.mark.parametrize('moderator', ['alice', 'bob'])
+def test_close_budget_by_moderator_after_starttime(wallet: Wallet, budget, moderator):
+    update_budget_time(budget)
+    budget_balance = Amount(budget["balance"])
+    balance_before = wallet.get_account_scr_balance(budget["owner"])
+
+    response = wallet.create_budget(**budget)
+    validate_response(response, wallet.create_budget.__name__)
+    create_block = response["block_num"]
+    update_budget_balance(wallet, budget)  # update budget params / set budget id
+    per_block = Amount(budget["per_block"])
+
+    balance_after_create = wallet.get_account_scr_balance(budget["owner"])
+
+    assert balance_before - balance_after_create == budget_balance
+
+    empower_advertising_moderator(wallet, moderator)
+    response = wallet.close_budget_by_advertising_moderator(moderator, budget["id"], budget["type"])
+    validate_response(response, wallet.close_budget_by_advertising_moderator.__name__)
+    close_block = response["block_num"]
+
+    balance_after_close = wallet.get_account_scr_balance(budget["owner"])
+    assert balance_after_close == balance_after_create + budget_balance - per_block * (close_block - create_block)
+
+
+@pytest.mark.parametrize('moderator', ['alice', 'bob'])
+def test_close_budget_by_moderator_post_vs_banner(wallet: Wallet, moderator, post_budget, banner_budget):
+    update_budget_time(post_budget)
+    validate_response(wallet.create_budget(**post_budget), wallet.create_budget.__name__)
+    update_budget_balance(wallet, post_budget)  # update budget params / set budget id
+
+    update_budget_time(banner_budget)
+    validate_response(wallet.create_budget(**banner_budget), wallet.create_budget.__name__)
+    update_budget_balance(wallet, banner_budget)  # update budget params / set budget id
+
+    assert post_budget["id"] == banner_budget["id"]  # both = 0
+
+    empower_advertising_moderator(wallet, moderator)
+    response = wallet.close_budget_by_advertising_moderator(moderator, post_budget["id"], post_budget["type"])
+    validate_response(response, wallet.close_budget_by_advertising_moderator.__name__)
+
+    banner_budgets = wallet.get_budgets(banner_budget['owner'], banner_budget['type'])
+    assert len(banner_budgets) == 1
