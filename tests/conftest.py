@@ -10,7 +10,6 @@ from src.utils import which, remove_dir_tree, create_dir
 from src.wallet import Wallet
 from tests.common import check_file_creation
 from tests.data import *
-from tests.data_advertising import *
 
 SCORUMD_BIN_PATH = which('scorumd')
 
