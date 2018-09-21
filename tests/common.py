@@ -10,6 +10,11 @@ from src.wallet import Wallet
 
 DEFAULT_WITNESS = "initdelegate"
 
+# Error regexps
+RE_ERROR_KWDS = r"(warning|error|critical|exception|traceback)"
+RE_IDX_OUT_OF_RANGE = r"Can\'t get object of type .* It\'s not in index."
+MAX_INT_64 = 9223372036854775807
+
 
 def check_logs_on_errors(logs):
     """
@@ -17,8 +22,7 @@ def check_logs_on_errors(logs):
 
     :param str logs:
     """
-    re_errors = r"(warning|error|critical|exception|traceback)"
-    m = re.match(re_errors, logs, re.IGNORECASE)
+    m = re.search(RE_ERROR_KWDS, logs, re.IGNORECASE)
     assert m is None, "In logs presents error message: %s" % m.group()
 
 
@@ -118,7 +122,8 @@ def validate_response(response, op, required_params=None):
 
 
 def validate_error_response(response, op: str, error_message="Assert Exception"):
-    assert "error" in response and error_message in response["error"]["message"], \
+    m = re.search(error_message, response["error"]["message"], re.IGNORECASE)
+    assert "error" in response and m is not None, \
         "%s operation should fail but passed with result: %s" % (op, response["error"])
 
 
