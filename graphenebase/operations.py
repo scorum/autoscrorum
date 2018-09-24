@@ -440,7 +440,7 @@ class CloseBudgetByAdvertisingModerator(GrapheneObject):
                 kwargs = args[0]
             super().__init__(
                 OrderedDict([
-                    ('budget_type', BudgetType(kwargs['type'])),
+                    ('type', BudgetType(kwargs['type'])),
                     ('budget_id', Int64(kwargs["budget_id"])),
                     ('moderator', String(kwargs["moderator"]))
                 ]))

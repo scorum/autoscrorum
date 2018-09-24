@@ -8,7 +8,7 @@ from src.wallet import Wallet
 from tests.common import DEFAULT_WITNESS, validate_response
 
 
-def is_operation_in_block(block, operation_name, operation_kwargs={}):
+def is_operation_in_block(block, operation_name, operation_kwargs):
     for tr in block['transactions']:
         for op in tr['operations']:
             op_name = op[0]
@@ -28,7 +28,7 @@ def find_budget_id(budgets_list, budget_object):
             budget_object['per_block'] = budget['per_block']
 
 
-def update_budget_balance(wallet, budget_object={}):
+def update_budget_balance(wallet, budget_object):
     budgets_list = wallet.get_budgets(budget_object['owner'], budget_object['type'])
     budget_object.pop('balance', None)
 

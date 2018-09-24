@@ -304,7 +304,7 @@ class Wallet(object):
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def close_budget_by_advertising_moderator(self, moderator, budget_id, budget_type="post"):
+    def close_budget_by_advertising_moderator(self, moderator: str, budget_id: int, budget_type="post"):
         op = operations.close_budget_by_advertising_moderator(moderator, budget_id, budget_type)
 
         signing_key = self.account(moderator).get_active_private()
