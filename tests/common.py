@@ -14,6 +14,7 @@ DEFAULT_WITNESS = "initdelegate"
 RE_ERROR_KWDS = r"(warning|error|critical|exception|traceback)"
 RE_IDX_OUT_OF_RANGE = r"Can\'t get object of type .* It\'s not in index."
 RE_BUDGET_NOT_EXIST = r"Assert Exception\n.* Budget with id \-?[0-9]+ doesn\'t exist"
+RE_OP_IS_LOCKED = r"Assert Exception\n.* Operation .* is locked."
 MAX_INT_64 = 9223372036854775807
 
 
