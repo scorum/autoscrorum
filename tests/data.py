@@ -113,3 +113,9 @@ def post_with_multilvl_comments(initdelegate_post, bob_comment_lv1, alice_commen
 @pytest.fixture(params=['only_posts', 'post_with_comments', 'post_with_multilvl_comments'])
 def posts(request):
     return request.getfuncargvalue(request.param)
+
+
+@pytest.fixture(params=['post_with_comments', 'post_with_multilvl_comments'])
+def posts_comments(request):
+    return request.getfuncargvalue(request.param)
+
