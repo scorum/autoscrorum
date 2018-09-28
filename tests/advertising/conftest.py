@@ -2,7 +2,7 @@ from copy import copy
 
 import pytest
 from src.utils import fmt_time_from_now
-from tests.common import DEFAULT_WITNESS, validate_response
+from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork
 
 
 def is_operation_in_block(block, operation_name, operation_kwargs):
@@ -93,25 +93,31 @@ def budgets(post_budget, banner_budget):
 
 
 @pytest.fixture(scope="function")
-def opened_budgets(wallet, budget):
+def wallet_3hf(wallet):
+    apply_hardfork(wallet, 3)
+    return wallet
+
+
+@pytest.fixture(scope="function")
+def opened_budgets(wallet_3hf, budget):
     budgets = []
     for i in range(1, 4):
         budget_cp = copy(budget)
         update_budget_time(budget_cp, deadline=300)  # to leave all budgets opened
         budget_cp.update({"owner": "test.test%d" % i})
-        validate_response(wallet.create_budget(**budget_cp), wallet.create_budget.__name__)
-        update_budget_balance(wallet, budget_cp)  # update budget params / set budget id
+        validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
+        update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
         budgets.append(budget_cp)
     return budgets
 
 
 @pytest.fixture(scope="function")
-def opened_budgets_same_acc(wallet, budget):
+def opened_budgets_same_acc(wallet_3hf, budget):
     budgets = []
     for i in range(1, 4):
         budget_cp = copy(budget)
         update_budget_time(budget_cp, deadline=300)  # to leave all budgets opened
-        validate_response(wallet.create_budget(**budget_cp), wallet.create_budget.__name__)
-        update_budget_balance(wallet, budget_cp)  # update budget params / set budget id
+        validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
+        update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
         budgets.append(budget_cp)
     return budgets
