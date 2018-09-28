@@ -164,8 +164,11 @@ def test_active_sp_holder_reward_legacy(wallet: Wallet, post, accounts):
     for i in range(last_block, last_block + 5):
         wallet.get_block(i, wait_for_block=True)
         ops = wallet.get_ops_in_block(i)
-        rewards = [data["op"][1]["rewarded"] for _, data in ops if data["op"][0] == op_name][0]
-        assert len(rewards) == len(accounts), "Was provided unexpected amount of '%s' operations." % op_name
+        active_sp_holder_reward_ops = [data["op"][1]["rewarded"] for _, data in ops if data["op"][0] == op_name]
+        assert len(active_sp_holder_reward_ops) == 1, "Was provided unexpected amount of '%s' operations." % op_name
+        rewards = active_sp_holder_reward_ops[0]
+        assert len(rewards) == len(accounts), \
+            "Rewards were payed to unexpected amount of accounts: '%d', expected '%d'" % (len(rewards), len(accounts))
         for acc, _ in rewards:
             assert acc in accounts, "Provided payment to unexpected account: '%s'" % acc
 
