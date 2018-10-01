@@ -123,10 +123,11 @@ def validate_response(response, op, required_params=None):
     assert_expectations()
 
 
-def validate_error_response(response, op: str, error_message="Assert Exception"):
-    m = re.search(error_message, response["error"]["message"], re.IGNORECASE)
-    assert "error" in response and m is not None, \
-        "%s operation should fail but passed with result: %s" % (op, response["error"])
+def validate_error_response(response, op: str, pattern="Assert Exception"):
+    err = response.get("error", {})
+    m = re.search(pattern, err.get("message", ""), re.IGNORECASE)
+    assert err and m is not None, \
+        "%s operation should fail but passed with result: %s" % (op, err)
 
 
 def apply_hardfork(wallet: Wallet, hf_id: int):

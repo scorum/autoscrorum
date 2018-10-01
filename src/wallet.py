@@ -357,7 +357,7 @@ class Wallet(object):
             self, initiator: str, coeffs: list, lifetime=86400, budget_type="post"
     ):
         op = operations.development_committee_change_budgets_auction_properties(
-            initiator, coeffs, lifetime, budget_type
+            initiator, lifetime, coeffs, budget_type
         )
 
         signing_key = self.account(initiator).get_active_private()
