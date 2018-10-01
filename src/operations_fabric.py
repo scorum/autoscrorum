@@ -256,6 +256,20 @@ def development_committee_empower_advertising_moderator(initiator, moderator, li
     )
 
 
+def development_committee_change_budgets_auction_properties(initiator, lifetime_sec, coeffs, budget_type):
+    change_budget_op = operations.DevelopmentCommitteeChangePostBudgetsAuctionProperties
+    if budget_type == "banner":
+        change_budget_op = operations.DevelopmentCommitteeChangeBannerBudgetsAuctionProperties
+
+    return operations.ProposalCreate(
+        **{
+            "creator": initiator,
+            "lifetime_sec": lifetime_sec,
+            "operation": change_budget_op(**{"coeffs": coeffs})
+        }
+    )
+
+
 def close_budget_by_advertising_moderator(moderator, budget_id, budget_type):
     return operations.CloseBudgetByAdvertisingModerator(
         **{

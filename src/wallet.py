@@ -353,6 +353,16 @@ class Wallet(object):
         signing_key = self.account(initiator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
+    def development_committee_change_budgets_auction_properties(
+            self, initiator: str, coeffs: list, lifetime=86400, budget_type="post"
+    ):
+        op = operations.development_committee_change_budgets_auction_properties(
+            initiator, coeffs, lifetime, budget_type
+        )
+
+        signing_key = self.account(initiator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
         op = operations.transfer_to_scorumpower_operation(_from, to, amount)
         signing_key = self.account(_from).get_active_private()

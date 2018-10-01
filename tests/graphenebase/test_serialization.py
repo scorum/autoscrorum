@@ -7,7 +7,7 @@ from graphenebase.amount import Amount
 from graphenebase.signedtransactions import SignedTransaction
 from src.operations_fabric import (
     devpool_withdraw_vesting, create_budget_operation, development_committee_empower_advertising_moderator,
-    close_budget_by_advertising_moderator
+    close_budget_by_advertising_moderator, development_committee_change_budgets_auction_properties
 )
 
 
@@ -73,3 +73,17 @@ def test_serialize_close_budget_by_advertising_moderator_to_byte(budget_type, re
     op = close_budget_by_advertising_moderator("initdelegate", 1, budget_type)
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
     assert hexlify(bytes(signed_ops.data[0])) == result_bin
+
+
+@pytest.mark.parametrize(
+    'budget_type,result_bin',
+    [
+        ("post", b'1d0c696e697464656c65676174658051010009025a003200'),
+        ("banner", b'1d0c696e697464656c6567617465805101000a025a003200'),
+    ]
+)
+def test_serialize_development_committee_change_post_budgets_auction_properties_to_byte(budget_type, result_bin):
+    op = development_committee_change_budgets_auction_properties("initdelegate", 86400, [90, 50], budget_type)
+    signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
+    assert hexlify(bytes(signed_ops.data[0])) == result_bin
+
