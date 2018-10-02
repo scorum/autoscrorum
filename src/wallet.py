@@ -203,7 +203,7 @@ class Wallet(object):
             return response
         if wait and not block:
             timer = 1
-            time_to_wait = kwargs.get('time_to_wait', 10) * 10
+            time_to_wait = kwargs.get('time_to_wait', num * 3) * 10
             while timer < time_to_wait and not block:
                 time.sleep(0.1)
                 timer += 1
