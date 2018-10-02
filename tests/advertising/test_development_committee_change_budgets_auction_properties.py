@@ -13,8 +13,8 @@ def test_proposal_creation_and_vote(wallet_3hf: Wallet, budget_type, coeffs):
     proposals = wallet_3hf.list_proposals()
     validate_response(proposals, wallet_3hf.list_proposals.__name__)
     assert len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
-
     validate_response(wallet_3hf.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet_3hf.proposal_vote.__name__)
+    assert coeffs == wallet_3hf.get_auction_coefficients(budget_type), "Coefficients wasn't set properly."
 
 
 @pytest.mark.parametrize('budget_type', ['post', 'banner'])
@@ -27,3 +27,4 @@ def test_invalid_coeffs(wallet_3hf: Wallet, budget_type, coeffs):
     proposals = wallet_3hf.list_proposals()
     validate_response(proposals, wallet_3hf.list_proposals.__name__)
     assert len(proposals) == 0, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
+    assert coeffs != wallet_3hf.get_auction_coefficients(budget_type), "Coefficients was changed, but they shouldn't."

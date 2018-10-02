@@ -292,6 +292,45 @@ class Wallet(object):
         ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
         return ref_block_num, ref_block_prefix
 
+    def get_budget(self, budget_id, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body(
+            "call", 'advertising_api', 'get_budget', [budget_id, budget_type]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_auction_coefficients(self, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body(
+            "call", 'advertising_api', 'get_auction_coefficients', [budget_type]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_moderator(self):
+        response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_moderator', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_user_budgets(self, account):
+        response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_user_budgets', [account]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_get_current_winnres(self, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_current_winners', [budget_type]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
     def create_budget(self, owner, balance, start, deadline, json_metadata="{}", type="post"):
         op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, type)
 
