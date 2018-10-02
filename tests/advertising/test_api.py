@@ -1,5 +1,7 @@
 import  pytest
+from copy import copy
 from src.wallet import Wallet
+from graphenebase.amount import Amount
 from tests.common import validate_response, validate_error_response, DEFAULT_WITNESS, RE_BUDGET_NOT_EXIST
 from tests.advertising.conftest import empower_advertising_moderator, update_budget_balance, update_budget_time
 
@@ -70,3 +72,20 @@ def test_get_current_winners(wallet_3hf: Wallet, opened_budgets):
     response = wallet_3hf.get_current_winners(budget_type)
     validate_response(response, wallet_3hf.get_current_winners.__name__)
     assert len(response) == len(set([b['owner'] for b in opened_budgets]))
+
+
+@pytest.mark.parametrize('order', [[5, 4, 3, 2, 1], [1, 2, 3, 4, 5], [3, 1, 5, 4, 2]])
+def test_get_current_winners_order(wallet_3hf: Wallet, budget, order):
+    coeffs = wallet_3hf.get_auction_coefficients(budget['type'])
+
+    for i in order:
+        b = copy(budget)
+        update_budget_time(b)
+        b['balance'] = str(Amount(b['balance']) * (i / 10))
+        validate_response(wallet_3hf.create_budget(**b), wallet_3hf.create_budget.__name__)
+
+    response = wallet_3hf.get_current_winners(budget["type"])
+    validate_response(response, wallet_3hf.get_current_winners.__name__)
+    assert len(response) <= len(coeffs)
+    assert all(response[i]['per_block'] > response[i + 1]['per_block'] for i in range(0, len(response) - 1)), \
+        "Winners should be ordered by per_block value in descending order."

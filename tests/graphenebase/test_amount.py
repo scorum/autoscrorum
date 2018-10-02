@@ -43,3 +43,19 @@ def test_subtraction(values, result):
     sub = Amount(a) - Amount(b)
     assert sub["amount"] == r_int, "subtraction calculation is wrong."
     assert str(sub) == r_str, "subtraction string representation is wrong."
+
+
+@pytest.mark.parametrize('values,result', [
+    (("1.000000000 SP", 5), ("5.000000000 SP", 5000000000)),
+    (("1.000000000 SP", 0.5), ("0.500000000 SP", 500000000)),
+    (("1.000000000 SP", 10), ("10.000000000 SP", 10000000000)),
+    (("1.000000000 SP", 0.001), ("0.001000000 SP", 1000000)),
+    (("1.000000000 SP", -3), ("-3.000000000 SP", -3000000000)),
+    (("1.000000000 SP", -0.03), ("-0.030000000 SP", -30000000))
+])
+def test_multiplication(values, result):
+    a, b = values
+    r_str, r_int = result
+    mul = Amount(a) * b
+    assert r_int == mul["amount"], "multiplication calculation is wrong."
+    assert r_str == str(mul), "multiplication string representation is wrong."
