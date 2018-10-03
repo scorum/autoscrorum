@@ -2,7 +2,7 @@ import pytest
 from graphenebase.amount import Amount
 from src.wallet import Wallet
 from src.utils import fmt_time_from_now
-from tests.common import validate_response, check_logs_on_errors
+from tests.common import validate_response, check_logs_on_errors, check_virt_ops
 from tests.advertising.conftest import update_budget_time, update_budget_balance
 
 
@@ -25,10 +25,9 @@ def test_deadline_close_budget(wallet_3hf: Wallet, budget, start, deadline, node
     assert 0 == len(budgets), "All budgets should be closed. %s" % fmt_time_from_now()
     acc_balance_after = wallet_3hf.get_account_scr_balance(budget['owner'])
     assert acc_balance_before - Amount(balance) == acc_balance_after
-    ops = set()
-    for i in range(blocks_wait - 1, blocks_wait + 2):
-        ops.update(set(data['op'][0] for _, data in wallet_3hf.get_ops_in_block(i)))
-    expected_ops = {'allocate_cash_from_advertising_budget', 'closing_budget'}
-    assert len(ops.intersection(expected_ops)) == len(expected_ops), "Some expected virtual operations are misssing."
+    check_virt_ops(
+        wallet_3hf, blocks_wait - 1, blocks_wait + 1,
+        {'allocate_cash_from_advertising_budget', 'closing_budget'}
+    )
     node.read_logs()
     check_logs_on_errors(node.logs)

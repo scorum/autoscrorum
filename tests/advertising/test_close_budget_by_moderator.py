@@ -4,7 +4,9 @@ import pytest
 from graphenebase.amount import Amount
 from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, empower_advertising_moderator, update_budget_balance
-from tests.common import DEFAULT_WITNESS, validate_response, validate_error_response, RE_BUDGET_NOT_EXIST, MAX_INT_64
+from tests.common import (
+    DEFAULT_WITNESS, validate_response, validate_error_response, RE_BUDGET_NOT_EXIST, MAX_INT_64, check_virt_ops
+)
 
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])
@@ -26,6 +28,11 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
 
     balance_after_close = wallet_3hf.get_account_scr_balance(budget["owner"])
     assert balance_after_close == balance_after_create + budget_balance
+
+    check_virt_ops(
+        wallet_3hf, response['block_num'], response['block_num'],
+        {'close_budget_by_advertising_moderator', 'closing_budget', 'cash_back_from_advertising_budget_to_owner'}
+    )
 
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])
@@ -51,6 +58,14 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
 
     balance_after_close = wallet_3hf.get_account_scr_balance(budget["owner"])
     assert balance_after_close == balance_after_create + budget_balance - per_block * (close_block - create_block)
+
+    check_virt_ops(
+        wallet_3hf, close_block, close_block,
+        {
+            'close_budget_by_advertising_moderator', 'closing_budget', 'cash_back_from_advertising_budget_to_owner',
+            'allocate_cash_from_advertising_budget'
+        }
+    )
 
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])

@@ -43,6 +43,16 @@ def check_file_creation(filepath, sec=5):
         "File wasn't created after %d seconds. Path %s" % (sec, filepath)
 
 
+def check_virt_ops(wallet, start, stop, expected_ops):
+    expected_ops = set(expected_ops)
+    ops = set()
+    for i in range(start, stop + 1):
+        ops.update(set(data['op'][0] for _, data in wallet.get_ops_in_block(i)))
+    print(ops)
+    assert len(ops.intersection(expected_ops)) == len(expected_ops), \
+        "Some expected virtual operations are misssing:\nActual: %s\nExpected: %s" % (ops, expected_ops)
+
+
 def generate_blocks(node, docker, num=1):
     """
     Run node, wait until N blocks will be generated, stop node.
