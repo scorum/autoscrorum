@@ -48,7 +48,6 @@ def check_virt_ops(wallet, start, stop, expected_ops):
     ops = set()
     for i in range(start, stop + 1):
         ops.update(set(data['op'][0] for _, data in wallet.get_ops_in_block(i)))
-    print(ops)
     assert len(ops.intersection(expected_ops)) == len(expected_ops), \
         "Some expected virtual operations are misssing:\nActual: %s\nExpected: %s" % (ops, expected_ops)
 

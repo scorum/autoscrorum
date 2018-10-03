@@ -92,13 +92,13 @@ def test_serialize_development_committee_change_post_budgets_auction_properties_
 @pytest.mark.parametrize(
     'budget_type,result_bin',
     [
-        ("post", b'22000000000000000000000000000000000c696e697464656c6567617465157b276d657461273a2027736f6d655f6d657461277d'),
-        ("banner", b'22010000000000000000000000000000000c696e697464656c6567617465157b276d657461273a2027736f6d655f6d657461277d'),
+        ("post", b'22000000000000000000000000000000000c696e697464656c6567617465157b226d657461223a2022736f6d655f6d657461227d'),
+        ("banner", b'22010000000000000000000000000000000c696e697464656c6567617465157b226d657461223a2022736f6d655f6d657461227d'),
     ]
 )
 def test_serialize_update_budget_to_byte(budget_type, result_bin):
     op = update_budget_operation(
-        budget_type, 0, "initdelegate", "{\'meta\': \'some_meta\'}"
+        budget_type, 0, "initdelegate", "{\"meta\": \"some_meta\"}"
     )
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
     assert hexlify(bytes(signed_ops.data[0])) == result_bin
