@@ -324,13 +324,6 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_get_current_winnres(self, budget_type="post"):
-        response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_current_winners', [budget_type]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
-
     def create_budget(self, owner, balance, start, deadline, json_metadata="{}", type="post"):
         op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, type)
 

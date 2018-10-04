@@ -82,7 +82,7 @@ def banner_budget():
     }
 
 
-@pytest.fixture(params=['post_budget', 'banner_budget'])
+@pytest.fixture(params=['post_budget'])
 def budget(request):
     return request.getfuncargvalue(request.param)
 
