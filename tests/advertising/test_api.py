@@ -2,8 +2,8 @@ import  pytest
 from copy import copy
 from src.wallet import Wallet
 from graphenebase.amount import Amount
-from tests.common import validate_response, validate_error_response, DEFAULT_WITNESS, RE_BUDGET_NOT_EXIST
 from tests.advertising.conftest import empower_advertising_moderator, update_budget_balance, update_budget_time
+from tests.common import validate_response, DEFAULT_WITNESS, MAX_INT_64
 
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob', DEFAULT_WITNESS])
@@ -39,20 +39,20 @@ def test_get_budget(wallet_3hf: Wallet, budget):
     update_budget_time(budget)
     validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, budget)
+    budget_obj = wallet_3hf.get_budget(budget["id"], budget["type"])
     validate_response(
-        wallet_3hf.get_budget(budget["id"], budget["type"]),
-        wallet_3hf.get_budget.__name__,
-        [('owner', budget['owner'])]
+        budget_obj,  wallet_3hf.get_budget.__name__,
+        [
+            ('owner', budget['owner']), 'balance', 'per_block', 'owner_pending_income', 'budget_pending_outgo',
+            'start', 'created', 'deadline', 'cashout_time'
+        ]
     )
 
 
-@pytest.mark.parametrize('idx', [0, 999])
-def test_get_budget_invalid_idx(wallet_3hf: Wallet, budget, idx):
-    validate_error_response(
-        wallet_3hf.get_budget(idx, budget["type"]),
-        wallet_3hf.get_budget.__name__,
-        RE_BUDGET_NOT_EXIST
-    )
+@pytest.mark.parametrize('idx', [-1, MAX_INT_64])
+def test_get_budget_invalid_idx(wallet_3hf: Wallet, opened_budgets, idx):
+    budget = opened_budgets[0]
+    assert wallet_3hf.get_budget(idx, budget["type"]) is None
 
 
 @pytest.mark.parametrize('budget_type', ['post', 'banner'])

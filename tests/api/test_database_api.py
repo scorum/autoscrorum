@@ -30,7 +30,8 @@ def test_get_dynamic_global_properties(wallet: Wallet):
         "total_witness_reward_scr", "total_witness_reward_sp", "majority_version", ("current_aslot", int),
         "recent_slots_filled", ("participation_count", int), ("last_irreversible_block_num", int),
         "registration_pool_balance", "fund_budget_balance", "reward_pool_balance", "max_virtual_bandwidth",
-        "content_reward_scr_balance", "content_reward_sp_balance", ("current_reserve_ratio", int)
+        "content_reward_scr_balance", "content_reward_sp_balance", ("current_reserve_ratio", int),
+        ("advertising", dict)
     ])
 
 

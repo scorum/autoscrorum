@@ -114,9 +114,9 @@ def test_close_budgets(wallet_3hf: Wallet, moderator, opened_budgets_same_acc):
     )
 
 
-@pytest.mark.parametrize('moderator', ['alice', 'bob', DEFAULT_WITNESS])
 @pytest.mark.parametrize('index', [-1, MAX_INT_64])
-def test_invalid_idx(wallet_3hf: Wallet, moderator, opened_budgets, index):
+def test_invalid_idx(wallet_3hf: Wallet, opened_budgets, index):
+    moderator = 'alice'
     empower_advertising_moderator(wallet_3hf, moderator)
     validate_error_response(
         wallet_3hf.close_budget_by_advertising_moderator(moderator, index, opened_budgets[0]["type"]),

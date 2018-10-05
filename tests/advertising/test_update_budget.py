@@ -4,7 +4,9 @@ import pytest
 from src.wallet import Wallet
 from graphenebase.amount import Amount
 from tests.advertising.conftest import update_budget_time, update_budget_balance
-from tests.common import validate_response, validate_error_response, check_virt_ops, RE_PARSE_ERROR, RE_BUDGET_NOT_EXIST
+from tests.common import (
+    validate_response, validate_error_response, check_virt_ops, RE_PARSE_ERROR, RE_BUDGET_NOT_EXIST, MAX_INT_64
+)
 
 
 @pytest.mark.parametrize('json_metadata', [json.dumps({"meta": "some_meta"}), "{\"meta\": \"some_meta\"}", "{}"])
@@ -43,14 +45,10 @@ def test_update_budget_invalid_meta(wallet_3hf: Wallet, budget, json_metadata):
     assert budget_obj['json_metadata'] == budget["json_metadata"]
 
 
-@pytest.mark.parametrize('idx', [10, 999])
-def test_update_budget_invalid_idx(wallet_3hf: Wallet, budget, idx):
-    response = wallet_3hf.update_budget(budget['type'], idx, budget['owner'], "{}")
-    validate_error_response(response, wallet_3hf.update_budget.__name__, RE_BUDGET_NOT_EXIST)
-
-    update_budget_time(budget)
-    wallet_3hf.create_budget(**budget)
-    update_budget_balance(wallet_3hf, budget)
-
-    response = wallet_3hf.update_budget(budget['type'], 1, budget['owner'], "{}")
-    validate_error_response(response, wallet_3hf.update_budget.__name__, RE_BUDGET_NOT_EXIST)
+@pytest.mark.parametrize('index', [-1, MAX_INT_64])
+def test_invalid_idx(wallet_3hf: Wallet, opened_budgets, index):
+    validate_error_response(
+        wallet_3hf.update_budget(opened_budgets[0]["type"], index, opened_budgets[0]["owner"], "{}"),
+        wallet_3hf.update_budget.__name__,
+        RE_BUDGET_NOT_EXIST
+    )

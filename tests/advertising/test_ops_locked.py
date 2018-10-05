@@ -5,7 +5,7 @@ from tests.common import DEFAULT_WITNESS, RE_OP_IS_LOCKED, validate_error_respon
 
 
 """
-Advertising operations should be locked until 3rd hardfork.  
+Advertising operations should be locked until 3rd hardfork.
 """
 
 

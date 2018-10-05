@@ -127,7 +127,7 @@ class CloseBudget(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('type', BudgetType(kwargs['type'])),
-                    ('id', Uint64(kwargs['id'])),
+                    ('budget_id', Int64(kwargs['id'])),
                     ('owner', String(kwargs['owner'])),
                 ]))
 
@@ -142,7 +142,7 @@ class UpdateBudget(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('type', BudgetType(kwargs['type'])),
-                    ('id', Uint64(kwargs['id'])),
+                    ('budget_id', Int64(kwargs['id'])),
                     ('owner', String(kwargs['owner'])),
                     ('json_metadata', String(kwargs['json_metadata'])),
                 ]))
@@ -287,7 +287,7 @@ class ProposalVote(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('voting_account', String(kwargs['voting_account'])),
-                    ('proposal_id', Uint64(kwargs['proposal_id']))
+                    ('proposal_id', Int64(kwargs['proposal_id']))
                 ]))
 
 
