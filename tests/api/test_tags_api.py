@@ -152,3 +152,42 @@ def test_get_parents(wallet: Wallet, posts):
         for parent in parents:
             assert current["parent_permlink"] == parent["permlink"]
             current = parent
+
+
+def test_get_posts_and_comments(wallet: Wallet, posts):
+    for post in posts:
+        wallet.post_comment(**post)
+
+    response = wallet.get_posts_and_comments(**{"limit": len(posts)})
+    validate_response(response, wallet.get_posts_and_comments.__name__)
+    assert len(response) == len(posts)
+
+
+def test_get_posts_and_comments_pagination(wallet: Wallet, posts):
+    for post in posts:
+        wallet.post_comment(**post)
+
+    limit = 2  # should be > 1
+
+    responses = []
+    response = wallet.get_posts_and_comments(**{"limit": limit})
+    validate_response(response, wallet.get_posts_and_comments.__name__)
+    while len(response) >= limit:
+        responses += response[:-1]
+        response = wallet.get_posts_and_comments(
+            **{"start_author": response[-1]["author"], "start_permlink": response[-1]["permlink"], "limit": 100})
+        validate_response(response, wallet.get_posts_and_comments.__name__)
+    responses += response
+    assert len(responses) == len(posts)
+
+
+@pytest.mark.parametrize('truncate_body', [1, 10, 100, 1000])
+def test_get_posts_and_comments_truncate(wallet: Wallet, posts, truncate_body):
+    for post in posts:
+        wallet.post_comment(**post)
+
+    response = wallet.get_posts_and_comments(**{"limit": len(posts), "truncate_body": truncate_body})
+    validate_response(response, wallet.get_posts_and_comments.__name__)
+    assert len(response) == len(posts)
+    for p in response:
+        assert len(p["body"]) <= truncate_body

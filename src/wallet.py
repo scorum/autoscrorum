@@ -213,12 +213,30 @@ class Wallet(object):
     def get_ops_in_block(self, num, operation_type=0):
         """
         Returns sequence of operations included/generated in a specified block
+
         :param int num: Number of block in chain.
         :param int operation_type: Operations type (all = 0, not_virt = 1, virt = 2, market = 3)
         :rtype: dict
         """
         response = self.rpc.send(self.json_rpc_body(
             'call', 'blockchain_history_api', 'get_ops_in_block', [num, operation_type]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_ops_history(self, from_op=-1, limit=100, op_type=0):
+        """
+        Returns operations in ids range in descending order.
+
+        :param int from_op: Start operation id, -1 is most recent operation.
+        :param int limit: Number of operations to return. Max: 100.
+        :param int op_type: Operations type (all = 0, not_virt = 1, virt = 2, market = 3).
+        :return list: operations in ids range
+        """
+        response = self.rpc.send(self.json_rpc_body(
+            'call', 'blockchain_history_api', 'get_ops_history', [from_op, limit, op_type]
         ))
         try:
             return response['result']
@@ -516,8 +534,8 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def get_posts_and_comments(self):
-        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', []))
+    def get_posts_and_comments(self, **discussion_query):
+        response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', [discussion_query]))
         try:
             return response['result']
         except KeyError:
