@@ -89,6 +89,8 @@ def test_close_post_vs_banner(wallet_3hf: Wallet, moderator, post_budget, banner
     response = wallet_3hf.close_budget_by_advertising_moderator(moderator, post_budget["id"], post_budget["type"])
     validate_response(response, wallet_3hf.close_budget_by_advertising_moderator.__name__)
 
+    post_budgets = wallet_3hf.get_budgets(post_budget['owner'], post_budget['type'])
+    assert len(post_budgets) == 0
     banner_budgets = wallet_3hf.get_budgets(banner_budget['owner'], banner_budget['type'])
     assert len(banner_budgets) == 1
 

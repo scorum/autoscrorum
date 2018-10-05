@@ -16,6 +16,13 @@ DGP_BUDGETS = {
 }
 
 
+DGP_PARAMS_MAP = {
+    'volume': 'balance',
+    'budget_pending_outgo': 'budget_pending_outgo',
+    'owner_pending_income': 'owner_pending_income'
+}
+
+
 def get_capital_delta(capital_before, capital_after):
     keys = [
         "content_reward_fifa_world_cup_2018_bounty_fund_sp_balance",
@@ -107,6 +114,48 @@ def test_create_budget(wallet_3hf: Wallet, budget, start):
         Amount(budget['budget_pending_outgo'])
 
     budgets_summary = wallet_3hf.get_dynamic_global_properties()['advertising'][DGP_BUDGETS[budget['type']]]
-    assert budgets_summary['volume'] == budget['balance']
-    assert budgets_summary['budget_pending_outgo'] == budget['budget_pending_outgo']
-    assert budgets_summary['owner_pending_income'] == budget['owner_pending_income']
+    assert all(budgets_summary[k] == budget[v] for k, v in DGP_PARAMS_MAP.items())
+
+
+def test_create_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
+    new_budget = copy(post_budget)
+    update_budget_time(post_budget)
+    validate_response(wallet_3hf.create_budget(**post_budget), wallet_3hf.create_budget.__name__)
+
+    update_budget_time(banner_budget)
+    validate_response(wallet_3hf.create_budget(**banner_budget), wallet_3hf.create_budget.__name__)
+
+    update_budget_balance(wallet_3hf, post_budget)  # update budget params / set budget id
+    update_budget_balance(wallet_3hf, banner_budget)  # update budget params / set budget id
+    assert post_budget["id"] == banner_budget["id"]  # both = 0
+    assert len(wallet_3hf.get_budgets(post_budget['owner'], post_budget['type'])) == 1
+    assert len(wallet_3hf.get_budgets(banner_budget['owner'], banner_budget['type'])) == 1
+
+    budgets_summary = wallet_3hf.get_dynamic_global_properties()['advertising']
+    assert all(
+        Amount(budgets_summary[DGP_BUDGETS[b['type']]][k]) == Amount(b[v])
+        for k, v in DGP_PARAMS_MAP.items()
+        for b in [banner_budget, post_budget]
+    )
+
+    update_budget_time(new_budget)
+    validate_response(wallet_3hf.create_budget(**new_budget), wallet_3hf.create_budget.__name__)
+    assert len(wallet_3hf.get_budgets(post_budget['owner'], post_budget['type'])) == 2
+
+
+def test_create_budgets(wallet_3hf: Wallet, opened_budgets_same_acc):
+    budget = opened_budgets_same_acc[0]
+    assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == len(opened_budgets_same_acc)
+
+    budgets_summary = wallet_3hf.get_dynamic_global_properties()['advertising']
+
+    for b in opened_budgets_same_acc:
+        update_budget_balance(wallet_3hf, b)
+
+    # check that sum of budgets 'param' ==  summary 'param' in DGP
+    assert all(
+        sum([Amount(b[v]) for b in opened_budgets_same_acc], Amount("0 SCR")) == Amount(
+            budgets_summary[DGP_BUDGETS[budget['type']]][k]
+        )
+        for k, v in DGP_PARAMS_MAP.items()
+    )
