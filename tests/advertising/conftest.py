@@ -5,17 +5,6 @@ from src.utils import fmt_time_from_now
 from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork
 
 
-def is_operation_in_block(block, operation_name, operation_kwargs):
-    for tr in block['transactions']:
-        for op in tr['operations']:
-            op_name = op[0]
-            op_params = op[1]
-            if op_name == operation_name:
-                if all([op_params[key] == operation_kwargs[key] for key in operation_kwargs.keys()]):
-                    return True
-    return False
-
-
 def find_budget_id(budgets_list, budget_object):
     if 'id' in budget_object.keys():
         return
@@ -35,6 +24,8 @@ def update_budget_balance(wallet, budget_object):
         if budget['id'] == budget_object['id']:
             budget_object['balance'] = budget['balance']
             budget_object['created'] = budget['created']
+            budget_object['owner_pending_income'] = budget['owner_pending_income']
+            budget_object['budget_pending_outgo'] = budget['budget_pending_outgo']
             budget_object['json_metadata'] = budget['json_metadata']
 
 

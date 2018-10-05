@@ -1,4 +1,4 @@
-import  pytest
+import pytest
 from copy import copy
 from src.wallet import Wallet
 from graphenebase.amount import Amount
@@ -10,7 +10,7 @@ from tests.common import validate_response, DEFAULT_WITNESS, MAX_INT_64
 def test_get_moderator(wallet_3hf: Wallet, moderator):
     assert wallet_3hf.get_moderator() is None, "Moderator shouldn't be set yet."
     empower_advertising_moderator(wallet_3hf, moderator)
-    response  = wallet_3hf.get_moderator()
+    response = wallet_3hf.get_moderator()
     validate_response(response, wallet_3hf.get_moderator.__name__, [('name', moderator)])
 
 

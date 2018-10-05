@@ -13,50 +13,35 @@ from tests.common import (
 
 def test_close_before_starttime(wallet_3hf: Wallet, budget):
     update_budget_time(budget, start=30, deadline=60)  # to delay opening time for budget
-    budget_balance = Amount(budget["balance"])
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
-
     validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, budget)  # update budget params / set budget id
-
-    balance_after_create = wallet_3hf.get_account_scr_balance(budget["owner"])
-
-    assert balance_before - balance_after_create == budget_balance
-
     response = wallet_3hf.close_budget(budget['type'], budget["id"], budget["owner"])
     validate_response(response, wallet_3hf.close_budget.__name__)
-
-    balance_after_close = wallet_3hf.get_account_scr_balance(budget["owner"])
-    assert balance_after_close == balance_after_create + budget_balance
-
+    balance_after = wallet_3hf.get_account_scr_balance(budget["owner"])
+    assert balance_after == balance_before
     check_virt_ops(
         wallet_3hf, response['block_num'], response['block_num'],
         {'closing_budget', 'cash_back_from_advertising_budget_to_owner'}
     )
+    assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
+    assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
 
 
 def test_close_after_starttime(wallet_3hf: Wallet, budget):
     update_budget_time(budget)
-    budget_balance = Amount(budget["balance"])
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
-
     response = wallet_3hf.create_budget(**budget)
     validate_response(response, wallet_3hf.create_budget.__name__)
     create_block = response["block_num"]
     update_budget_balance(wallet_3hf, budget)  # update budget params / set budget id
     per_block = Amount(budget["per_block"])
 
-    balance_after_create = wallet_3hf.get_account_scr_balance(budget["owner"])
-
-    assert balance_before - balance_after_create == budget_balance
-
     response = wallet_3hf.close_budget(budget['type'], budget["id"], budget["owner"])
     validate_response(response, wallet_3hf.close_budget.__name__)
     close_block = response["block_num"]
-
-    balance_after_close = wallet_3hf.get_account_scr_balance(budget["owner"])
-    assert balance_after_close == balance_after_create + budget_balance - per_block * (close_block - create_block)
-
+    balance_after = wallet_3hf.get_account_scr_balance(budget["owner"])
+    assert balance_before == balance_after + per_block * (close_block - create_block)
     check_virt_ops(
         wallet_3hf, close_block, close_block,
         {
@@ -64,6 +49,8 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget):
             'allocate_cash_from_advertising_budget'
         }
     )
+    assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
+    assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
 
 
 def test_close_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):

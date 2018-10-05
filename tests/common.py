@@ -53,6 +53,17 @@ def check_virt_ops(wallet, start, stop, expected_ops):
         "Some expected virtual operations are misssing:\nActual: %s\nExpected: %s" % (ops, expected_ops)
 
 
+def is_operation_in_block(block, operation_name, operation_kwargs):
+    for tr in block['transactions']:
+        for op in tr['operations']:
+            op_name = op[0]
+            op_params = op[1]
+            if op_name == operation_name:
+                if all([op_params[key] == operation_kwargs[key] for key in operation_kwargs.keys()]):
+                    return True
+    return False
+
+
 def generate_blocks(node, docker, num=1):
     """
     Run node, wait until N blocks will be generated, stop node.

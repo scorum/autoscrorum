@@ -33,6 +33,8 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
         wallet_3hf, response['block_num'], response['block_num'],
         {'close_budget_by_advertising_moderator', 'closing_budget', 'cash_back_from_advertising_budget_to_owner'}
     )
+    assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
+    assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
 
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])
@@ -66,6 +68,8 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
             'allocate_cash_from_advertising_budget'
         }
     )
+    assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
+    assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
 
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])

@@ -20,8 +20,10 @@ def test_update_budget(wallet_3hf: Wallet, budget, json_metadata):
     budget_obj = wallet_3hf.get_budget(budget['id'], budget['type'])
     assert budget_obj['json_metadata'] == json_metadata
     assert Amount(budget_obj['balance']) == Amount(budget['balance']) - Amount(budget['per_block'])
-    for k in set(budget.keys()).difference({"json_metadata", 'balance'}):
-        assert budget[k] == budget_obj[k], "Unexpected change of '%s' parameter value." % k
+    assert all(budget[k] == budget_obj[k] for k in set(budget.keys()).difference({"json_metadata", 'balance'})), \
+        'Not only budget metadata changed after update\n' \
+        'before: {}\n' \
+        'after: {}'.format(budget, budget_obj)
 
 
 @pytest.mark.parametrize('json_metadata', [json.dumps({"meta": "some_meta"}), "{\"meta\": \"some_meta\"}", "{}"])
