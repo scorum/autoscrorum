@@ -62,6 +62,10 @@ operations = {
     'acc_to_devpool_vesting_withdraw':            51,
     'devpool_to_devpool_vesting_withdraw':        52,
     'proposal_virtual_operation':                 53,
+    'budget_outgo_operation':                     54,
+    'budget_owner_income_operation':              55,
+    'active_sp_holders_reward_legacy_operation':  56,
+    'budget_closing_operation':                   57,
 
     # proposal operations
     'registration_committee_add_member':          0,

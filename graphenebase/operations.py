@@ -112,7 +112,7 @@ class CreateBudget(GrapheneObject):
                     ('owner', String(kwargs["owner"])),
                     ('json_metadata', String(kwargs["json_metadata"])),
                     ('balance', Amount(kwargs["balance"])),
-                    ('start', Optional(PointInTime(kwargs['start']))),
+                    ('start', PointInTime(kwargs['start'])),
                     ('deadline', PointInTime(kwargs['deadline']))
                 ]))
 
