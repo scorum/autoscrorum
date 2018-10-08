@@ -2,12 +2,11 @@ from copy import copy
 
 import pytest
 from graphenebase.amount import Amount
-from src.utils import fmt_time_from_now
 from src.wallet import Wallet
-from tests.advertising.conftest import update_budget_time, update_budget_balance
+from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block
 from tests.common import (
     validate_response, validate_error_response, check_logs_on_errors, check_virt_ops,
-    RE_BUDGET_NOT_EXIST, MAX_INT_64
+    RE_INSUFF_FUNDS, RE_POSITIVE_BALANCE, RE_DEADLINE_TIME, RE_START_TIME
 )
 
 DGP_BUDGETS = {
@@ -99,8 +98,9 @@ def check_budgets_distribution(wallet, top_budgets_list):
 
 
 @pytest.mark.parametrize('start', [0, 6])
-def test_create_budget(wallet_3hf: Wallet, budget, start):
-    update_budget_time(budget, start=start, deadline=start + 30)
+@pytest.mark.parametrize('deadline', [15, 30])
+def test_create_budget(wallet_3hf: Wallet, node, budget, start, deadline):
+    update_budget_time(budget, start=start, deadline=deadline + start)
     budget_balance = Amount(budget["balance"])
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
     response = wallet_3hf.create_budget(**budget)
@@ -113,8 +113,25 @@ def test_create_budget(wallet_3hf: Wallet, budget, start):
     assert budget_balance == Amount(budget['balance']) + Amount(budget['owner_pending_income']) + \
         Amount(budget['budget_pending_outgo'])
 
+    assert calc_per_block(deadline, budget_balance) == Amount(budget['per_block'])
+
     budgets_summary = wallet_3hf.get_dynamic_global_properties()['advertising'][DGP_BUDGETS[budget['type']]]
     assert all(budgets_summary[k] == budget[v] for k, v in DGP_PARAMS_MAP.items())
+    node.read_logs()
+    check_logs_on_errors(node.logs)
+
+
+@pytest.mark.parametrize('params,err_response_code', [
+    ({'balance': '99999.000000000 SCR'}, RE_INSUFF_FUNDS),
+    ({'balance': '-5.000000000 SCR'}, RE_POSITIVE_BALANCE),
+    ({'start': '1999-12-31T00:00:00', 'deadline': '2000-01-01T00:00:00'}, RE_START_TIME),
+    ({'start': "2023-01-01T00:00:00", 'deadline': "2022-01-01T00:00:00"}, RE_DEADLINE_TIME)
+])
+def test_create_budget_invalid_params(wallet_3hf: Wallet, budget, params, err_response_code):
+    update_budget_time(budget)
+    budget.update(params)
+    response = wallet_3hf.create_budget(**budget)
+    validate_error_response(response, wallet_3hf.create_budget.__name__, err_response_code)
 
 
 def test_create_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
@@ -143,8 +160,7 @@ def test_create_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
     assert len(wallet_3hf.get_budgets(post_budget['owner'], post_budget['type'])) == 2
 
 
-def test_create_budgets(wallet_3hf: Wallet, opened_budgets_same_acc):
-    budget = opened_budgets_same_acc[0]
+def test_create_budgets(wallet_3hf: Wallet, node, opened_budgets_same_acc, budget):
     assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == len(opened_budgets_same_acc)
 
     budgets_summary = wallet_3hf.get_dynamic_global_properties()['advertising']
@@ -159,3 +175,5 @@ def test_create_budgets(wallet_3hf: Wallet, opened_budgets_same_acc):
         )
         for k, v in DGP_PARAMS_MAP.items()
     )
+    node.read_logs()
+    check_logs_on_errors(node.logs)

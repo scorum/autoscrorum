@@ -16,6 +16,11 @@ RE_IDX_OUT_OF_RANGE = r"Can\'t get object of type .* It\'s not in index."
 RE_BUDGET_NOT_EXIST = r"Assert Exception\n.* Budget with id \-?[0-9]+ doesn\'t exist"
 RE_OP_IS_LOCKED = r"Assert Exception\n.* Operation .* is locked."
 RE_PARSE_ERROR = r"Parse Error\nUnexpected char"
+RE_INSUFF_FUNDS = r"Assert Exception\nowner\.balance >= op\.balance: Insufficient funds\."
+RE_COMMON_ERROR = r"Assert Exception"
+RE_POSITIVE_BALANCE = r"Assert Exception\nbalance > asset\(0, SCORUM_SYMBOL\): Balance must be positive"
+RE_DEADLINE_TIME = r"Assert Exception\n.* Deadline time must be greater or equal then start time"
+RE_START_TIME = r"Assert Exception\n.* Start time must be greater or equal then last block time"
 MAX_INT_64 = 9223372036854775807
 
 
@@ -144,7 +149,7 @@ def validate_response(response, op, required_params=None):
     assert_expectations()
 
 
-def validate_error_response(response, op: str, pattern="Assert Exception"):
+def validate_error_response(response, op: str, pattern=RE_COMMON_ERROR):
     err = response.get("error", {})
     m = re.search(pattern, err.get("message", ""), re.IGNORECASE)
     assert err and m is not None, \

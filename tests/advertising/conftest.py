@@ -3,6 +3,7 @@ from copy import copy
 import pytest
 from src.utils import fmt_time_from_now
 from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork
+from graphenebase.amount import Amount
 
 
 def find_budget_id(budgets_list, budget_object):
@@ -47,6 +48,13 @@ def update_budget_time(budget, start=0, deadline=30):
         'start': fmt_time_from_now(start),
         'deadline': fmt_time_from_now(deadline)
     })
+
+
+def calc_per_block(n: int, balance: Amount):
+    per_block = balance / (n // 3 + (1 if n % 3 else 0) + 1)
+    if not per_block['amount']:
+        per_block['amount'] = 1
+    return per_block
 
 
 @pytest.fixture(scope="function")

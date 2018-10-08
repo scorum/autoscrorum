@@ -4,7 +4,7 @@ import pytest
 from graphenebase.amount import Amount
 from src.utils import fmt_time_from_now
 from src.wallet import Wallet
-from tests.advertising.conftest import update_budget_time, update_budget_balance
+from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block
 from tests.common import (
     validate_response, validate_error_response, check_logs_on_errors, check_virt_ops,
     RE_BUDGET_NOT_EXIST, MAX_INT_64
@@ -22,7 +22,7 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget):
     assert balance_after == balance_before
     check_virt_ops(
         wallet_3hf, response['block_num'], response['block_num'],
-        {'closing_budget', 'cash_back_from_advertising_budget_to_owner'}
+        {'close_budget', 'budget_closing', 'budget_owner_income'}
     )
     assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
     assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
@@ -44,10 +44,7 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget):
     assert balance_before == balance_after + per_block * (close_block - create_block)
     check_virt_ops(
         wallet_3hf, close_block, close_block,
-        {
-            'closing_budget', 'cash_back_from_advertising_budget_to_owner',
-            'allocate_cash_from_advertising_budget'
-        }
+        {'close_budget', 'budget_closing', 'budget_outgo', 'budget_owner_income'}
     )
     assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
     assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
@@ -114,20 +111,21 @@ def test_deadline_close_budget(wallet_3hf: Wallet, budget, start, deadline, node
     update_budget_time(budget, start=start, deadline=start+deadline)
     budget.update({"balance": balance})
     response = wallet_3hf.create_budget(**budget)
-    update_budget_balance(wallet_3hf, budget)
     validate_response(response, wallet_3hf.create_budget.__name__, [('block_num', int)])
+    update_budget_balance(wallet_3hf, budget)
+    assert calc_per_block(deadline, Amount(balance)) == Amount(budget['per_block'])
     last_block = response['block_num']
 
     blocks_wait = last_block + (deadline + start) // 3
-    wallet_3hf.get_block(blocks_wait + 1, wait_for_block=True)
+    wallet_3hf.get_block(blocks_wait + 2, wait_for_block=True)
     budgets = wallet_3hf.get_user_budgets(budget['owner'])
     validate_response(budgets, wallet_3hf.get_user_budgets.__name__)
     assert 0 == len(budgets), "All budgets should be closed. %s" % fmt_time_from_now()
     acc_balance_after = wallet_3hf.get_account_scr_balance(budget['owner'])
     assert acc_balance_before - Amount(balance) == acc_balance_after
     check_virt_ops(
-        wallet_3hf, blocks_wait - 1, blocks_wait + 1,
-        {'allocate_cash_from_advertising_budget', 'closing_budget'}
+        wallet_3hf, blocks_wait - 1, blocks_wait + 2,
+        {'budget_owner_income', 'budget_closing', 'budget_outgo'}
     )
     node.read_logs()
     check_logs_on_errors(node.logs)
