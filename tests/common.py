@@ -11,7 +11,7 @@ from src.wallet import Wallet
 DEFAULT_WITNESS = "initdelegate"
 
 # Error regexps
-RE_ERROR_KWDS = r"(warning|error|critical|exception|traceback)"
+RE_ERROR_KWDS = r".{50}(warning|error|critical|exception|traceback).{50}"
 RE_IDX_OUT_OF_RANGE = r"Can\'t get object of type .* It\'s not in index."
 RE_BUDGET_NOT_EXIST = r"Assert Exception\n.* Budget with id \-?[0-9]+ doesn\'t exist"
 RE_OP_IS_LOCKED = r"Assert Exception\n.* Operation .* is locked."
@@ -31,7 +31,7 @@ def check_logs_on_errors(logs):
     :param str logs:
     """
     m = re.search(RE_ERROR_KWDS, logs, re.IGNORECASE)
-    assert m is None, "In logs presents error message: %s" % m.group()
+    assert m is None, "In logs presents error message: '%s'" % m.group().strip()
 
 
 def check_file_creation(filepath, sec=5):
@@ -52,11 +52,15 @@ def check_file_creation(filepath, sec=5):
 def check_virt_ops(wallet, start, stop, expected_ops):
     expected_ops = set(expected_ops)
     ops = set()
+    data = []
     for i in range(start, stop + 1):
         response = wallet.get_ops_in_block(i)
-        ops.update(set(data['op'][0] for _, data in response))
+        if response and 'error' not in response:
+            ops.update(set(d['op'][0] for _, d in response))
+            data += [d['op'] for _, d in response]
     assert len(ops.intersection(expected_ops)) == len(expected_ops), \
         "Some expected virtual operations are misssing:\nActual: %s\nExpected: %s" % (ops, expected_ops)
+    return data
 
 
 def is_operation_in_block(block, operation_name, operation_kwargs):
