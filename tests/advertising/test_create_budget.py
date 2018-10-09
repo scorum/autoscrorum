@@ -100,7 +100,7 @@ def check_budgets_distribution(wallet, top_budgets_list):
 @pytest.mark.parametrize('start', [0, 6])
 @pytest.mark.parametrize('deadline', [15, 30])
 def test_create_budget(wallet_3hf: Wallet, node, budget, start, deadline):
-    update_budget_time(budget, start=start, deadline=deadline + start)
+    update_budget_time(wallet_3hf, budget, start=start, deadline=deadline + start)
     budget_balance = Amount(budget["balance"])
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
     response = wallet_3hf.create_budget(**budget)
@@ -113,7 +113,8 @@ def test_create_budget(wallet_3hf: Wallet, node, budget, start, deadline):
     assert budget_balance == Amount(budget['balance']) + Amount(budget['owner_pending_income']) + \
         Amount(budget['budget_pending_outgo'])
 
-    assert calc_per_block(deadline, budget_balance) == Amount(budget['per_block'])
+    per_block, _ = calc_per_block(deadline, budget_balance)
+    assert per_block == Amount(budget['per_block'])
 
     budgets_summary = wallet_3hf.get_dynamic_global_properties()['advertising'][DGP_BUDGETS[budget['type']]]
     assert all(budgets_summary[k] == budget[v] for k, v in DGP_PARAMS_MAP.items())
@@ -128,7 +129,7 @@ def test_create_budget(wallet_3hf: Wallet, node, budget, start, deadline):
     ({'start': "2023-01-01T00:00:00", 'deadline': "2022-01-01T00:00:00"}, RE_DEADLINE_TIME)
 ])
 def test_create_budget_invalid_params(wallet_3hf: Wallet, budget, params, err_response_code):
-    update_budget_time(budget)
+    update_budget_time(wallet_3hf, budget)
     budget.update(params)
     response = wallet_3hf.create_budget(**budget)
     validate_error_response(response, wallet_3hf.create_budget.__name__, err_response_code)
@@ -136,10 +137,10 @@ def test_create_budget_invalid_params(wallet_3hf: Wallet, budget, params, err_re
 
 def test_create_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
     new_budget = copy(post_budget)
-    update_budget_time(post_budget)
+    update_budget_time(wallet_3hf, post_budget)
     validate_response(wallet_3hf.create_budget(**post_budget), wallet_3hf.create_budget.__name__)
 
-    update_budget_time(banner_budget)
+    update_budget_time(wallet_3hf, banner_budget)
     validate_response(wallet_3hf.create_budget(**banner_budget), wallet_3hf.create_budget.__name__)
 
     update_budget_balance(wallet_3hf, post_budget)  # update budget params / set budget id
@@ -155,7 +156,7 @@ def test_create_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
         for b in [banner_budget, post_budget]
     )
 
-    update_budget_time(new_budget)
+    update_budget_time(wallet_3hf, new_budget)
     validate_response(wallet_3hf.create_budget(**new_budget), wallet_3hf.create_budget.__name__)
     assert len(wallet_3hf.get_budgets(post_budget['owner'], post_budget['type'])) == 2
 

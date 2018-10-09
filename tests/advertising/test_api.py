@@ -26,7 +26,7 @@ def test_get_user_budgets(wallet_3hf: Wallet, opened_budgets_same_acc):
 def test_get_user_budgets_post_vs_banner(wallet_3hf: Wallet, budgets):
     owner = budgets[0]['owner']
     for budget in budgets:
-        update_budget_time(budget)
+        update_budget_time(wallet_3hf, budget)
         validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
         update_budget_balance(wallet_3hf, budget)
     response = wallet_3hf.get_user_budgets(owner)
@@ -36,7 +36,7 @@ def test_get_user_budgets_post_vs_banner(wallet_3hf: Wallet, budgets):
 
 
 def test_get_budget(wallet_3hf: Wallet, budget):
-    update_budget_time(budget)
+    update_budget_time(wallet_3hf, budget)
     validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, budget)
     budget_obj = wallet_3hf.get_budget(budget["id"], budget["type"])
@@ -80,7 +80,7 @@ def test_get_current_winners_order(wallet_3hf: Wallet, budget, order):
 
     for i in order:
         b = copy(budget)
-        update_budget_time(b)
+        update_budget_time(wallet_3hf, b)
         b['balance'] = str(Amount(b['balance']) * (i / 10))
         validate_response(wallet_3hf.create_budget(**b), wallet_3hf.create_budget.__name__)
 

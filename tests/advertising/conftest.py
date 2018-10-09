@@ -1,7 +1,7 @@
 from copy import copy
 
 import pytest
-from src.utils import fmt_time_from_now
+from src.utils import to_date, date_to_str
 from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork
 from graphenebase.amount import Amount
 
@@ -43,18 +43,21 @@ def empower_advertising_moderator(wallet, account):
     validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
 
 
-def update_budget_time(budget, start=0, deadline=30):
+def update_budget_time(wallet, budget, start=1, deadline=31):
+    dgp = wallet.get_dynamic_global_properties()
     budget.update({
-        'start': fmt_time_from_now(start),
-        'deadline': fmt_time_from_now(deadline)
+        'start': date_to_str(to_date(dgp['time'], tmdelta={'seconds': start})),
+        'deadline': date_to_str(to_date(dgp['time'], tmdelta={'seconds': deadline}))
     })
 
 
 def calc_per_block(n: int, balance: Amount):
-    per_block = balance / (n // 3 + (1 if n % 3 else 0) + 1)
-    if not per_block['amount']:
-        per_block['amount'] = 1
-    return per_block
+    per_blocks_cnt = n // 3 + (1 if n % 3 else 0) + 1
+    per_block = balance / per_blocks_cnt
+    reminder = (
+            balance - per_block * per_blocks_cnt
+    ) if per_block.amount > 0 and balance.amount % per_block.amount else Amount()
+    return per_block, reminder
 
 
 @pytest.fixture(scope="function")
@@ -102,7 +105,7 @@ def opened_budgets(wallet_3hf, budget):
     budgets = []
     for i in range(1, 4):
         budget_cp = copy(budget)
-        update_budget_time(budget_cp, deadline=300)  # to leave all budgets opened
+        update_budget_time(wallet_3hf, budget_cp, deadline=300)  # to leave all budgets opened
         budget_cp.update({"owner": "test.test%d" % i})
         validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
         update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
@@ -115,7 +118,7 @@ def opened_budgets_same_acc(wallet_3hf, budget):
     budgets = []
     for i in range(1, 4):
         budget_cp = copy(budget)
-        update_budget_time(budget_cp, deadline=300)  # to leave all budgets opened
+        update_budget_time(wallet_3hf, budget_cp, deadline=300)  # to leave all budgets opened
         validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
         update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
         budgets.append(budget_cp)

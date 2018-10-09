@@ -12,7 +12,7 @@ from tests.common import (
 
 
 def test_close_before_starttime(wallet_3hf: Wallet, budget):
-    update_budget_time(budget, start=30, deadline=60)  # to delay opening time for budget
+    update_budget_time(wallet_3hf, budget, start=30, deadline=60)  # to delay opening time for budget
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
     validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, budget)  # update budget params / set budget id
@@ -29,7 +29,7 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget):
 
 
 def test_close_after_starttime(wallet_3hf: Wallet, budget):
-    update_budget_time(budget)
+    update_budget_time(wallet_3hf, budget)
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
     response = wallet_3hf.create_budget(**budget)
     validate_response(response, wallet_3hf.create_budget.__name__)
@@ -52,11 +52,11 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget):
 
 def test_close_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
     new_budget = copy(post_budget)
-    update_budget_time(post_budget)
+    update_budget_time(wallet_3hf, post_budget)
     validate_response(wallet_3hf.create_budget(**post_budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, post_budget)  # update budget params / set budget id
 
-    update_budget_time(banner_budget)
+    update_budget_time(wallet_3hf, banner_budget)
     validate_response(wallet_3hf.create_budget(**banner_budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, banner_budget)  # update budget params / set budget id
 
@@ -70,7 +70,7 @@ def test_close_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
     banner_budgets = wallet_3hf.get_budgets(banner_budget['owner'], banner_budget['type'])
     assert len(banner_budgets) == 1
 
-    update_budget_time(new_budget)
+    update_budget_time(wallet_3hf, new_budget)
     validate_response(wallet_3hf.create_budget(**new_budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, new_budget)  # update budget params / set budget id
     assert new_budget["id"] > banner_budget["id"], "Newly created budget should have incremented index"
@@ -103,29 +103,35 @@ def test_invalid_idx(wallet_3hf: Wallet, opened_budgets, index):
     )
 
 
+@pytest.mark.skip_long_term
 @pytest.mark.parametrize('start', [0, 6])
 @pytest.mark.parametrize('deadline', [6, 7, 21])
 @pytest.mark.parametrize('balance', ["1.000000000 SCR", "0.000000001 SCR", "0.000000015 SCR"])
 def test_deadline_close_budget(wallet_3hf: Wallet, budget, start, deadline, node, balance):
     acc_balance_before = wallet_3hf.get_account_scr_balance(budget['owner'])
-    update_budget_time(budget, start=start, deadline=start+deadline)
+    update_budget_time(wallet_3hf, budget, start=start, deadline=deadline + start)
     budget.update({"balance": balance})
     response = wallet_3hf.create_budget(**budget)
     validate_response(response, wallet_3hf.create_budget.__name__, [('block_num', int)])
     update_budget_balance(wallet_3hf, budget)
-    assert calc_per_block(deadline, Amount(balance)) == Amount(budget['per_block'])
-    last_block = response['block_num']
 
-    blocks_wait = last_block + (deadline + start) // 3
-    wallet_3hf.get_block(blocks_wait + 2, wait_for_block=True)
+    per_block, reminder = calc_per_block(deadline, Amount(balance))
+    assert per_block == Amount(budget['per_block'])
+
+    last_block = response['block_num']
+    blocks_wait = last_block + deadline // 3
+    wallet_3hf.get_block(blocks_wait + 1, wait_for_block=True)
     budgets = wallet_3hf.get_user_budgets(budget['owner'])
     validate_response(budgets, wallet_3hf.get_user_budgets.__name__)
     assert 0 == len(budgets), "All budgets should be closed. %s" % fmt_time_from_now()
+
+    virt_ops = {'budget_closing', 'budget_outgo'}
+    if reminder.amount:
+        virt_ops.add('budget_owner_income')
+    check_virt_ops(wallet_3hf, blocks_wait - 1, blocks_wait + 1, virt_ops)
+
     acc_balance_after = wallet_3hf.get_account_scr_balance(budget['owner'])
-    assert acc_balance_before - Amount(balance) == acc_balance_after
-    check_virt_ops(
-        wallet_3hf, blocks_wait - 1, blocks_wait + 2,
-        {'budget_owner_income', 'budget_closing', 'budget_outgo'}
-    )
+    assert acc_balance_before - Amount(balance) + reminder == acc_balance_after
+
     node.read_logs()
     check_logs_on_errors(node.logs)

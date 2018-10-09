@@ -11,7 +11,7 @@ from tests.common import (
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])
 def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
-    update_budget_time(budget, start=30, deadline=60)  # to delay opening time for budget
+    update_budget_time(wallet_3hf, budget, start=30, deadline=60)  # to delay opening time for budget
     budget_balance = Amount(budget["balance"])
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
 
@@ -31,7 +31,7 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
 
     check_virt_ops(
         wallet_3hf, response['block_num'], response['block_num'],
-        {'close_budget_by_advertising_moderator', 'closing_budget', 'cash_back_from_advertising_budget_to_owner'}
+        {'close_budget_by_advertising_moderator', 'budget_closing', 'budget_owner_income'}
     )
     assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
     assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
@@ -39,7 +39,7 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])
 def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
-    update_budget_time(budget)
+    update_budget_time(wallet_3hf, budget)
     budget_balance = Amount(budget["balance"])
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
 
@@ -64,8 +64,8 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
     check_virt_ops(
         wallet_3hf, close_block, close_block,
         {
-            'close_budget_by_advertising_moderator', 'closing_budget', 'cash_back_from_advertising_budget_to_owner',
-            'allocate_cash_from_advertising_budget'
+            'close_budget_by_advertising_moderator', 'budget_closing', 'budget_owner_income',
+            'budget_outgo'
         }
     )
     assert len(wallet_3hf.get_budgets(budget['owner'], budget['type'])) == 0
@@ -75,11 +75,11 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
 @pytest.mark.parametrize('moderator', ['alice', 'bob'])
 def test_close_post_vs_banner(wallet_3hf: Wallet, moderator, post_budget, banner_budget):
     new_budget = copy(post_budget)
-    update_budget_time(post_budget)
+    update_budget_time(wallet_3hf, post_budget)
     validate_response(wallet_3hf.create_budget(**post_budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, post_budget)  # update budget params / set budget id
 
-    update_budget_time(banner_budget)
+    update_budget_time(wallet_3hf, banner_budget)
     validate_response(wallet_3hf.create_budget(**banner_budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, banner_budget)  # update budget params / set budget id
 
@@ -94,7 +94,7 @@ def test_close_post_vs_banner(wallet_3hf: Wallet, moderator, post_budget, banner
     banner_budgets = wallet_3hf.get_budgets(banner_budget['owner'], banner_budget['type'])
     assert len(banner_budgets) == 1
 
-    update_budget_time(new_budget)
+    update_budget_time(wallet_3hf, new_budget)
     validate_response(wallet_3hf.create_budget(**new_budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, new_budget)  # update budget params / set budget id
     assert new_budget["id"] > banner_budget["id"], "Newly created budget should have incremented index"
