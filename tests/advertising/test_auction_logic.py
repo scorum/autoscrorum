@@ -1,10 +1,10 @@
 from copy import copy
 
 import pytest
+from graphenebase.amount import Amount
 from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance
-from tests.common import check_virt_ops, DEFAULT_WITNESS
-from graphenebase.amount import Amount
+from tests.common import check_virt_ops, validate_response, DEFAULT_WITNESS
 
 
 def get_capital_delta(capital_before, capital_after):
@@ -43,10 +43,10 @@ def get_affected_balances(wallet, owners):
     return capital, accounts_balances
 
 
-def get_total_sums(current_winners, accs_delta, blocks_cnt):
-    total = {'to_dev-pool': Amount(), 'to_activity_pool': Amount(), 'totsl_spend': Amount()}
-    for budget in current_winners:
-        spend = Amount(budget['per_block']) * blocks_cnt - accs_delta[budget['owner']]
+def get_total_sums(budgets, accs_delta, blocks_cnt):
+    total = {'to_dev_pool': Amount(), 'to_activity_pool': Amount(), 'spend': Amount()}
+    for b in budgets:
+        spend = Amount(b['per_block']) * blocks_cnt - accs_delta[b['owner']]
         dev_pool = spend // 2
         activity_pool = spend - dev_pool
         total['spend'] += spend
@@ -55,37 +55,42 @@ def get_total_sums(current_winners, accs_delta, blocks_cnt):
     return total
 
 
-def create_budgets(wallet, budget, count):
+def create_budgets(wallet, budget, count, sync_start):
     last_block = 0
+    delay = 3 if sync_start else 0
+    budgets = []
     for i in range(1, count + 1):
+        start = delay * (count - i + 1) or 1
         budget_cp = copy(budget)
-        update_budget_time(wallet, budget_cp, deadline=300)
+        update_budget_time(wallet, budget_cp, start=start,  deadline=start + 300 - delay)
         budget_cp.update({"owner": "test.test%d" % i, 'balance': str(Amount(budget['balance']) * i)})
-        response = wallet.create_budget(**budget)
+        response = wallet.create_budget(**budget_cp)
+        validate_response(response, wallet.create_budget.__name__)
         last_block = response['block_num']
-    return last_block
+        budgets.append(budget_cp)
+    return budgets, last_block
 
 
 @pytest.mark.parametrize('count', [1, 3, 5])
-def test_cashout_budgets_distribution(wallet_3hf: Wallet, budget, count):
-    last_block = create_budgets(wallet_3hf, budget, count)
-    current_winners = wallet_3hf.get_current_winners(budget['type'])
-    owners = [b['owner'] for b in current_winners]
+@pytest.mark.parametrize('sync_start', [True, False])  # to start budgets at same time or not
+def test_cashout_budgets_distribution(wallet_3hf: Wallet, budget, count, sync_start):
+    budgets, last_block = create_budgets(wallet_3hf, budget, count, sync_start)
+    owners = [b['owner'] for b in budgets]
     cfg = wallet_3hf.get_config()
     cashout_blocks_cnt = int(cfg["SCORUM_ADVERTISING_CASHOUT_PERIOD_SEC"] / cfg["SCORUM_BLOCK_INTERVAL"])
     # collect data before cashout
     capital_before, accounts_balances_before = get_affected_balances(wallet_3hf, owners)
-    [update_budget_balance(wallet_3hf, b) for b in current_winners]
+    [update_budget_balance(wallet_3hf, b) for b in budgets]
     #  wait until cashout
     wallet_3hf.get_block(last_block + cashout_blocks_cnt, wait_for_block=True)
     # collect data after cashout
     capital_after, accounts_balances_after = get_affected_balances(wallet_3hf, owners)
-    [update_budget_balance(wallet_3hf, b) for b in current_winners]
+    [update_budget_balance(wallet_3hf, b) for b in budgets]
     # calc delta between 'after', 'before' cashout states
     capital_delta = get_capital_delta(capital_before, capital_after)
     accounts_balances_delta = get_accounts_delta(accounts_balances_after, accounts_balances_before)
     # calc total payments
-    total = get_total_sums(current_winners, accounts_balances_delta, cashout_blocks_cnt)
+    total = get_total_sums(budgets, accounts_balances_delta, cashout_blocks_cnt)
     # provide checks
     assert capital_delta['dev_pool_scr_balance'] == total['to_dev_pool']
     assert capital_delta['content_balancer_scr'] + \
@@ -95,38 +100,39 @@ def test_cashout_budgets_distribution(wallet_3hf: Wallet, budget, count):
         capital_delta['content_reward_fund_scr_balance'] == total['spend']
 
 
-# active_sp_holder_reward, curator_reward, author_reward, producer_reward
-def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, not_witness_post):
-    post = not_witness_post  # just renaming
+# TODO: uncomment blog related lines when cashout time for posts will be decreased. Now it's 7200 sec
+def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, post):
+    balancer_delay = 7  # blocks to wait until SCR will be in each required pool
     cfg = wallet_3hf.get_config()
-    cashout_blocks_cnt = int(cfg["SCORUM_ADVERTISING_CASHOUT_PERIOD_SEC"] / cfg["SCORUM_BLOCK_INTERVAL"])
-    post_cashout_cnt = int(cfg["SCORUM_CASHOUT_WINDOW_SECONDS"] / cfg["SCORUM_BLOCK_INTERVAL"])
-    active_sph_cashout_cnt = int(cfg["SCORUM_ACTIVE_SP_HOLDERS_REWARD_PERIOD"] / 1000000 / cfg["SCORUM_BLOCK_INTERVAL"])
+    # Advertising cashout_blocks count
+    adv_cash_blocks = int(cfg["SCORUM_ADVERTISING_CASHOUT_PERIOD_SEC"] / cfg["SCORUM_BLOCK_INTERVAL"])
+    # Post / comment cashout blocks count
+    # post_cash_blocks = int(cfg["SCORUM_CASHOUT_WINDOW_SECONDS"] / cfg["SCORUM_BLOCK_INTERVAL"])
+    # Active SP holders cashout blocks count
+    asph_cash_blocks = int(cfg["SCORUM_ACTIVE_SP_HOLDERS_REWARD_PERIOD"] / 1000000 / cfg["SCORUM_BLOCK_INTERVAL"]) - 1
+
+    update_budget_time(wallet_3hf, budget, deadline=300)
+    response = wallet_3hf.create_budget(**budget)
+    validate_response(response, wallet_3hf.create_budget.__name__)
+    budget_cashout_block = response['block_num'] + adv_cash_blocks + balancer_delay
+
+    wallet_3hf.get_block(response['block_num'] + balancer_delay, wait_for_block=True)
 
     response = wallet_3hf.post_comment(**post)
-    post_cashout_block = response['block_num'] + post_cashout_cnt
-
-    update_budget_time(wallet_3hf, budget)
-    response = wallet_3hf.create_budget(**budget)
-    budget_cashout_block = response['block_num'] + cashout_blocks_cnt
+    validate_response(response, wallet_3hf.post_comment.__name__)
+    # post_cashout_block = response['block_num'] + post_cash_blocks
 
     response = wallet_3hf.vote(DEFAULT_WITNESS, post['author'], post['permlink'])
-    active_sph_cashout_block = response['block_num'] + active_sph_cashout_cnt
+    validate_response(response, wallet_3hf.vote.__name__)
+    active_sph_cashout_block = response['block_num'] + asph_cash_blocks
 
     blocks_ops = [
         (budget_cashout_block, 'producer_reward'),
-        (active_sph_cashout_block, 'active_sp_holder_reward'),
-        (post_cashout_block, 'author_reward'),
-        (post_cashout_block, 'curator_reward')
+        (active_sph_cashout_block, 'active_sp_holders_reward'),
+        # (post_cashout_block, 'author_reward'),
+        # (post_cashout_block, 'curator_reward')
     ]
-
     for cashout_block, op in blocks_ops:
         wallet_3hf.get_block(cashout_block, wait_for_block=True)
         ops = check_virt_ops(wallet_3hf, cashout_block, cashout_block, {op})
-        for name, data in ops:
-            if name == op:
-                assert Amount(data['reward_scr']) > 0
-
-    update_budget_balance(wallet_3hf, budget)
-    assert all(Amount(budget[k]).amount == 0 for k in {'budget_pending_outgo', 'owner_pending_income'}), \
-        "Pending SCR para,eters should be empty after provided payments."
+        assert any(Amount(data['reward']) > 0 and 'SCR' in data['reward'] for name, data in ops if name == op)
