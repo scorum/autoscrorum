@@ -4,7 +4,7 @@ import pytest
 from graphenebase.amount import Amount
 from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance
-from tests.common import check_virt_ops, validate_response, DEFAULT_WITNESS
+from tests.common import check_virt_ops, validate_response, gen_uid, DEFAULT_WITNESS
 
 
 def get_capital_delta(capital_before, capital_after):
@@ -55,7 +55,7 @@ def get_total_sums(budgets, accs_delta, blocks_cnt):
     return total
 
 
-def create_budgets(wallet, budget, count, sync_start):
+def create_budgets(wallet, budget, count, sync_start=False):
     last_block = 0
     delay = 3 if sync_start else 0
     budgets = []
@@ -63,7 +63,11 @@ def create_budgets(wallet, budget, count, sync_start):
         start = delay * (count - i + 1) or 1
         budget_cp = copy(budget)
         update_budget_time(wallet, budget_cp, start=start,  deadline=start + 300 - delay)
-        budget_cp.update({"owner": "test.test%d" % i, 'balance': str(Amount(budget['balance']) * i)})
+        budget_cp.update({
+            "owner": "test.test%d" % i,
+            'balance': str(Amount(budget['balance']) * i),
+            "uuid": gen_uid()
+        })
         response = wallet.create_budget(**budget_cp)
         validate_response(response, wallet.create_budget.__name__)
         last_block = response['block_num']
@@ -71,6 +75,7 @@ def create_budgets(wallet, budget, count, sync_start):
     return budgets, last_block
 
 
+@pytest.mark.skip_long_term
 @pytest.mark.parametrize('count', [1, 3, 5])
 @pytest.mark.parametrize('sync_start', [True, False])  # to start budgets at same time or not
 def test_cashout_budgets_distribution(wallet_3hf: Wallet, budget, count, sync_start):
@@ -101,6 +106,7 @@ def test_cashout_budgets_distribution(wallet_3hf: Wallet, budget, count, sync_st
 
 
 # TODO: uncomment blog related lines when cashout time for posts will be decreased. Now it's 7200 sec
+@pytest.mark.skip_long_term
 def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, post):
     balancer_delay = 7  # blocks to wait until SCR will be in each required pool
     cfg = wallet_3hf.get_config()
@@ -136,3 +142,39 @@ def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, post):
         wallet_3hf.get_block(cashout_block, wait_for_block=True)
         ops = check_virt_ops(wallet_3hf, cashout_block, cashout_block, {op})
         assert any(Amount(data['reward']) > 0 and 'SCR' in data['reward'] for name, data in ops if name == op)
+
+
+@pytest.mark.parametrize(
+    'coeffs, idx, param_stop, param_start',
+    [
+        # after coeffs reduction last winner became common budget owner
+        ([100, 85, 75], -2, 'budget_pending_outgo', 'owner_pending_income'),
+        # after coeffs extension top common budget owner became last winner
+        ([100, 85, 75, 65, 55], -1, 'owner_pending_income', 'budget_pending_outgo')
+    ]
+)
+@pytest.mark.parametrize('sync_start', [True, False])  # to start budgets at same time or not
+def test_coeffs_change_influence_on_pending(
+        wallet_3hf: Wallet, budget, coeffs, idx, param_stop, param_start,sync_start
+):
+    budgets, _ = create_budgets(wallet_3hf, budget, 5, sync_start)
+    wallet_3hf.development_committee_change_budgets_auction_properties(DEFAULT_WITNESS, coeffs, 86400, budget['type'])
+    proposals = wallet_3hf.list_proposals()
+
+    budgets_before = sorted(
+        wallet_3hf.get_budgets([b['owner'] for b in budgets], budget['type']),
+        key=lambda k: k['per_block'], reverse=True
+    )
+
+    wallet_3hf.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"])
+
+    budgets_after = sorted(
+        wallet_3hf.get_budgets([b['owner'] for b in budgets], budget['type']),
+        key=lambda k: k['per_block'], reverse=True
+    )
+
+    assert Amount(budgets_after[idx][param_stop]) - Amount(budgets_before[idx][param_stop]) == 0, \
+        "Param '%s' shouldn't change after coefficients update." % param_stop
+    assert Amount(budgets_after[idx][param_start]) - Amount(budgets_before[idx][param_start]) == \
+        Amount(budgets_before[idx]['per_block']), \
+        "Param '%s' should increase on per_block amount after coefficients change." % param_start

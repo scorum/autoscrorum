@@ -6,15 +6,6 @@ from src.utils import to_date, date_to_str
 from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork, gen_uid
 
 
-def find_budget_id(budgets_list, budget_object):
-    if 'id' in budget_object.keys():
-        return
-    for budget in budgets_list:
-        if all([budget[key] == budget_object[key] for key in budget_object.keys()]):
-            budget_object['id'] = budget['id']
-            budget_object['per_block'] = budget['per_block']
-
-
 def update_budget_balance(wallet, budget):
     response = wallet.get_budget(budget['uuid'], budget['type'])
     validate_response(response, wallet.get_budget.__name__)
