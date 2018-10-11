@@ -1,11 +1,11 @@
 import os
 import re
 import time
+import uuid
 from functools import partial
 from multiprocessing import Pool
 
 from delayed_assert import expect, assert_expectations
-
 from src.wallet import Wallet
 
 DEFAULT_WITNESS = "initdelegate"
@@ -20,7 +20,8 @@ RE_INSUFF_FUNDS = r"Assert Exception\nowner\.balance >= op\.balance: Insufficien
 RE_COMMON_ERROR = r"Assert Exception"
 RE_POSITIVE_BALANCE = r"Assert Exception\nbalance > asset\(0, SCORUM_SYMBOL\): Balance must be positive"
 RE_DEADLINE_TIME = r"Assert Exception\n.* Deadline time must be greater or equal then start time"
-RE_START_TIME = r"Assert Exception\n.* Start time must be greater or equal then head block time"
+RE_START_TIME = r"Assert Exception\n.* Start time must be greater than head block time"
+RE_INVALID_UUID = r"invalid uuid string"
 MAX_INT_64 = 9223372036854775807
 
 
@@ -168,3 +169,7 @@ def apply_hardfork(wallet: Wallet, hf_id: int):
         wallet.debug_set_hardfork(i)
         wallet.get_block(i + 2, wait_for_block=True)
         assert wallet.debug_has_hardfork(i)
+
+
+def gen_uid(unique: str=None):
+    return str(uuid.uuid3(uuid.NAMESPACE_DNS, unique)) if unique else str(uuid.uuid4())

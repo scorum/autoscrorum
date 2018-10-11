@@ -1,9 +1,12 @@
-import pytest
 from copy import copy
-from src.wallet import Wallet
+
+import pytest
 from graphenebase.amount import Amount
+from src.wallet import Wallet
 from tests.advertising.conftest import empower_advertising_moderator, update_budget_balance, update_budget_time
-from tests.common import validate_response, DEFAULT_WITNESS, MAX_INT_64
+from tests.common import (
+    DEFAULT_WITNESS, MAX_INT_64, RE_INVALID_UUID, validate_response, validate_error_response, gen_uid
+)
 
 
 @pytest.mark.parametrize('moderator', ['alice', 'bob', DEFAULT_WITNESS])
@@ -39,20 +42,34 @@ def test_get_budget(wallet_3hf: Wallet, budget):
     update_budget_time(wallet_3hf, budget)
     validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, budget)
-    budget_obj = wallet_3hf.get_budget(budget["id"], budget["type"])
+    budget_obj = wallet_3hf.get_budget(budget["uuid"], budget["type"])
     validate_response(
         budget_obj,  wallet_3hf.get_budget.__name__,
         [
             ('owner', budget['owner']), 'balance', 'per_block', 'owner_pending_income', 'budget_pending_outgo',
-            'start', 'created', 'deadline', 'cashout_time'
+            'start', 'created', 'deadline', 'cashout_time', 'uuid'
         ]
     )
 
 
-@pytest.mark.parametrize('idx', [-1, MAX_INT_64])
-def test_get_budget_invalid_idx(wallet_3hf: Wallet, opened_budgets, idx):
+def test_get_budgets(wallet_3hf: Wallet, opened_budgets):
+    response = wallet_3hf.get_budgets([b['owner'] for b in opened_budgets], opened_budgets[0]['type'])
+    validate_response(response,  wallet_3hf.get_budget.__name__)
+    assert len(response) == len(opened_budgets)
+
+
+@pytest.mark.parametrize('uuid', [-1, MAX_INT_64, 'asd'])
+def test_get_budget_invalid_uuid(wallet_3hf: Wallet, opened_budgets, uuid):
     budget = opened_budgets[0]
-    assert wallet_3hf.get_budget(idx, budget["type"]) is None
+    validate_error_response(
+        wallet_3hf.get_budget(uuid, budget["type"]), wallet_3hf.get_budget.__name__, RE_INVALID_UUID
+    )
+
+
+@pytest.mark.parametrize('uuid', [gen_uid])
+def test_get_budget_unknown_uuid(wallet_3hf: Wallet, opened_budgets, uuid):
+    budget = opened_budgets[0]
+    assert wallet_3hf.get_budget(uuid(), budget["type"]) is None
 
 
 @pytest.mark.parametrize('budget_type', ['post', 'banner'])
@@ -81,7 +98,7 @@ def test_get_current_winners_order(wallet_3hf: Wallet, budget, order):
     for i in order:
         b = copy(budget)
         update_budget_time(wallet_3hf, b)
-        b['balance'] = str(Amount(b['balance']) * (i / 10))
+        b.update({'balance': str(Amount(b['balance']) * (i / 10)), 'uuid': gen_uid()})
         validate_response(wallet_3hf.create_budget(**b), wallet_3hf.create_budget.__name__)
 
     response = wallet_3hf.get_current_winners(budget["type"])

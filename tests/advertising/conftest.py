@@ -1,9 +1,9 @@
 from copy import copy
 
 import pytest
-from src.utils import to_date, date_to_str
-from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork
 from graphenebase.amount import Amount
+from src.utils import to_date, date_to_str
+from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork, gen_uid
 
 
 def find_budget_id(budgets_list, budget_object):
@@ -15,19 +15,10 @@ def find_budget_id(budgets_list, budget_object):
             budget_object['per_block'] = budget['per_block']
 
 
-def update_budget_balance(wallet, budget_object):
-    budgets_list = wallet.get_budgets(budget_object['owner'], budget_object['type'])
-    budget_object.pop('balance', None)
-
-    find_budget_id(budgets_list, budget_object)
-
-    for budget in budgets_list:
-        if budget['id'] == budget_object['id']:
-            budget_object['balance'] = budget['balance']
-            budget_object['created'] = budget['created']
-            budget_object['owner_pending_income'] = budget['owner_pending_income']
-            budget_object['budget_pending_outgo'] = budget['budget_pending_outgo']
-            budget_object['json_metadata'] = budget['json_metadata']
+def update_budget_balance(wallet, budget):
+    response = wallet.get_budget(budget['uuid'], budget['type'])
+    validate_response(response, wallet.get_budget.__name__)
+    budget.update(**response)
 
 
 def empower_advertising_moderator(wallet, account):
@@ -64,6 +55,7 @@ def calc_per_block(n: int, balance: Amount):
 def post_budget():
     return {
         'type': "post",
+        'uuid': gen_uid(),
         'owner': 'test.test1',
         'json_metadata': "{}",
         'balance': "1.000000000 SCR",
@@ -76,6 +68,7 @@ def post_budget():
 def banner_budget():
     return {
         'type': "banner",
+        'uuid': gen_uid(),
         'owner': 'test.test1',
         'json_metadata': "{}",
         'balance': "1.000000000 SCR",
@@ -106,7 +99,7 @@ def opened_budgets(wallet_3hf, budget):
     for i in range(1, 4):
         budget_cp = copy(budget)
         update_budget_time(wallet_3hf, budget_cp, deadline=300)  # to leave all budgets opened
-        budget_cp.update({"owner": "test.test%d" % i})
+        budget_cp.update({"owner": "test.test%d" % i, 'uuid': gen_uid()})
         validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
         update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
         budgets.append(budget_cp)
@@ -119,6 +112,7 @@ def opened_budgets_same_acc(wallet_3hf, budget):
     for i in range(1, 4):
         budget_cp = copy(budget)
         update_budget_time(wallet_3hf, budget_cp, deadline=300)  # to leave all budgets opened
+        budget_cp.update({'uuid': gen_uid()})
         validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
         update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
         budgets.append(budget_cp)

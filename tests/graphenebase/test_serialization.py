@@ -35,13 +35,16 @@ def test_serialize_post_to_byte():
 @pytest.mark.parametrize(
     'budget_type,result_bin',
     [
-        ("post", b'1a00000000000000000c696e697464656c6567617465027b7d00e40b540200000009534352000000009b2a645bb92a645b'),
-        ("banner", b'1a01000000000000000c696e697464656c6567617465027b7d00e40b540200000009534352000000009b2a645bb92a645b'),
+        ("post", b'1a00000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465027b7d00e40b5402000000'
+                 b'09534352000000009b2a645bb92a645b'),
+        ("banner", b'1a01000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465027b7d00e40b5402000000'
+                   b'09534352000000009b2a645bb92a645b'),
     ]
 )
 def test_serialize_create_budget_to_byte(budget_type, result_bin):
     op = create_budget_operation(
-        "initdelegate", "{}", Amount("10.000000000 SCR"), "2018-08-03T10:12:43", "2018-08-03T10:13:13", budget_type
+        "6DCD3132-E5DF-480A-89A8-91984BCA0A09", "initdelegate", "{}", Amount("10.000000000 SCR"),
+        "2018-08-03T10:12:43", "2018-08-03T10:13:13", budget_type
     )
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
     assert hexlify(bytes(signed_ops.data[0])) == result_bin

@@ -268,8 +268,8 @@ class Wallet(object):
         result['memo'] = account['memo_key']
         return result
 
-    def get_budgets(self, owner_name: str, budget_type="post"):
-        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, [owner_name]]))
+    def get_budgets(self, owners: list, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, owners]))
         try:
             return response['result']
         except KeyError:
@@ -310,9 +310,9 @@ class Wallet(object):
         ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
         return ref_block_num, ref_block_prefix
 
-    def get_budget(self, budget_id, budget_type="post"):
+    def get_budget(self, uuid, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body(
-            "call", 'advertising_api', 'get_budget', [budget_id, budget_type]
+            "call", 'advertising_api', 'get_budget', [uuid, budget_type]
         ))
         try:
             return response['result']
@@ -342,8 +342,8 @@ class Wallet(object):
         except KeyError:
             return response
 
-    def create_budget(self, owner, balance, start, deadline, json_metadata="{}", type="post"):
-        op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, type)
+    def create_budget(self, uuid, owner, balance, start, deadline, json_metadata="{}", type="post"):
+        op = operations.create_budget_operation(uuid, owner, json_metadata, balance, start, deadline, type)
 
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])

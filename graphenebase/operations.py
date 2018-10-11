@@ -6,7 +6,7 @@ from .types import (
     Varint32, Int64, String, Bytes, Void,
     Array, PointInTime, Signature, Bool,
     Set, Fixed_array, Optional, Static_variant,
-    Map, Id, VoteId, ObjectId, BudgetType
+    Map, Id, VoteId, ObjectId, BudgetType, Uuid
 )
 from .objects import GrapheneObject, isArgsThisClass
 from .account import PublicKey
@@ -109,6 +109,7 @@ class CreateBudget(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('type', BudgetType(kwargs['type'])),
+                    ('uuid', Uuid(kwargs['uuid'])),
                     ('owner', String(kwargs["owner"])),
                     ('json_metadata', String(kwargs["json_metadata"])),
                     ('balance', Amount(kwargs["balance"])),
