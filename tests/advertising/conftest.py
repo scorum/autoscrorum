@@ -42,12 +42,22 @@ def update_budget_time(wallet, budget, start=1, deadline=31):
     })
 
 
-def calc_per_block(n: int, balance: Amount):
-    per_blocks_cnt = n // 3 + (1 if n % 3 else 0) + 1
+def get_per_blocks_count(start, deadline):
+    """
+    Calculate amount of blocks between budget start and deadline.
+    :param int start: Time shift to start budget. Should be > 0. E.g. start_time = head_block_time + start
+    :param int deadline: Time shift to close budget. E.g. deadline_time = head_block_time + start + deadline
+    :return:
+    """
+    blocks = deadline // 3 + 1  # deadline == deadline_time - start_time
+    if (not start % 3 and deadline % 3) or (start % 3 == 2 and deadline % 3 == 2):
+        return blocks + 1
+    return blocks
+
+
+def calc_per_block(per_blocks_cnt: int, balance: Amount):
     per_block = balance / per_blocks_cnt
-    reminder = (
-            balance - per_block * per_blocks_cnt
-    ) if per_block.amount > 0 and balance.amount % per_block.amount else Amount()
+    reminder = balance - per_block * per_blocks_cnt
     return per_block, reminder
 
 

@@ -3,9 +3,9 @@ from copy import copy
 import pytest
 from graphenebase.amount import Amount
 from src.wallet import Wallet
-from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block
+from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block, get_per_blocks_count
 from tests.common import (
-    validate_response, validate_error_response, check_logs_on_errors, check_virt_ops, gen_uid,
+    validate_response, validate_error_response, check_virt_ops, gen_uid,
     RE_INSUFF_FUNDS, RE_POSITIVE_BALANCE, RE_DEADLINE_TIME, RE_START_TIME
 )
 
@@ -38,13 +38,11 @@ def test_create_budget(wallet_3hf: Wallet, node, budget, start, deadline):
     assert budget_balance == Amount(budget['balance']) + Amount(budget['owner_pending_income']) + \
         Amount(budget['budget_pending_outgo'])
 
-    per_block, _ = calc_per_block(deadline, budget_balance)
+    per_block, _ = calc_per_block(get_per_blocks_count(start, deadline), budget_balance)
     assert per_block == Amount(budget['per_block'])
 
     budgets_summary = wallet_3hf.get_dynamic_global_properties()['advertising'][DGP_BUDGETS[budget['type']]]
     assert all(budgets_summary[k] == budget[v] for k, v in DGP_PARAMS_MAP.items())
-    #node.read_logs()
-    #check_logs_on_errors(node.logs)
 
 
 @pytest.mark.parametrize('params,err_response_code', [
@@ -102,5 +100,3 @@ def test_create_budgets(wallet_3hf: Wallet, node, opened_budgets_same_acc, budge
         )
         for k, v in DGP_PARAMS_MAP.items()
     )
-    node.read_logs()
-    check_logs_on_errors(node.logs)

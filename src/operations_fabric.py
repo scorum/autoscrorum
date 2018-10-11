@@ -172,18 +172,18 @@ def create_budget_operation(uuid, owner, json_metadata, balance: Amount, start, 
     )
 
 
-def close_budget_operation(owner, id, budget_type):
+def close_budget_operation(uuid, owner, budget_type):
     return operations.CloseBudget(
         **{'owner': owner,
-           'id': id,
+           'uuid': uuid,
            'type': budget_type}
     )
 
 
-def update_budget_operation(budget_type, id, owner, json_metadata):
+def update_budget_operation(uuid, owner, json_metadata, budget_type):
     return operations.UpdateBudget(
         **{'type': budget_type,
-           'id': id,
+           'uuid': uuid,
            'owner': owner,
            'json_metadata': json_metadata}
     )
@@ -271,11 +271,11 @@ def development_committee_change_budgets_auction_properties(initiator, lifetime_
     )
 
 
-def close_budget_by_advertising_moderator(moderator, budget_id, budget_type):
+def close_budget_by_advertising_moderator(uuid, moderator, budget_type):
     return operations.CloseBudgetByAdvertisingModerator(
         **{
             "moderator": moderator,
-            "budget_id": budget_id,
+            "uuid": uuid,
             "type": budget_type
         }
     )

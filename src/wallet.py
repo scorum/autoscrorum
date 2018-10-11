@@ -348,20 +348,20 @@ class Wallet(object):
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def close_budget(self, type, id, owner):
-        op = operations.close_budget_operation(owner, id, type)
+    def close_budget(self, uuid, owner, type):
+        op = operations.close_budget_operation(uuid, owner, type)
 
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def close_budget_by_advertising_moderator(self, moderator: str, budget_id: int, budget_type="post"):
-        op = operations.close_budget_by_advertising_moderator(moderator, budget_id, budget_type)
+    def close_budget_by_advertising_moderator(self, uuid, moderator: str, budget_type="post"):
+        op = operations.close_budget_by_advertising_moderator(uuid, moderator, budget_type)
 
         signing_key = self.account(moderator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def update_budget(self, type, budget_id, owner, json_metadata):
-        op = operations.update_budget_operation(type, budget_id, owner, json_metadata)
+    def update_budget(self, uuid, owner, json_metadata, type):
+        op = operations.update_budget_operation(uuid, owner, json_metadata, type)
 
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])

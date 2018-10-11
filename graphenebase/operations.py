@@ -128,7 +128,7 @@ class CloseBudget(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('type', BudgetType(kwargs['type'])),
-                    ('budget_id', Int64(kwargs['id'])),
+                    ('uuid', Uuid(kwargs['uuid'])),
                     ('owner', String(kwargs['owner'])),
                 ]))
 
@@ -143,7 +143,7 @@ class UpdateBudget(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('type', BudgetType(kwargs['type'])),
-                    ('budget_id', Int64(kwargs['id'])),
+                    ('uuid', Uuid(kwargs['uuid'])),
                     ('owner', String(kwargs['owner'])),
                     ('json_metadata', String(kwargs['json_metadata'])),
                 ]))
@@ -468,6 +468,6 @@ class CloseBudgetByAdvertisingModerator(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('type', BudgetType(kwargs['type'])),
-                    ('budget_id', Int64(kwargs["budget_id"])),
+                    ('uuid', Uuid(kwargs["uuid"])),
                     ('moderator', String(kwargs["moderator"]))
                 ]))

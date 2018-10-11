@@ -5,7 +5,7 @@ from graphenebase.amount import Amount
 from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, empower_advertising_moderator, update_budget_balance
 from tests.common import (
-    DEFAULT_WITNESS, validate_response, validate_error_response, RE_BUDGET_NOT_EXIST, MAX_INT_64, check_virt_ops
+    DEFAULT_WITNESS, validate_response, validate_error_response, RE_BUDGET_NOT_EXIST, check_virt_ops, gen_uid
 )
 
 
@@ -23,7 +23,7 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
     assert balance_before - balance_after_create == budget_balance
 
     empower_advertising_moderator(wallet_3hf, moderator)
-    response = wallet_3hf.close_budget_by_advertising_moderator(moderator, budget["id"], budget["type"])
+    response = wallet_3hf.close_budget_by_advertising_moderator(budget["uuid"], moderator, budget["type"])
     validate_response(response, wallet_3hf.close_budget_by_advertising_moderator.__name__)
 
     balance_after_close = wallet_3hf.get_account_scr_balance(budget["owner"])
@@ -54,7 +54,7 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
     assert balance_before - balance_after_create == budget_balance
 
     empower_advertising_moderator(wallet_3hf, moderator)
-    response = wallet_3hf.close_budget_by_advertising_moderator(moderator, budget["id"], budget["type"])
+    response = wallet_3hf.close_budget_by_advertising_moderator(budget["uuid"], moderator, budget["type"])
     validate_response(response, wallet_3hf.close_budget_by_advertising_moderator.__name__)
     close_block = response["block_num"]
 
@@ -86,7 +86,7 @@ def test_close_post_vs_banner(wallet_3hf: Wallet, moderator, post_budget, banner
     assert post_budget["id"] == banner_budget["id"]  # both = 0
 
     empower_advertising_moderator(wallet_3hf, moderator)
-    response = wallet_3hf.close_budget_by_advertising_moderator(moderator, post_budget["id"], post_budget["type"])
+    response = wallet_3hf.close_budget_by_advertising_moderator(post_budget["uuid"], moderator, post_budget["type"])
     validate_response(response, wallet_3hf.close_budget_by_advertising_moderator.__name__)
 
     post_budgets = wallet_3hf.get_budgets([post_budget['owner']], post_budget['type'])
@@ -95,6 +95,7 @@ def test_close_post_vs_banner(wallet_3hf: Wallet, moderator, post_budget, banner
     assert len(banner_budgets) == 1
 
     update_budget_time(wallet_3hf, new_budget)
+    new_budget.update({'uuid': gen_uid()})
     validate_response(wallet_3hf.create_budget(**new_budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, new_budget)  # update budget params / set budget id
     assert new_budget["id"] > banner_budget["id"], "Newly created budget should have incremented index"
@@ -105,7 +106,7 @@ def test_close_budgets(wallet_3hf: Wallet, moderator, opened_budgets_same_acc):
     budgets = opened_budgets_same_acc  # just renaming
     empower_advertising_moderator(wallet_3hf, moderator)
     validate_response(
-        wallet_3hf.close_budget_by_advertising_moderator(moderator, budgets[0]["id"], budgets[0]["type"]),
+        wallet_3hf.close_budget_by_advertising_moderator(budgets[0]["uuid"], moderator, budgets[0]["type"]),
         wallet_3hf.close_budget_by_advertising_moderator.__name__
     )
 
@@ -114,18 +115,18 @@ def test_close_budgets(wallet_3hf: Wallet, moderator, opened_budgets_same_acc):
     assert all(rb["id"] != budgets[0]["id"] for rb in rest_budgets)
     # delete already deleted
     validate_error_response(
-        wallet_3hf.close_budget_by_advertising_moderator(moderator, budgets[0]["id"], budgets[0]["type"]),
+        wallet_3hf.close_budget_by_advertising_moderator(budgets[0]["uuid"], moderator, budgets[0]["type"]),
         wallet_3hf.close_budget_by_advertising_moderator.__name__,
         RE_BUDGET_NOT_EXIST
     )
 
 
-@pytest.mark.parametrize('index', [-1, MAX_INT_64])
-def test_invalid_idx(wallet_3hf: Wallet, opened_budgets, index):
-    moderator = 'alice'
+@pytest.mark.parametrize('uuid', [gen_uid])
+@pytest.mark.parametrize('moderator', ['alice'])
+def test_unknown_uuid(wallet_3hf: Wallet, opened_budgets, uuid, moderator):
     empower_advertising_moderator(wallet_3hf, moderator)
     validate_error_response(
-        wallet_3hf.close_budget_by_advertising_moderator(moderator, index, opened_budgets[0]["type"]),
+        wallet_3hf.close_budget_by_advertising_moderator(uuid(), moderator, opened_budgets[0]["type"]),
         wallet_3hf.close_budget_by_advertising_moderator.__name__,
         RE_BUDGET_NOT_EXIST
     )

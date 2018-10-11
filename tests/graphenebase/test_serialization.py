@@ -69,12 +69,12 @@ def test_serialize_development_committee_empower_advertising_moderator_to_byte()
 @pytest.mark.parametrize(
     'budget_type,result_bin',
     [
-        ("post", b'21000000000000000001000000000000000c696e697464656c6567617465'),
-        ("banner", b'21010000000000000001000000000000000c696e697464656c6567617465'),
+        ("post", b'2100000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465'),
+        ("banner", b'2101000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465'),
     ]
 )
 def test_serialize_close_budget_by_advertising_moderator_to_byte(budget_type, result_bin):
-    op = close_budget_by_advertising_moderator("initdelegate", 1, budget_type)
+    op = close_budget_by_advertising_moderator("6DCD3132-E5DF-480A-89A8-91984BCA0A09", "initdelegate", budget_type)
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
     assert hexlify(bytes(signed_ops.data[0])) == result_bin
 
@@ -86,7 +86,7 @@ def test_serialize_close_budget_by_advertising_moderator_to_byte(budget_type, re
         ("banner", b'1d0c696e697464656c6567617465805101000a025a003200'),
     ]
 )
-def test_serialize_development_committee_change_post_budgets_auction_properties_to_byte(budget_type, result_bin):
+def test_serialize_development_committee_change_budgets_auction_properties_to_byte(budget_type, result_bin):
     op = development_committee_change_budgets_auction_properties("initdelegate", 86400, [90, 50], budget_type)
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
     assert hexlify(bytes(signed_ops.data[0])) == result_bin
@@ -95,13 +95,15 @@ def test_serialize_development_committee_change_post_budgets_auction_properties_
 @pytest.mark.parametrize(
     'budget_type,result_bin',
     [
-        ("post", b'22000000000000000000000000000000000c696e697464656c6567617465157b226d657461223a2022736f6d655f6d657461227d'),
-        ("banner", b'22010000000000000000000000000000000c696e697464656c6567617465157b226d657461223a2022736f6d655f6d657461227d'),
+        ("post", b'2200000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465157b226d657461223a'
+                 b'2022736f6d655f6d657461227d'),
+        ("banner", b'2201000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465157b226d657461223a'
+                   b'2022736f6d655f6d657461227d'),
     ]
 )
 def test_serialize_update_budget_to_byte(budget_type, result_bin):
     op = update_budget_operation(
-        budget_type, 0, "initdelegate", "{\"meta\": \"some_meta\"}"
+        "6DCD3132-E5DF-480A-89A8-91984BCA0A09", "initdelegate", "{\"meta\": \"some_meta\"}", budget_type
     )
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
     assert hexlify(bytes(signed_ops.data[0])) == result_bin
@@ -110,11 +112,11 @@ def test_serialize_update_budget_to_byte(budget_type, result_bin):
 @pytest.mark.parametrize(
     'budget_type,result_bin',
     [
-        ("post", b'1b000000000000000000000000000000000c696e697464656c6567617465'),
-        ("banner", b'1b010000000000000000000000000000000c696e697464656c6567617465'),
+        ("post", b'1b00000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465'),
+        ("banner", b'1b01000000000000006dcd3132e5df480a89a891984bca0a090c696e697464656c6567617465'),
     ]
 )
 def test_serialize_close_budget_to_byte(budget_type, result_bin):
-    op = close_budget_operation("initdelegate", 0, budget_type)
+    op = close_budget_operation("6DCD3132-E5DF-480A-89A8-91984BCA0A09", "initdelegate", budget_type)
     signed_ops = SignedTransaction.cast_operations_to_array_of_opklass([op])
     assert hexlify(bytes(signed_ops.data[0])) == result_bin

@@ -4,10 +4,9 @@ import pytest
 from graphenebase.amount import Amount
 from src.utils import fmt_time_from_now
 from src.wallet import Wallet
-from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block
+from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block, get_per_blocks_count
 from tests.common import (
-    validate_response, validate_error_response, check_logs_on_errors, check_virt_ops,
-    RE_BUDGET_NOT_EXIST, MAX_INT_64
+    validate_response, validate_error_response, check_virt_ops, gen_uid, RE_BUDGET_NOT_EXIST
 )
 
 
@@ -16,7 +15,7 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget):
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
     validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
     update_budget_balance(wallet_3hf, budget)  # update budget params / set budget id
-    response = wallet_3hf.close_budget(budget['type'], budget["id"], budget["owner"])
+    response = wallet_3hf.close_budget(budget['uuid'], budget["owner"], budget["type"])
     validate_response(response, wallet_3hf.close_budget.__name__)
     balance_after = wallet_3hf.get_account_scr_balance(budget["owner"])
     assert balance_after == balance_before
@@ -37,7 +36,7 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget):
     update_budget_balance(wallet_3hf, budget)  # update budget params / set budget id
     per_block = Amount(budget["per_block"])
 
-    response = wallet_3hf.close_budget(budget['type'], budget["id"], budget["owner"])
+    response = wallet_3hf.close_budget(budget['uuid'], budget["owner"], budget["type"])
     validate_response(response, wallet_3hf.close_budget.__name__)
     close_block = response["block_num"]
     balance_after = wallet_3hf.get_account_scr_balance(budget["owner"])
@@ -62,7 +61,7 @@ def test_close_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
 
     assert post_budget["id"] == banner_budget["id"]  # both = 0
 
-    response = wallet_3hf.close_budget(post_budget['type'], post_budget["id"], post_budget["owner"])
+    response = wallet_3hf.close_budget(post_budget['uuid'], post_budget["owner"], post_budget["type"])
     validate_response(response, wallet_3hf.close_budget.__name__)
 
     post_budgets = wallet_3hf.get_budgets([post_budget['owner']], post_budget['type'])
@@ -79,7 +78,7 @@ def test_close_post_vs_banner(wallet_3hf: Wallet, post_budget, banner_budget):
 def test_close_budgets(wallet_3hf: Wallet, opened_budgets_same_acc):
     budgets = opened_budgets_same_acc  # just renaming
     validate_response(
-        wallet_3hf.close_budget(budgets[0]["type"], budgets[0]["id"], budgets[0]["owner"]),
+        wallet_3hf.close_budget(budgets[0]["uuid"], budgets[0]["owner"], budgets[0]["type"]),
         wallet_3hf.close_budget.__name__
     )
 
@@ -88,25 +87,24 @@ def test_close_budgets(wallet_3hf: Wallet, opened_budgets_same_acc):
     assert all(rb["id"] != budgets[0]["id"] for rb in rest_budgets)
     # delete already deleted
     validate_error_response(
-        wallet_3hf.close_budget(budgets[0]['type'], budgets[0]["id"], budgets[0]["owner"]),
+        wallet_3hf.close_budget(budgets[0]['uuid'], budgets[0]["owner"], budgets[0]["type"]),
         wallet_3hf.close_budget.__name__,
         RE_BUDGET_NOT_EXIST
     )
 
 
-@pytest.mark.parametrize('index', [-1, MAX_INT_64])
-def test_invalid_idx(wallet_3hf: Wallet, opened_budgets, index):
+@pytest.mark.parametrize('uuid', [gen_uid])
+def test_unknown_uuid(wallet_3hf: Wallet, opened_budgets, uuid):
     validate_error_response(
-        wallet_3hf.close_budget(opened_budgets[0]["type"], index, opened_budgets[0]["owner"]),
+        wallet_3hf.close_budget(uuid(), opened_budgets[0]["owner"], opened_budgets[0]["type"]),
         wallet_3hf.close_budget.__name__,
         RE_BUDGET_NOT_EXIST
     )
 
 
-@pytest.mark.skip_long_term
-@pytest.mark.parametrize('start', [0, 6])
-@pytest.mark.parametrize('deadline', [6, 7, 21])
-@pytest.mark.parametrize('balance', ["1.000000000 SCR", "0.000000001 SCR", "0.000000015 SCR"])
+@pytest.mark.parametrize('start', [1, 5, 6])
+@pytest.mark.parametrize('deadline', [6, 7, 20])
+@pytest.mark.parametrize('balance', ["1.000000000 SCR", "0.000000008 SCR"])
 def test_deadline_close_budget(wallet_3hf: Wallet, budget, start, deadline, node, balance):
     acc_balance_before = wallet_3hf.get_account_scr_balance(budget['owner'])
     update_budget_time(wallet_3hf, budget, start=start, deadline=deadline + start)
@@ -115,11 +113,12 @@ def test_deadline_close_budget(wallet_3hf: Wallet, budget, start, deadline, node
     validate_response(response, wallet_3hf.create_budget.__name__, [('block_num', int)])
     update_budget_balance(wallet_3hf, budget)
 
-    per_block, reminder = calc_per_block(deadline, Amount(balance))
+    per_blocks_cnt = get_per_blocks_count(start, deadline)
+    per_block, reminder = calc_per_block(per_blocks_cnt, Amount(balance))
     assert per_block == Amount(budget['per_block'])
 
     last_block = response['block_num']
-    blocks_wait = last_block + deadline // 3
+    blocks_wait = last_block + per_blocks_cnt
     wallet_3hf.get_block(blocks_wait + 1, wait_for_block=True)
     budgets = wallet_3hf.get_user_budgets(budget['owner'])
     validate_response(budgets, wallet_3hf.get_user_budgets.__name__)
@@ -132,6 +131,3 @@ def test_deadline_close_budget(wallet_3hf: Wallet, budget, start, deadline, node
 
     acc_balance_after = wallet_3hf.get_account_scr_balance(budget['owner'])
     assert acc_balance_before - Amount(balance) + reminder == acc_balance_after
-
-    node.read_logs()
-    check_logs_on_errors(node.logs)
