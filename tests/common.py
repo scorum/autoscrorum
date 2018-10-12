@@ -20,6 +20,7 @@ RE_INSUFF_FUNDS = r"Assert Exception\nowner\.balance >= op\.balance: Insufficien
 RE_COMMON_ERROR = r"Assert Exception"
 RE_POSITIVE_BALANCE = r"Assert Exception\nbalance > asset\(0, SCORUM_SYMBOL\): Balance must be positive"
 RE_DEADLINE_TIME = r"Assert Exception\n.* Deadline time must be greater or equal then start time"
+RE_MISSING_AUTHORITY = r"Missing Active Authority"
 RE_START_TIME = r"Assert Exception\n.* Start time must be greater than head block time"
 RE_INVALID_UUID = r"invalid uuid string"
 MAX_INT_64 = 9223372036854775807

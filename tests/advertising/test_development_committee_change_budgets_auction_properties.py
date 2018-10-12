@@ -1,6 +1,6 @@
 import pytest
 from src.wallet import Wallet
-from tests.common import validate_response, validate_error_response, DEFAULT_WITNESS
+from tests.common import validate_response, validate_error_response, DEFAULT_WITNESS, RE_MISSING_AUTHORITY
 
 
 def change_auction_coeffs(wallet, coeffs, budget_type):
@@ -48,3 +48,15 @@ def test_coeffs_change(wallet_3hf, opened_budgets):
     assert len(winners_after) == len(coeffs)
     assert all(winners_after[i]['id'] == winners_before[i]['id'] for i in range(0, len(winners_after) - 1)), \
         "Should remain top '%d' winners before coeffs was changed." % len(coeffs)
+
+
+@pytest.mark.parametrize('account', ['alice', 'test.test2'])
+def test_invalid_signing(wallet_3hf: Wallet, account, budget):
+    data = {
+        'initiator': DEFAULT_WITNESS, 'coeffs': [100, 99, 98], 'lifetime': 86400, 'type': budget['type']
+    }
+    validate_error_response(
+        wallet_3hf.broadcast_multiple_ops('development_committee_change_budgets_auction_properties', [data], {account}),
+        'development_committee_change_budgets_auction_properties',
+        RE_MISSING_AUTHORITY
+    )

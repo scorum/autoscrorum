@@ -172,17 +172,17 @@ def create_budget_operation(uuid, owner, json_metadata, balance: Amount, start, 
     )
 
 
-def close_budget_operation(uuid, owner, budget_type):
+def close_budget_operation(uuid, owner, type):
     return operations.CloseBudget(
         **{'owner': owner,
            'uuid': uuid,
-           'type': budget_type}
+           'type': type}
     )
 
 
-def update_budget_operation(uuid, owner, json_metadata, budget_type):
+def update_budget_operation(uuid, owner, json_metadata, type):
     return operations.UpdateBudget(
-        **{'type': budget_type,
+        **{'type': type,
            'uuid': uuid,
            'owner': owner,
            'json_metadata': json_metadata}
@@ -257,25 +257,25 @@ def development_committee_empower_advertising_moderator(initiator, moderator, li
     )
 
 
-def development_committee_change_budgets_auction_properties(initiator, lifetime_sec, coeffs, budget_type):
+def development_committee_change_budgets_auction_properties(initiator, lifetime, coeffs, type):
     change_budget_op = operations.DevelopmentCommitteeChangePostBudgetsAuctionProperties
-    if budget_type == "banner":
+    if type == "banner":
         change_budget_op = operations.DevelopmentCommitteeChangeBannerBudgetsAuctionProperties
 
     return operations.ProposalCreate(
         **{
             "creator": initiator,
-            "lifetime_sec": lifetime_sec,
+            "lifetime_sec": lifetime,
             "operation": change_budget_op(**{"coeffs": coeffs})
         }
     )
 
 
-def close_budget_by_advertising_moderator(uuid, moderator, budget_type):
+def close_budget_by_advertising_moderator(uuid, moderator, type):
     return operations.CloseBudgetByAdvertisingModerator(
         **{
             "moderator": moderator,
             "uuid": uuid,
-            "type": budget_type
+            "type": type
         }
     )

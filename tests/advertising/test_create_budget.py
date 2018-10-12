@@ -6,7 +6,7 @@ from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block, get_per_blocks_count
 from tests.common import (
     validate_response, validate_error_response, check_virt_ops, gen_uid,
-    RE_INSUFF_FUNDS, RE_POSITIVE_BALANCE, RE_DEADLINE_TIME, RE_START_TIME
+    RE_INSUFF_FUNDS, RE_POSITIVE_BALANCE, RE_DEADLINE_TIME, RE_START_TIME, RE_MISSING_AUTHORITY, DEFAULT_WITNESS
 )
 
 DGP_BUDGETS = {
@@ -114,7 +114,7 @@ def test_create_max_budgets(wallet_3hf: Wallet, budget):
         budgets.append(budget_cp)
     validate_response(
         wallet_3hf.broadcast_multiple_ops('create_budget_operation', budgets, {budget['owner']}),
-        wallet_3hf.broadcast_multiple_ops.__name__
+        'create_budget_operation'
     )
     update_budget_time(wallet_3hf, budget, start=5, deadline=300)
     validate_error_response(
@@ -125,3 +125,13 @@ def test_create_max_budgets(wallet_3hf: Wallet, budget):
     wallet_3hf.close_budget(str(budgets[0]['uuid']), budget['owner'], budget['type'])
     update_budget_time(wallet_3hf, budget, start=5, deadline=300)
     validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
+
+
+@pytest.mark.parametrize('account', ['alice', DEFAULT_WITNESS, 'test.test2'])
+def test_invalid_signing(wallet_3hf: Wallet, budget, account):
+    update_budget_time(wallet_3hf, budget)
+    validate_error_response(
+        wallet_3hf.broadcast_multiple_ops('create_budget_operation', [budget], {account}),
+        'create_budget_operation',
+        RE_MISSING_AUTHORITY
+    )

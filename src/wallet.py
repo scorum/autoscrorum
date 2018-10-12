@@ -354,8 +354,8 @@ class Wallet(object):
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def close_budget_by_advertising_moderator(self, uuid, moderator: str, budget_type="post"):
-        op = operations.close_budget_by_advertising_moderator(uuid, moderator, budget_type)
+    def close_budget_by_advertising_moderator(self, uuid, moderator: str, type="post"):
+        op = operations.close_budget_by_advertising_moderator(uuid, moderator, type)
 
         signing_key = self.account(moderator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
@@ -404,10 +404,10 @@ class Wallet(object):
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def development_committee_change_budgets_auction_properties(
-            self, initiator: str, coeffs: list, lifetime=86400, budget_type="post"
+            self, initiator: str, coeffs: list, lifetime=86400, type="post"
     ):
         op = operations.development_committee_change_budgets_auction_properties(
-            initiator, lifetime, coeffs, budget_type
+            initiator, lifetime, coeffs, type
         )
 
         signing_key = self.account(initiator).get_active_private()

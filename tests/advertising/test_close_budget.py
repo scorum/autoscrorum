@@ -6,7 +6,8 @@ from src.utils import fmt_time_from_now
 from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block, get_per_blocks_count
 from tests.common import (
-    validate_response, validate_error_response, check_virt_ops, gen_uid, RE_BUDGET_NOT_EXIST
+    validate_response, validate_error_response, check_virt_ops, gen_uid, RE_BUDGET_NOT_EXIST,
+    DEFAULT_WITNESS, RE_MISSING_AUTHORITY
 )
 
 
@@ -99,6 +100,17 @@ def test_unknown_uuid(wallet_3hf: Wallet, opened_budgets, uuid):
         wallet_3hf.close_budget(uuid(), opened_budgets[0]["owner"], opened_budgets[0]["type"]),
         wallet_3hf.close_budget.__name__,
         RE_BUDGET_NOT_EXIST
+    )
+
+
+@pytest.mark.parametrize('account', ['alice', DEFAULT_WITNESS, 'test.test2'])
+def test_invalid_signing(wallet_3hf: Wallet, budget, account):
+    update_budget_time(wallet_3hf, budget)
+    data = {'uuid': budget['uuid'], 'owner': budget['owner'], 'type': budget['type']}
+    validate_error_response(
+        wallet_3hf.broadcast_multiple_ops('close_budget_operation', [data], {account}),
+        'close_budget_operation',
+        RE_MISSING_AUTHORITY
     )
 
 

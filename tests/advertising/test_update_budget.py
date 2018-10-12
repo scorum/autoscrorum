@@ -5,7 +5,8 @@ from src.wallet import Wallet
 from graphenebase.amount import Amount
 from tests.advertising.conftest import update_budget_time, update_budget_balance
 from tests.common import (
-    validate_response, validate_error_response, check_virt_ops, RE_PARSE_ERROR, RE_BUDGET_NOT_EXIST, gen_uid
+    validate_response, validate_error_response, check_virt_ops, RE_PARSE_ERROR, RE_BUDGET_NOT_EXIST, gen_uid,
+    DEFAULT_WITNESS, RE_MISSING_AUTHORITY
 )
 
 
@@ -56,4 +57,18 @@ def test_unknown_uuid(wallet_3hf: Wallet, opened_budgets, uuid):
         wallet_3hf.update_budget(uuid(), opened_budgets[0]["owner"], "{}", opened_budgets[0]["type"]),
         wallet_3hf.update_budget.__name__,
         RE_BUDGET_NOT_EXIST
+    )
+
+
+@pytest.mark.parametrize('account', ['alice', DEFAULT_WITNESS, 'test.test2'])
+def test_invalid_signing(wallet_3hf: Wallet, budget, account):
+    update_budget_time(wallet_3hf, budget)
+    data = {
+        'uuid': budget['uuid'], 'owner': budget['owner'], 'type': budget['type'],
+        'json_metadata': "{\"meta\": \"some_meta\"}"
+    }
+    validate_error_response(
+        wallet_3hf.broadcast_multiple_ops('update_budget_operation', [data], {account}),
+        'update_budget_operation',
+        RE_MISSING_AUTHORITY
     )
