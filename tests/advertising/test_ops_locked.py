@@ -36,10 +36,10 @@ def test_close_budget_by_adv_moderator_locked(wallet: Wallet, budget, moderator)
     validate_error_response(response, wallet.close_budget_by_advertising_moderator.__name__, RE_OP_IS_LOCKED)
 
 
-@pytest.mark.parametrize('budget_type', ['post', 'budget'])
-def test_development_committee_change_budgets_auction_properties(wallet: Wallet, budget_type):
+@pytest.mark.parametrize('type', ['post', 'budget'])
+def test_development_committee_change_budgets_auction_properties(wallet: Wallet, type):
     response = wallet.development_committee_change_budgets_auction_properties(
-        DEFAULT_WITNESS, [90, 50], budget_type=budget_type
+        DEFAULT_WITNESS, [90, 50], type=type
     )
     validate_error_response(
         response, wallet.development_committee_change_budgets_auction_properties.__name__, RE_OP_IS_LOCKED

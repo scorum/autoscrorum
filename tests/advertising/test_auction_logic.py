@@ -75,6 +75,57 @@ def create_budgets(wallet, budget, count, sync_start=False):
     return budgets, last_block
 
 
+def get_sorted_budgets(wallet, budgets, key='per_block'):
+    if not budgets:
+        return []
+    return sorted(
+        wallet.get_budgets([b['owner'] for b in budgets], budgets[0]['type']),
+        key=lambda x: x[key], reverse=True
+    )
+
+
+INCOME = 'owner_pending_income'
+OUTGO = 'budget_pending_outgo'
+
+
+def get_pending_delta(before, after):
+    before_map = {b['uuid']: b for b in before}
+    after_map = {a['uuid']: a for a in after}
+    delta = dict()
+    for k, v in after_map.items():
+        if k not in before_map:
+            delta[k] = {INCOME: v[INCOME], OUTGO: v[OUTGO], 'per_block': v['per_block']}
+        else:
+            delta[k] = {
+                INCOME: str(Amount(v[INCOME]) - Amount(before_map[k][INCOME])),
+                OUTGO: str(Amount(v[OUTGO]) - Amount(before_map[k][OUTGO])),
+                'per_block': v['per_block']
+            }
+    return sorted(delta.values(), key=lambda x: x['per_block'], reverse=True)
+
+
+def check_budgets_delta_pending_calc(delta, coeffs):
+    for i in range(len(delta)):
+        if i >= len(coeffs):  # e.g. any common budget, not winner
+            assert Amount(delta[i][INCOME]) == Amount(delta[i]['per_block']) and Amount(delta[i][OUTGO]) == 0, \
+                "Incorrect pending calculations: %d %s" % (i, delta[i])
+        elif i == len(coeffs) - 1 or i == len(delta) - 1:  # e.g. last winner
+            if len(delta) <= len(coeffs):
+                assert Amount(delta[i][INCOME]) == 0 and Amount(delta[i][OUTGO]) == Amount(delta[i]['per_block']), \
+                    "Incorrect pending calculations: %d %s" % (i, delta[i])
+            else:
+                price = Amount(delta[i + 1]['per_block'])
+                assert Amount(delta[i][OUTGO]) == price and \
+                    Amount(delta[i][INCOME]) == Amount(delta[i]['per_block']) - price, \
+                    "Incorrect pending calculations: %d %s" % (i, delta[i])
+        else:  # e.g. any top winner
+            # outgo[n] = outgo[n-1] + per_block[n-1] * (coeff[n] - coeff[n-1])
+            price = Amount(delta[i + 1][OUTGO]) + Amount(delta[i + 1]['per_block']) * (coeffs[i] - coeffs[i + 1]) / 100
+            assert Amount(delta[i][OUTGO]) == price and \
+                Amount(delta[i][INCOME]) == Amount(delta[i]['per_block']) - price, \
+                "Incorrect pending calculations: %d %s" % (i, delta[i])
+
+
 @pytest.mark.skip_long_term
 @pytest.mark.parametrize('count', [1, 3, 5])
 @pytest.mark.parametrize('sync_start', [True, False])  # to start budgets at same time or not
@@ -148,33 +199,49 @@ def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, post):
     'coeffs, idx, param_stop, param_start',
     [
         # after coeffs reduction last winner became common budget owner
-        ([100, 85, 75], -2, 'budget_pending_outgo', 'owner_pending_income'),
+        ([100, 85, 75], -2, OUTGO, INCOME),
         # after coeffs extension top common budget owner became last winner
-        ([100, 85, 75, 65, 55], -1, 'owner_pending_income', 'budget_pending_outgo')
+        ([100, 85, 75, 65, 55], -1, INCOME, OUTGO)
     ]
 )
 @pytest.mark.parametrize('sync_start', [True, False])  # to start budgets at same time or not
 def test_coeffs_change_influence_on_pending(
-        wallet_3hf: Wallet, budget, coeffs, idx, param_stop, param_start,sync_start
+        wallet_3hf: Wallet, budget, coeffs, idx, param_stop, param_start, sync_start
 ):
     budgets, _ = create_budgets(wallet_3hf, budget, 5, sync_start)
     wallet_3hf.development_committee_change_budgets_auction_properties(DEFAULT_WITNESS, coeffs, 86400, budget['type'])
     proposals = wallet_3hf.list_proposals()
 
-    budgets_before = sorted(
-        wallet_3hf.get_budgets([b['owner'] for b in budgets], budget['type']),
-        key=lambda k: k['per_block'], reverse=True
-    )
+    budgets_before = get_sorted_budgets(wallet_3hf, budgets)
 
     wallet_3hf.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"])
 
-    budgets_after = sorted(
-        wallet_3hf.get_budgets([b['owner'] for b in budgets], budget['type']),
-        key=lambda k: k['per_block'], reverse=True
-    )
+    budgets_after = get_sorted_budgets(wallet_3hf, budgets)
 
     assert Amount(budgets_after[idx][param_stop]) - Amount(budgets_before[idx][param_stop]) == 0, \
         "Param '%s' shouldn't change after coefficients update." % param_stop
     assert Amount(budgets_after[idx][param_start]) - Amount(budgets_before[idx][param_start]) == \
         Amount(budgets_before[idx]['per_block']), \
         "Param '%s' should increase on per_block amount after coefficients change." % param_start
+
+    check_budgets_delta_pending_calc(get_pending_delta(budgets_before, budgets_after), coeffs)
+
+
+@pytest.mark.parametrize('count', [1, 2, 3, 4, 5, 6])
+def test_pending_calculations(wallet_3hf: Wallet, post_budget, count):
+    budget = post_budget
+    coeffs = wallet_3hf.get_auction_coefficients()
+    budgets = []
+    for i in range(1, count + 1):
+        budgets_before = get_sorted_budgets(wallet_3hf, budgets)
+        budget_cp = copy(budget)
+        update_budget_time(wallet_3hf, budget_cp, start=1, deadline=300)
+        budget_cp.update({
+            "owner": "test.test%d" % i,
+            'balance': str(Amount(budget['balance']) * i),
+            'uuid': gen_uid()
+        })
+        wallet_3hf.create_budget(**budget_cp)
+        budgets.append(budget_cp)
+        budgets_after = get_sorted_budgets(wallet_3hf, budgets)
+        check_budgets_delta_pending_calc(get_pending_delta(budgets_before, budgets_after), coeffs)
