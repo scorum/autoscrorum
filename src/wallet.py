@@ -637,3 +637,9 @@ class Wallet(object):
             return response['result']
         except KeyError:
             return response
+
+    def broadcast_multiple_ops(self, op_name: str, data: list, users: set):
+        op = getattr(operations, op_name)
+        ops = [op(**d) for d in data]
+        keys = [self.account(u).get_active_private() for u in users]
+        return self.broadcast_transaction_synchronous(ops, keys)

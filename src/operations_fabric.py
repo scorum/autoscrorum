@@ -160,7 +160,7 @@ def account_witness_vote_operation(account, witness, approve):
     )
 
 
-def create_budget_operation(uuid, owner, json_metadata, balance: Amount, start, deadline, budget_type):
+def create_budget_operation(uuid, owner, json_metadata, balance: Amount, start, deadline, type):
     return operations.CreateBudget(
         **{'uuid': uuid,
            'owner': owner,
@@ -168,7 +168,7 @@ def create_budget_operation(uuid, owner, json_metadata, balance: Amount, start, 
            'balance': str(balance),
            'start': start,
            'deadline': deadline,
-           'type': budget_type}
+           'type': type}
     )
 
 

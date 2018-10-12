@@ -100,3 +100,28 @@ def test_create_budgets(wallet_3hf: Wallet, node, opened_budgets_same_acc, budge
         )
         for k, v in DGP_PARAMS_MAP.items()
     )
+
+
+def test_create_max_budgets(wallet_3hf: Wallet, budget):
+    re_budgets_limit = r"Can't create more then .* budgets per owner."
+    limit = wallet_3hf.get_config()["SCORUM_BUDGETS_LIMIT_PER_OWNER"]
+    balance = "0.000000001 SCR"
+    update_budget_time(wallet_3hf, budget, start=5, deadline=300)
+    budgets = []
+    for i in range(1, limit + 1):
+        budget_cp = copy(budget)
+        budget_cp.update({'uuid': gen_uid(), 'balance': balance})
+        budgets.append(budget_cp)
+    validate_response(
+        wallet_3hf.broadcast_multiple_ops('create_budget_operation', budgets, {budget['owner']}),
+        wallet_3hf.broadcast_multiple_ops.__name__
+    )
+    update_budget_time(wallet_3hf, budget, start=5, deadline=300)
+    validate_error_response(
+        wallet_3hf.create_budget(**budget),
+        wallet_3hf.create_budget.__name__,
+        re_budgets_limit
+    )
+    wallet_3hf.close_budget(str(budgets[0]['uuid']), budget['owner'], budget['type'])
+    update_budget_time(wallet_3hf, budget, start=5, deadline=300)
+    validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
