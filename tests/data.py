@@ -118,4 +118,3 @@ def posts(request):
 @pytest.fixture(params=['post_with_comments', 'post_with_multilvl_comments'])
 def posts_comments(request):
     return request.getfuncargvalue(request.param)
-

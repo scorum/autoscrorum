@@ -104,26 +104,30 @@ def get_pending_delta(before, after):
     return sorted(delta.values(), key=lambda x: x['per_block'], reverse=True)
 
 
-def check_budgets_delta_pending_calc(delta, coeffs):
-    for i in range(len(delta)):
-        if i >= len(coeffs):  # e.g. any common budget, not winner
-            assert Amount(delta[i][INCOME]) == Amount(delta[i]['per_block']) and Amount(delta[i][OUTGO]) == 0, \
-                "Incorrect pending calculations: %d %s" % (i, delta[i])
-        elif i == len(coeffs) - 1 or i == len(delta) - 1:  # e.g. last winner
-            if len(delta) <= len(coeffs):
-                assert Amount(delta[i][INCOME]) == 0 and Amount(delta[i][OUTGO]) == Amount(delta[i]['per_block']), \
-                    "Incorrect pending calculations: %d %s" % (i, delta[i])
-            else:
-                price = Amount(delta[i + 1]['per_block'])
-                assert Amount(delta[i][OUTGO]) == price and \
-                    Amount(delta[i][INCOME]) == Amount(delta[i]['per_block']) - price, \
-                    "Incorrect pending calculations: %d %s" % (i, delta[i])
-        else:  # e.g. any top winner
-            # outgo[n] = outgo[n-1] + per_block[n-1] * (coeff[n] - coeff[n-1])
-            price = Amount(delta[i + 1][OUTGO]) + Amount(delta[i + 1]['per_block']) * (coeffs[i] - coeffs[i + 1]) / 100
-            assert Amount(delta[i][OUTGO]) == price and \
-                Amount(delta[i][INCOME]) == Amount(delta[i]['per_block']) - price, \
-                "Incorrect pending calculations: %d %s" % (i, delta[i])
+def check_budgets_delta_pending_calc(budgets, coeffs):
+    # https://github.com/scorum/scorum/blob/v0.3.0/doc/advertising-budget-details.md#how-advertising-auction-works
+    def per_block(x):
+        return Amount(budgets[x]['per_block'])
+
+    def outgo(x):
+        return Amount(budgets[x][OUTGO])
+
+    def income(x):
+        return Amount(budgets[x][INCOME])
+
+    n_budgets = len(budgets)
+    n_coeffs = len(coeffs)
+    n_winners = min(n_budgets, n_coeffs)
+    for i in reversed(range(n_winners)):  # e.g. from end to begin
+        if i == n_winners - 1 and n_budgets > n_winners:  # last winner, budgets more then winners
+            spent = per_block(i + 1)
+        elif i == n_winners - 1 and n_budgets == n_winners:  # last winner, budgets eq to winners
+            spent = per_block(i)
+        else:
+            spent = min(outgo(i + 1) + per_block(i + 1) * (coeffs[i] - coeffs[i + 1]) / coeffs[0], per_block(i))
+
+        received = per_block(i) - spent
+        assert outgo(i) == spent and income(i) == received, "Incorrect pending calculations: %d %s" % (i, budgets[i])
 
 
 @pytest.mark.skip_long_term
@@ -200,8 +204,10 @@ def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, post):
     [
         # after coeffs reduction last winner became common budget owner
         ([100, 85, 75], -2, OUTGO, INCOME),
+        ([100], 1, OUTGO, INCOME),
         # after coeffs extension top common budget owner became last winner
-        ([100, 85, 75, 65, 55], -1, INCOME, OUTGO)
+        ([100, 85, 75, 65, 55], -1, INCOME, OUTGO),
+        ([90, 75, 65, 55, 35], -1, INCOME, OUTGO)
     ]
 )
 @pytest.mark.parametrize('sync_start', [True, False])  # to start budgets at same time or not
