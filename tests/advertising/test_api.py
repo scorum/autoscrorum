@@ -1,7 +1,8 @@
 from copy import copy
 
 import pytest
-from graphenebase.amount import Amount
+from scorum.graphenebase.amount import Amount
+
 from src.wallet import Wallet
 from tests.advertising.conftest import empower_advertising_moderator, update_budget_balance, update_budget_time
 from tests.common import (

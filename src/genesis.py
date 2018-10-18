@@ -1,9 +1,10 @@
 import json
 from collections import namedtuple
 
-from graphenebase.amount import Amount
+from scorum.graphenebase.amount import Amount
+from scorum.utils.time import fmt_time_from_now
+
 from src.account import Account
-from src.utils import fmt_time_from_now
 
 GenesisAccount = namedtuple("GenesisAccount", ["account", "amount"])
 

@@ -1,6 +1,6 @@
 import pytest
+from scorum.graphenebase.amount import Amount
 
-from graphenebase.amount import Amount
 from src.account import Account
 from src.errors import Errors
 from src.genesis import Genesis

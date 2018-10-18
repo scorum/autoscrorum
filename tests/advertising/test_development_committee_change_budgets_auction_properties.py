@@ -1,4 +1,5 @@
 import pytest
+
 from src.wallet import Wallet
 from tests.common import validate_error_response, DEFAULT_WITNESS, RE_MISSING_AUTHORITY
 from tests.advertising.conftest import change_auction_coeffs

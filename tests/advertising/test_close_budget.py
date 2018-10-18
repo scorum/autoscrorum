@@ -1,8 +1,9 @@
 from copy import copy
 
 import pytest
-from graphenebase.amount import Amount
-from src.utils import fmt_time_from_now
+from scorum.graphenebase.amount import Amount
+from scorum.utils.time import fmt_time_from_now
+
 from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block, get_per_blocks_count
 from tests.common import (

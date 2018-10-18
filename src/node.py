@@ -1,8 +1,9 @@
 from hashlib import sha256
 from os.path import join
 
+from scorum.utils.files import create_temp_dir, remove_file
+
 from src.config import Config
-from src.utils import create_temp_dir, remove_file
 
 TEST_TEMP_DIR = '/tmp/autoscorum'
 SCORUM_BIN = 'scorumd'

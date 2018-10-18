@@ -1,12 +1,13 @@
 from os.path import join, isfile
 
+from scorum.utils.files import which, remove_dir_tree, create_dir
+
 from src.config import Config
 from src.docker_controller import DEFAULT_IMAGE_NAME
 from src.docker_controller import DockerController
 from src.genesis import Genesis
 from src.node import Node
 from src.node import TEST_TEMP_DIR
-from src.utils import which, remove_dir_tree, create_dir
 from src.wallet import Wallet
 from tests.common import check_file_creation
 from tests.data import *

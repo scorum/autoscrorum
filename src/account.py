@@ -1,4 +1,4 @@
-from graphenebase.account import PasswordKey
+from scorum.graphenebase.account import PasswordKey
 
 
 class Account(object):
