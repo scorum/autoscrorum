@@ -19,6 +19,6 @@ pylama = "*"
 requests = "*"
 pytz = "*"
 sortedcontainers = "*"
-scorum = {ref = "develop", git = "https://github.com/scorum/scorum-py.git", editable = true}
+scorum = {editable = true, ref = "v0.0.1", git = "https://github.com/scorum/scorum-py.git"}
 
 [dev-packages]
