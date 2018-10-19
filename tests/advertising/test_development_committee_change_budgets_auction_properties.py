@@ -1,17 +1,7 @@
 import pytest
 from src.wallet import Wallet
 from tests.common import validate_response, validate_error_response, DEFAULT_WITNESS, RE_MISSING_AUTHORITY
-
-
-def change_auction_coeffs(wallet, coeffs, budget_type):
-    response = wallet.development_committee_change_budgets_auction_properties(
-        DEFAULT_WITNESS, coeffs, 86400, budget_type
-    )
-    validate_response(response, wallet.development_committee_change_budgets_auction_properties.__name__)
-    proposals = wallet.list_proposals()
-    validate_response(proposals, wallet.list_proposals.__name__)
-    assert len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
-    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
+from tests.advertising.conftest import change_auction_coeffs
 
 
 @pytest.mark.parametrize('budget_type', ['post', 'banner'])

@@ -3,7 +3,7 @@ from copy import copy
 import pytest
 from graphenebase.amount import Amount
 from src.wallet import Wallet
-from tests.advertising.conftest import update_budget_time, update_budget_balance
+from tests.advertising.conftest import update_budget_time, update_budget_balance, change_auction_coeffs
 from tests.common import check_virt_ops, validate_response, gen_uid, DEFAULT_WITNESS
 
 
@@ -234,8 +234,7 @@ def test_coeffs_change_influence_on_pending(
 
 
 @pytest.mark.parametrize('count', [1, 2, 3, 4, 5, 6])
-def test_pending_calculations(wallet_3hf: Wallet, post_budget, count):
-    budget = post_budget
+def test_budget_creation_influence_on_pending(wallet_3hf: Wallet, budget, count):
     coeffs = wallet_3hf.get_auction_coefficients()
     budgets = []
     for i in range(1, count + 1):
@@ -251,3 +250,30 @@ def test_pending_calculations(wallet_3hf: Wallet, post_budget, count):
         budgets.append(budget_cp)
         budgets_after = get_sorted_budgets(wallet_3hf, budgets)
         check_budgets_delta_pending_calc(get_pending_delta(budgets_before, budgets_after), coeffs)
+
+
+def test_single_winner_pending_payments(wallet_3hf: Wallet, budget):
+    change_auction_coeffs(wallet_3hf, [100], budget['type'])
+
+    update_budget_time(wallet_3hf, budget, start=3, deadline=300)
+
+    winner = copy(budget)
+    winner.update({"owner": "test.test1",'uuid': gen_uid()})
+    potato = copy(budget)  # e.g. not winner (4th place: gold, silver, bronze, potato)
+    potato.update({"owner": "test.test2", 'uuid': gen_uid()})
+    looser = copy(budget)
+    looser.update({"owner": "test.test3", 'uuid': gen_uid(), 'balance': "0.100000000 SCR"})
+
+    budgets = [winner, potato, looser]
+
+    wallet_3hf.broadcast_multiple_ops(
+        "create_budget_operation", budgets, {winner['owner'], potato['owner'], looser['owner']}
+    )
+
+    [update_budget_balance(wallet_3hf, b) for b in budgets]
+
+    assert winner['per_block'] == potato['per_block']
+    assert looser['per_block'] != winner['per_block']
+    assert Amount(winner[OUTGO]) == Amount(potato['per_block']) and Amount(winner[INCOME]) == Amount()
+    assert Amount(potato[OUTGO]) == Amount() and Amount(potato[INCOME]) == Amount(potato['per_block'])
+    assert Amount(looser[OUTGO]) == Amount() and Amount(looser[INCOME]) == Amount(looser['per_block'])

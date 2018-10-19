@@ -33,6 +33,17 @@ def update_budget_time(wallet, budget, start=1, deadline=31):
     })
 
 
+def change_auction_coeffs(wallet, coeffs, budget_type):
+    response = wallet.development_committee_change_budgets_auction_properties(
+        DEFAULT_WITNESS, coeffs, 86400, budget_type
+    )
+    validate_response(response, wallet.development_committee_change_budgets_auction_properties.__name__)
+    proposals = wallet.list_proposals()
+    validate_response(proposals, wallet.list_proposals.__name__)
+    assert len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
+    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
+
+
 def get_per_blocks_count(start, deadline):
     """
     Calculate amount of blocks between budget start and deadline.
