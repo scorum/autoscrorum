@@ -5,11 +5,11 @@ from graphenebase.amount import Amount
 from src.wallet import Wallet
 from tests.advertising.conftest import empower_advertising_moderator, update_budget_balance, update_budget_time
 from tests.common import (
-    DEFAULT_WITNESS, MAX_INT_64, RE_INVALID_UUID, validate_response, validate_error_response, gen_uid
+    MAX_INT_64, RE_INVALID_UUID, validate_response, validate_error_response, gen_uid
 )
 
 
-@pytest.mark.parametrize('moderator', ['alice', 'bob', DEFAULT_WITNESS])
+@pytest.mark.parametrize('moderator', ['alice'])
 def test_get_moderator(wallet_3hf: Wallet, moderator):
     assert wallet_3hf.get_moderator() is None, "Moderator shouldn't be set yet."
     empower_advertising_moderator(wallet_3hf, moderator)
@@ -30,7 +30,7 @@ def test_get_user_budgets_post_vs_banner(wallet_3hf: Wallet, budgets):
     owner = budgets[0]['owner']
     for budget in budgets:
         update_budget_time(wallet_3hf, budget)
-        validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
+        wallet_3hf.create_budget(**budget)
         update_budget_balance(wallet_3hf, budget)
     response = wallet_3hf.get_user_budgets(owner)
     validate_response(response, wallet_3hf.get_user_budgets.__name__)
@@ -40,7 +40,7 @@ def test_get_user_budgets_post_vs_banner(wallet_3hf: Wallet, budgets):
 
 def test_get_budget(wallet_3hf: Wallet, budget):
     update_budget_time(wallet_3hf, budget)
-    validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
+    wallet_3hf.create_budget(**budget)
     update_budget_balance(wallet_3hf, budget)
     budget_obj = wallet_3hf.get_budget(budget["uuid"], budget["type"])
     validate_response(
@@ -53,9 +53,9 @@ def test_get_budget(wallet_3hf: Wallet, budget):
 
 
 def test_get_budgets(wallet_3hf: Wallet, opened_budgets):
-    response = wallet_3hf.get_budgets([b['owner'] for b in opened_budgets], opened_budgets[0]['type'])
-    validate_response(response,  wallet_3hf.get_budget.__name__)
-    assert len(response) == len(opened_budgets)
+    budgets = wallet_3hf.get_budgets([b['owner'] for b in opened_budgets], opened_budgets[0]['type'])
+    validate_response(budgets,  wallet_3hf.get_budget.__name__)
+    assert len(budgets) == len(opened_budgets)
 
 
 @pytest.mark.parametrize('uuid', [-1, MAX_INT_64, 'asd'])
@@ -99,10 +99,9 @@ def test_get_current_winners_order(wallet_3hf: Wallet, budget, order):
         b = copy(budget)
         update_budget_time(wallet_3hf, b)
         b.update({'balance': str(Amount(b['balance']) * (i / 10)), 'uuid': gen_uid()})
-        validate_response(wallet_3hf.create_budget(**b), wallet_3hf.create_budget.__name__)
+        wallet_3hf.create_budget(**b)
 
     response = wallet_3hf.get_current_winners(budget["type"])
-    validate_response(response, wallet_3hf.get_current_winners.__name__)
     assert len(response) <= len(coeffs)
     assert all(response[i]['per_block'] > response[i + 1]['per_block'] for i in range(0, len(response) - 1)), \
         "Winners should be ordered by per_block value in descending order."

@@ -4,7 +4,7 @@ import pytest
 from graphenebase.amount import Amount
 from src.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance, change_auction_coeffs
-from tests.common import check_virt_ops, validate_response, gen_uid, DEFAULT_WITNESS
+from tests.common import check_virt_ops, gen_uid, DEFAULT_WITNESS
 
 
 def get_capital_delta(capital_before, capital_after):
@@ -69,7 +69,6 @@ def create_budgets(wallet, budget, count, sync_start=False):
             "uuid": gen_uid()
         })
         response = wallet.create_budget(**budget_cp)
-        validate_response(response, wallet.create_budget.__name__)
         last_block = response['block_num']
         budgets.append(budget_cp)
     return budgets, last_block
@@ -174,17 +173,14 @@ def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, post):
 
     update_budget_time(wallet_3hf, budget, deadline=300)
     response = wallet_3hf.create_budget(**budget)
-    validate_response(response, wallet_3hf.create_budget.__name__)
     budget_cashout_block = response['block_num'] + adv_cash_blocks + balancer_delay
 
     wallet_3hf.get_block(response['block_num'] + balancer_delay, wait_for_block=True)
 
-    response = wallet_3hf.post_comment(**post)
-    validate_response(response, wallet_3hf.post_comment.__name__)
+    wallet_3hf.post_comment(**post)
     # post_cashout_block = response['block_num'] + post_cash_blocks
 
     response = wallet_3hf.vote(DEFAULT_WITNESS, post['author'], post['permlink'])
-    validate_response(response, wallet_3hf.vote.__name__)
     active_sph_cashout_block = response['block_num'] + asph_cash_blocks
 
     blocks_ops = [
@@ -258,7 +254,7 @@ def test_single_winner_pending_payments(wallet_3hf: Wallet, budget):
     update_budget_time(wallet_3hf, budget, start=3, deadline=300)
 
     winner = copy(budget)
-    winner.update({"owner": "test.test1",'uuid': gen_uid()})
+    winner.update({"owner": "test.test1", 'uuid': gen_uid()})
     potato = copy(budget)  # e.g. not winner (4th place: gold, silver, bronze, potato)
     potato.update({"owner": "test.test2", 'uuid': gen_uid()})
     looser = copy(budget)

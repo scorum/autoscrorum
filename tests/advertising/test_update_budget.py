@@ -34,8 +34,7 @@ def test_update_budget(wallet_3hf: Wallet, budget, json_metadata):
 def test_update_budget_current_winners(wallet_3hf: Wallet, opened_budgets, json_metadata):
     budget = opened_budgets[0]
     winners_before = wallet_3hf.get_current_winners(budget['type'])
-    response = wallet_3hf.update_budget(budget['uuid'], budget['owner'], json_metadata, budget['type'])
-    validate_response(response, wallet_3hf.update_budget.__name__, [('block_num', int)])
+    wallet_3hf.update_budget(budget['uuid'], budget['owner'], json_metadata, budget['type'])
     winners_after = wallet_3hf.get_current_winners(budget['type'])
     assert all(winners_before[i]['id'] == winners_after[i]['id'] for i in range(len(winners_before)))
 

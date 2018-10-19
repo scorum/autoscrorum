@@ -3,26 +3,18 @@ from copy import copy
 import pytest
 from graphenebase.amount import Amount
 from src.utils import to_date, date_to_str
-from tests.common import DEFAULT_WITNESS, validate_response, apply_hardfork, gen_uid
+from tests.common import DEFAULT_WITNESS, apply_hardfork, gen_uid
 
 
 def update_budget_balance(wallet, budget):
     response = wallet.get_budget(budget['uuid'], budget['type'])
-    validate_response(response, wallet.get_budget.__name__)
     budget.update(**response)
 
 
 def empower_advertising_moderator(wallet, account):
-    validate_response(
-        wallet.development_committee_empower_advertising_moderator(DEFAULT_WITNESS, account),
-        wallet.development_committee_empower_advertising_moderator.__name__
-    )
-
+    wallet.development_committee_empower_advertising_moderator(DEFAULT_WITNESS, account)
     proposals = wallet.list_proposals()
-    validate_response(proposals, wallet.list_proposals.__name__)
-    assert len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
-
-    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
+    wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"])
 
 
 def update_budget_time(wallet, budget, start=1, deadline=31):
@@ -34,14 +26,9 @@ def update_budget_time(wallet, budget, start=1, deadline=31):
 
 
 def change_auction_coeffs(wallet, coeffs, budget_type):
-    response = wallet.development_committee_change_budgets_auction_properties(
-        DEFAULT_WITNESS, coeffs, 86400, budget_type
-    )
-    validate_response(response, wallet.development_committee_change_budgets_auction_properties.__name__)
+    wallet.development_committee_change_budgets_auction_properties(DEFAULT_WITNESS, coeffs, 86400, budget_type)
     proposals = wallet.list_proposals()
-    validate_response(proposals, wallet.list_proposals.__name__)
-    assert len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
-    validate_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
+    wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"])
 
 
 def get_per_blocks_count(start, deadline):
@@ -91,7 +78,7 @@ def banner_budget():
 
 @pytest.fixture(params=['post_budget', 'banner_budget'])
 def budget(request):
-    return request.getfuncargvalue(request.param)
+    return request.getfixturevalue(request.param)
 
 
 @pytest.fixture(scope="function")
@@ -112,7 +99,7 @@ def opened_budgets(wallet_3hf, budget):
         budget_cp = copy(budget)
         update_budget_time(wallet_3hf, budget_cp, deadline=300)  # to leave all budgets opened
         budget_cp.update({"owner": "test.test%d" % i, 'uuid': gen_uid()})
-        validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
+        wallet_3hf.create_budget(**budget_cp)
         update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
         budgets.append(budget_cp)
     return budgets
@@ -125,7 +112,7 @@ def opened_budgets_same_acc(wallet_3hf, budget):
         budget_cp = copy(budget)
         update_budget_time(wallet_3hf, budget_cp, deadline=300)  # to leave all budgets opened
         budget_cp.update({'uuid': gen_uid()})
-        validate_response(wallet_3hf.create_budget(**budget_cp), wallet_3hf.create_budget.__name__)
+        wallet_3hf.create_budget(**budget_cp)
         update_budget_balance(wallet_3hf, budget_cp)  # update budget params / set budget id
         budgets.append(budget_cp)
     return budgets

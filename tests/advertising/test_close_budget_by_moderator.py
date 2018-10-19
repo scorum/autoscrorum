@@ -16,7 +16,7 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
     budget_balance = Amount(budget["balance"])
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
 
-    validate_response(wallet_3hf.create_budget(**budget), wallet_3hf.create_budget.__name__)
+    wallet_3hf.create_budget(**budget)
     update_budget_balance(wallet_3hf, budget)  # update budget params / set budget id
 
     balance_after_create = wallet_3hf.get_account_scr_balance(budget["owner"])
@@ -45,7 +45,6 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
 
     response = wallet_3hf.create_budget(**budget)
-    validate_response(response, wallet_3hf.create_budget.__name__)
     create_block = response["block_num"]
     update_budget_balance(wallet_3hf, budget)  # update budget params / set budget id
     per_block = Amount(budget["per_block"])
@@ -77,11 +76,11 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
 def test_close_post_vs_banner(wallet_3hf: Wallet, moderator, post_budget, banner_budget):
     new_budget = copy(post_budget)
     update_budget_time(wallet_3hf, post_budget)
-    validate_response(wallet_3hf.create_budget(**post_budget), wallet_3hf.create_budget.__name__)
+    wallet_3hf.create_budget(**post_budget)
     update_budget_balance(wallet_3hf, post_budget)  # update budget params / set budget id
 
     update_budget_time(wallet_3hf, banner_budget)
-    validate_response(wallet_3hf.create_budget(**banner_budget), wallet_3hf.create_budget.__name__)
+    wallet_3hf.create_budget(**banner_budget)
     update_budget_balance(wallet_3hf, banner_budget)  # update budget params / set budget id
 
     assert post_budget["id"] == banner_budget["id"]  # both = 0

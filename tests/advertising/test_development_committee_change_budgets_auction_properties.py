@@ -1,6 +1,6 @@
 import pytest
 from src.wallet import Wallet
-from tests.common import validate_response, validate_error_response, DEFAULT_WITNESS, RE_MISSING_AUTHORITY
+from tests.common import validate_error_response, DEFAULT_WITNESS, RE_MISSING_AUTHORITY
 from tests.advertising.conftest import change_auction_coeffs
 
 
@@ -19,7 +19,6 @@ def test_invalid_coeffs(wallet_3hf: Wallet, budget_type, coeffs):
     )
     validate_error_response(response, wallet_3hf.development_committee_change_budgets_auction_properties.__name__)
     proposals = wallet_3hf.list_proposals()
-    validate_response(proposals, wallet_3hf.list_proposals.__name__)
     assert len(proposals) == 0, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals)
     assert coeffs != wallet_3hf.get_auction_coefficients(budget_type), "Coefficients was changed, but they shouldn't."
 
