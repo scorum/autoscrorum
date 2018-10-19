@@ -168,3 +168,28 @@ def test_active_sp_holder_reward_legacy(wallet: Wallet, post, accounts):
         assert len(rewards) == len(accounts), "Was provided unexpected amount of '%s' operations." % op_name
         for acc, _ in rewards:
             assert acc in accounts, "Provided payment to unexpected account: '%s'" % acc
+
+
+@pytest.mark.skip("SCORUM_CASHOUT_WINDOW_SECONDS = 7200 sec")
+@pytest.mark.parametrize('account', ['alice'])
+def test_children_reward_blocked_3hf(wallet: Wallet, posts_comments, account):
+    apply_hardfork(wallet, 3)
+    last_block = 0
+    for p in posts_comments:
+        validate_response(wallet.post_comment(**p), wallet.post_comment.__name__)
+        response = wallet.vote(account, p["author"], p["permlink"])
+        validate_response(response, wallet.vote.__name__)
+        last_block = response["block_num"]
+
+    config = wallet.get_config()
+    cashout_blocks_cnt = int(config["SCORUM_CASHOUT_WINDOW_SECONDS"] / config["SCORUM_BLOCK_INTERVAL"])
+
+    print(last_block + cashout_blocks_cnt)
+    for n in range(last_block + cashout_blocks_cnt):
+        wallet.get_block(n, wait_for_block=True)
+        ops = wallet.get_ops_in_block(n)
+        for op_id, data in ops:
+            if data["op"][0] == "comment_reward":
+                assert Amount(data["op"][1]["from_children_payout"]) == Amount("0 SP"), \
+                    "Children payout should be blocked."
+                assert Amount(data["op"][1]["to_parent_payout"]) == Amount("0 SP"), "Parent payout should be blocked."

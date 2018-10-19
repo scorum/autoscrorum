@@ -128,7 +128,8 @@ def config(default_config, genesis):
         'tags_api',
         'node_monitoring_api',
         'debug_node_api',
-        'devcommittee_history_api'
+        'devcommittee_history_api',
+        'advertising_api'
     ]
 
     test_plugins = [

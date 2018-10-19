@@ -62,6 +62,10 @@ operations = {
     'acc_to_devpool_vesting_withdraw':            51,
     'devpool_to_devpool_vesting_withdraw':        52,
     'proposal_virtual_operation':                 53,
+    'budget_outgo_operation':                     54,
+    'budget_owner_income_operation':              55,
+    'active_sp_holders_reward_legacy_operation':  56,
+    'budget_closing_operation':                   57,
 
     # proposal operations
     'registration_committee_add_member':          0,
@@ -71,5 +75,8 @@ operations = {
     'development_committee_exclude_member':       4,
     'development_committee_change_quorum':        5,
     'development_committee_withdraw_vesting':     6,
-    'development_committee_transfer':             7
+    'development_committee_transfer':             7,
+    'development_committee_empower_advertising_moderator': 8,
+    'development_committee_change_post_budgets_auction_properties': 9,
+    'development_committee_change_banner_budgets_auction_properties': 10
 }

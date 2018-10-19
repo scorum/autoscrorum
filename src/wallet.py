@@ -268,8 +268,8 @@ class Wallet(object):
         result['memo'] = account['memo_key']
         return result
 
-    def get_budgets(self, owner_name: str, budget_type="post"):
-        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, [owner_name]]))
+    def get_budgets(self, owners: list, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, owners]))
         try:
             return response['result']
         except KeyError:
@@ -310,11 +310,68 @@ class Wallet(object):
         ref_block_prefix = _struct.unpack_from("<I", unhexlify(ref_block["previous"]), 4)[0]
         return ref_block_num, ref_block_prefix
 
-    def create_budget(self, owner, balance: Amount, start, deadline, json_metadata="{}", object_type="post"):
-        op = operations.create_budget_operation(owner, json_metadata, balance, start, deadline, object_type)
+    def get_budget(self, uuid, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body(
+            "call", 'advertising_api', 'get_budget', [uuid, budget_type]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_auction_coefficients(self, budget_type="post"):
+        response = self.rpc.send(self.json_rpc_body(
+            "call", 'advertising_api', 'get_auction_coefficients', [budget_type]
+        ))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_moderator(self):
+        response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_moderator', []))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def get_user_budgets(self, account):
+        response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_user_budgets', [account]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
+
+    def create_budget(self, uuid, owner, balance, start, deadline, json_metadata="{}", type="post"):
+        op = operations.create_budget_operation(uuid, owner, json_metadata, balance, start, deadline, type)
 
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def close_budget(self, uuid, owner, type):
+        op = operations.close_budget_operation(uuid, owner, type)
+
+        signing_key = self.account(owner).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def close_budget_by_advertising_moderator(self, uuid, moderator: str, type="post"):
+        op = operations.close_budget_by_advertising_moderator(uuid, moderator, type)
+
+        signing_key = self.account(moderator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def update_budget(self, uuid, owner, json_metadata, type):
+        op = operations.update_budget_operation(uuid, owner, json_metadata, type)
+
+        signing_key = self.account(owner).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def get_current_winners(self, type='post'):
+        response = self.rpc.send(self.json_rpc_body('call', 'advertising_api', 'get_current_winners', [type]))
+        try:
+            return response['result']
+        except KeyError:
+            return response
 
     def delegate_scorumpower(self, delegator, delegatee, scorumpower: Amount):
         op = operations.delegate_scorumpower(delegator, delegatee, scorumpower)
@@ -338,6 +395,22 @@ class Wallet(object):
         op = operations.devpool_withdraw_vesting(account, scorumpower, lifetime)
 
         signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def development_committee_empower_advertising_moderator(self, initiator: str, moderator: str, lifetime=86400):
+        op = operations.development_committee_empower_advertising_moderator(initiator, moderator, lifetime)
+
+        signing_key = self.account(initiator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def development_committee_change_budgets_auction_properties(
+            self, initiator: str, coeffs: list, lifetime=86400, type="post"
+    ):
+        op = operations.development_committee_change_budgets_auction_properties(
+            initiator, lifetime, coeffs, type
+        )
+
+        signing_key = self.account(initiator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
@@ -564,3 +637,9 @@ class Wallet(object):
             return response['result']
         except KeyError:
             return response
+
+    def broadcast_multiple_ops(self, op_name: str, data: list, users: set):
+        op = getattr(operations, op_name)
+        ops = [op(**d) for d in data]
+        keys = [self.account(u).get_active_private() for u in users]
+        return self.broadcast_transaction_synchronous(ops, keys)

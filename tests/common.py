@@ -1,14 +1,29 @@
 import os
 import re
 import time
+import uuid
 from functools import partial
 from multiprocessing import Pool
 
 from delayed_assert import expect, assert_expectations
-
 from src.wallet import Wallet
 
 DEFAULT_WITNESS = "initdelegate"
+
+# Error regexps
+RE_ERROR_KWDS = r".{50}(warning|error|critical|exception|traceback).{50}"
+RE_IDX_OUT_OF_RANGE = r"Can\'t get object of type .* It\'s not in index."
+RE_BUDGET_NOT_EXIST = r"Assert Exception\n.* Budget with (uu)?id .* doesn\'t exist"
+RE_OP_IS_LOCKED = r"Assert Exception\n.* Operation .* is locked."
+RE_PARSE_ERROR = r"Parse Error\nUnexpected char"
+RE_INSUFF_FUNDS = r"Assert Exception\nowner\.balance >= op\.balance: Insufficient funds\."
+RE_COMMON_ERROR = r"Assert Exception"
+RE_POSITIVE_BALANCE = r"Assert Exception\nbalance > asset\(0, SCORUM_SYMBOL\): Balance must be positive"
+RE_DEADLINE_TIME = r"Assert Exception\n.* Deadline time must be greater or equal then start time"
+RE_MISSING_AUTHORITY = r"Missing Active Authority"
+RE_START_TIME = r"Assert Exception\n.* Start time must be greater than head block time"
+RE_INVALID_UUID = r"invalid uuid string"
+MAX_INT_64 = 9223372036854775807
 
 
 def check_logs_on_errors(logs):
@@ -17,9 +32,8 @@ def check_logs_on_errors(logs):
 
     :param str logs:
     """
-    re_errors = r"(warning|error|critical|exception|traceback)"
-    m = re.match(re_errors, logs, re.IGNORECASE)
-    assert m is None, "In logs presents error message: %s" % m.group()
+    m = re.search(RE_ERROR_KWDS, logs, re.IGNORECASE)
+    assert m is None, "In logs presents error message: '%s'" % m.group().strip()
 
 
 def check_file_creation(filepath, sec=5):
@@ -35,6 +49,31 @@ def check_file_creation(filepath, sec=5):
         time.sleep(0.1)
     assert os.path.exists(filepath), \
         "File wasn't created after %d seconds. Path %s" % (sec, filepath)
+
+
+def check_virt_ops(wallet, start, stop, expected_ops):
+    expected_ops = set(expected_ops)
+    ops = set()
+    data = []
+    for i in range(start, stop + 1):
+        response = wallet.get_ops_in_block(i)
+        if response and 'error' not in response:
+            ops.update(set(d['op'][0] for _, d in response))
+            data += [d['op'] for _, d in response]
+    assert len(ops.intersection(expected_ops)) == len(expected_ops), \
+        "Some expected virtual operations are misssing:\nActual: %s\nExpected: %s" % (ops, expected_ops)
+    return data
+
+
+def is_operation_in_block(block, operation_name, operation_kwargs):
+    for tr in block['transactions']:
+        for op in tr['operations']:
+            op_name = op[0]
+            op_params = op[1]
+            if op_name == operation_name:
+                if all([op_params[key] == operation_kwargs[key] for key in operation_kwargs.keys()]):
+                    return True
+    return False
 
 
 def generate_blocks(node, docker, num=1):
@@ -117,9 +156,11 @@ def validate_response(response, op, required_params=None):
     assert_expectations()
 
 
-def validate_error_response(response, op: str, error_message="Assert Exception"):
-    assert "error" in response and error_message in response["error"]["message"], \
-        "%s operation should fail but passed with result: %s" % (op, response["error"])
+def validate_error_response(response, op: str, pattern=RE_COMMON_ERROR):
+    err = response.get("error", {})
+    m = re.search(pattern, err.get("message", ""), re.IGNORECASE)
+    assert err and m is not None, \
+        "%s operation should fail but passed with result: %s" % (op, err)
 
 
 def apply_hardfork(wallet: Wallet, hf_id: int):
@@ -129,3 +170,7 @@ def apply_hardfork(wallet: Wallet, hf_id: int):
         wallet.debug_set_hardfork(i)
         wallet.get_block(i + 2, wait_for_block=True)
         assert wallet.debug_has_hardfork(i)
+
+
+def gen_uid(unique: str=None):
+    return str(uuid.uuid3(uuid.NAMESPACE_DNS, unique)) if unique else str(uuid.uuid4())
