@@ -6,7 +6,7 @@ from .types import (
     Varint32, Int64, String, Bytes, Void,
     Array, PointInTime, Signature, Bool,
     Set, Fixed_array, Optional, Static_variant,
-    Map, Id, VoteId, ObjectId, BudgetType
+    Map, Id, VoteId, ObjectId, BudgetType, Uuid
 )
 from .objects import GrapheneObject, isArgsThisClass
 from .account import PublicKey
@@ -109,11 +109,43 @@ class CreateBudget(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('type', BudgetType(kwargs['type'])),
+                    ('uuid', Uuid(kwargs['uuid'])),
                     ('owner', String(kwargs["owner"])),
                     ('json_metadata', String(kwargs["json_metadata"])),
                     ('balance', Amount(kwargs["balance"])),
                     ('start', PointInTime(kwargs['start'])),
                     ('deadline', PointInTime(kwargs['deadline']))
+                ]))
+
+
+class CloseBudget(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('type', BudgetType(kwargs['type'])),
+                    ('uuid', Uuid(kwargs['uuid'])),
+                    ('owner', String(kwargs['owner'])),
+                ]))
+
+
+class UpdateBudget(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('type', BudgetType(kwargs['type'])),
+                    ('uuid', Uuid(kwargs['uuid'])),
+                    ('owner', String(kwargs['owner'])),
+                    ('json_metadata', String(kwargs['json_metadata'])),
                 ]))
 
 
@@ -256,7 +288,7 @@ class ProposalVote(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('voting_account', String(kwargs['voting_account'])),
-                    ('proposal_id', Uint64(kwargs['proposal_id']))
+                    ('proposal_id', Int64(kwargs['proposal_id']))
                 ]))
 
 
@@ -270,6 +302,45 @@ class DevelopmentCommitteeWithdrawVesting(GrapheneObject):
             super().__init__(
                 OrderedDict([
                     ('vesting_shares', Amount(kwargs['amount']))
+                ]))
+
+
+class DevelopmentCommitteeEmpowerAdvertisingModerator(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('account', String(kwargs['account']))
+                ]))
+
+
+class DevelopmentCommitteeChangePostBudgetsAuctionProperties(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('auction_coefficients', Array([Uint16(c) for c in kwargs['coeffs']]))
+                ]))
+
+
+class DevelopmentCommitteeChangeBannerBudgetsAuctionProperties(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('auction_coefficients', Array([Uint16(c) for c in kwargs['coeffs']]))
                 ]))
 
 
@@ -384,4 +455,19 @@ class CreateGame(GrapheneObject):
                     ('start', PointInTime(kwargs['start'])),
                     ('game', Game(kwargs['game'])),
                     ('markets', Array(markets))
+                ]))
+
+
+class CloseBudgetByAdvertisingModerator(GrapheneObject):
+    def __init__(self, *args, **kwargs):
+        if isArgsThisClass(self, args):
+            self.data = args[0].data
+        else:
+            if len(args) == 1 and len(kwargs) == 0:
+                kwargs = args[0]
+            super().__init__(
+                OrderedDict([
+                    ('type', BudgetType(kwargs['type'])),
+                    ('uuid', Uuid(kwargs["uuid"])),
+                    ('moderator', String(kwargs["moderator"]))
                 ]))

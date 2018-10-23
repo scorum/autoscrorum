@@ -6,6 +6,7 @@ from datetime import datetime
 from binascii import hexlify, unhexlify
 from collections import OrderedDict
 from .objecttypes import object_type
+from uuid import UUID
 
 timeformat = '%Y-%m-%dT%H:%M:%S%Z'
 
@@ -102,6 +103,17 @@ class Uint64():
         return '%d' % self.data
 
 
+class Uint128():
+    def __init__(self, d):
+        self.data = int(d)
+
+    def __bytes__(self):
+        return struct.pack("<QQ", self.data)
+
+    def __str__(self):
+        return '%d' % self.data
+
+
 class Varint32():
     def __init__(self, d):
         self.data = int(d)
@@ -119,6 +131,17 @@ class Int64():
 
     def __bytes__(self):
         return struct.pack("<q", self.data)
+
+    def __str__(self):
+        return '%d' % self.data
+
+
+class Int128():
+    def __init__(self, d):
+        self.data = int(d)
+
+    def __bytes__(self):
+        return struct.pack("<qq", self.data)
 
     def __str__(self):
         return '%d' % self.data
@@ -340,6 +363,17 @@ class Id():
 
     def __bytes__(self):
         return bytes(self.data)
+
+    def __str__(self):
+        return str(self.data)
+
+
+class Uuid:
+    def __init__(self, d):
+        self.data = UUID(d)
+
+    def __bytes__(self):
+        return self.data.bytes
 
     def __str__(self):
         return str(self.data)

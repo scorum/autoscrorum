@@ -48,12 +48,12 @@ def initdelegate_post():
 
 @pytest.fixture(params=['alice_post', 'bob_post', 'initdelegate_post'])
 def post(request):
-    return request.getfuncargvalue(request.param)
+    return request.getfixturevalue(request.param)
 
 
 @pytest.fixture(params=['alice_post', 'bob_post'])
 def not_witness_post(request):
-    return request.getfuncargvalue(request.param)
+    return request.getfixturevalue(request.param)
 
 
 @pytest.fixture(scope="session")
@@ -112,4 +112,9 @@ def post_with_multilvl_comments(initdelegate_post, bob_comment_lv1, alice_commen
 
 @pytest.fixture(params=['only_posts', 'post_with_comments', 'post_with_multilvl_comments'])
 def posts(request):
-    return request.getfuncargvalue(request.param)
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture(params=['post_with_comments', 'post_with_multilvl_comments'])
+def posts_comments(request):
+    return request.getfixturevalue(request.param)

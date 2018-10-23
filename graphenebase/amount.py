@@ -92,6 +92,8 @@ class Amount(dict):
             a["amount"] *= other["amount"]
         else:
             a["amount"] *= other
+            if isinstance(other, float):
+                a["amount"] = int(a["amount"])
         return a
 
     def __floordiv__(self, other):
