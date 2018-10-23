@@ -3,7 +3,7 @@ from copy import copy
 import pytest
 from scorum.graphenebase.amount import Amount
 
-from src.wallet import Wallet
+from automation.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance, change_auction_coeffs
 from tests.common import check_virt_ops, gen_uid, DEFAULT_WITNESS
 

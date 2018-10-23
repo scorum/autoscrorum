@@ -8,8 +8,8 @@ from scorum.graphenebase.amount import Amount
 from scorum.graphenebase.signedtransactions import SignedTransaction
 from scorum.utils.time import fmt_time_from_now
 
-from src.account import Account
-from src.rpc_client import RpcClient
+from automation.account import Account
+from automation.rpc_client import RpcClient
 
 
 class Wallet(object):

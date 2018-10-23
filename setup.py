@@ -17,7 +17,7 @@ required = [
 ]
 
 setup(
-    name='scorum',
+    name='autoscorum',
     version='0.3.0',
     packages=find_packages(exclude=["tests"]),
     long_description=open('README.md').read(),

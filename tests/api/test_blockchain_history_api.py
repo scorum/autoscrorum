@@ -1,6 +1,6 @@
 import pytest
 
-from src.wallet import Wallet
+from automation.wallet import Wallet
 from tests.common import validate_response
 
 

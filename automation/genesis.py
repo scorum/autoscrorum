@@ -4,7 +4,7 @@ from collections import namedtuple
 from scorum.graphenebase.amount import Amount
 from scorum.utils.time import fmt_time_from_now
 
-from src.account import Account
+from automation.account import Account
 
 GenesisAccount = namedtuple("GenesisAccount", ["account", "amount"])
 

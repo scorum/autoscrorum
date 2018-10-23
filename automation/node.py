@@ -3,7 +3,7 @@ from os.path import join
 
 from scorum.utils.files import create_temp_dir, remove_file
 
-from src.config import Config
+from automation.config import Config
 
 TEST_TEMP_DIR = '/tmp/autoscorum'
 SCORUM_BIN = 'scorumd'

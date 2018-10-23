@@ -1,6 +1,6 @@
 import pytest
 
-from src.wallet import Wallet
+from automation.wallet import Wallet
 from tests.common import DEFAULT_WITNESS, RE_OP_IS_LOCKED, validate_error_response, gen_uid
 
 """

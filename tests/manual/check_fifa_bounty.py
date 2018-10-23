@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from sortedcontainers import SortedSet
 
-from src.wallet import Wallet
+from automation.wallet import Wallet
 from scorum.utils.time import to_date
 from scorum.graphenebase.amount import Amount
 

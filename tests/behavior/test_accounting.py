@@ -1,10 +1,10 @@
 import pytest
 from scorum.graphenebase.amount import Amount
 
-from src.account import Account
-from src.errors import Errors
-from src.genesis import Genesis
-from src.wallet import Wallet
+from automation.account import Account
+from automation.errors import Errors
+from automation.genesis import Genesis
+from automation.wallet import Wallet
 from tests.common import DEFAULT_WITNESS
 
 test_account_memo_key = 'SCR52jUWZchsz6hVD13PzZrQP94mcbJL5seYxnm46Uk6D9tmJdGJh'

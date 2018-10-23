@@ -88,8 +88,8 @@ clean()
 	RemoveRecursively "${INSTALL_PATH}/tests" "\*.pyc"
 	RemoveRecursively "${INSTALL_PATH}/tests" "__pycache__"
 
-	RemoveRecursively "${INSTALL_PATH}/src" "\*.pyc"
-	RemoveRecursively "${INSTALL_PATH}/src" "__pycache__"
+	RemoveRecursively "${INSTALL_PATH}/automation" "\*.pyc"
+	RemoveRecursively "${INSTALL_PATH}/automation" "__pycache__"
 
 	rm -rf "${INSTALL_PATH}/autoscorum.egg-info" 2>&1 &> /dev/null
 	rm "${INSTALL_PATH}/result.xml" 2>&1 &> /dev/null
