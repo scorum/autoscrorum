@@ -8,8 +8,8 @@ import docker
 from docker.errors import ImageNotFound
 from requests.exceptions import ReadTimeout
 
-from src.node import Node
-from src.node import SCORUM_BIN
+from automation.node import Node
+from automation.node import SCORUM_BIN
 
 DEFAULT_IMAGE_NAME = 'autonode'
 CONFIG_DIR = '/var/lib/scorumd'

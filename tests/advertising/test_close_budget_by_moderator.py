@@ -1,8 +1,9 @@
 from copy import copy
 
 import pytest
-from graphenebase.amount import Amount
-from src.wallet import Wallet
+from scorum.graphenebase.amount import Amount
+
+from automation.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, empower_advertising_moderator, update_budget_balance
 from tests.common import (
     DEFAULT_WITNESS, validate_response, validate_error_response, RE_BUDGET_NOT_EXIST, check_virt_ops, gen_uid,

@@ -6,7 +6,7 @@ from functools import partial
 from multiprocessing import Pool
 
 from delayed_assert import expect, assert_expectations
-from src.wallet import Wallet
+from automation.wallet import Wallet
 
 DEFAULT_WITNESS = "initdelegate"
 

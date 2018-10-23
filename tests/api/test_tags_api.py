@@ -3,8 +3,8 @@ import time
 import pytest
 import json
 
-from src.node import Node
-from src.wallet import Wallet
+from automation.node import Node
+from automation.wallet import Wallet
 from tests.common import parallel_create_posts, DEFAULT_WITNESS, validate_response
 
 

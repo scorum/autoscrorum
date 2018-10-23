@@ -1,9 +1,9 @@
 import pytest
+from scorum.graphenebase.amount import Amount
 
-from graphenebase.amount import Amount
-from src.genesis import Genesis
-from src.node import Node
-from src.wallet import Wallet
+from automation.genesis import Genesis
+from automation.node import Node
+from automation.wallet import Wallet
 from tests.common import check_logs_on_errors, check_file_creation, generate_blocks
 
 

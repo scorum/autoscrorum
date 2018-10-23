@@ -1,8 +1,8 @@
 from copy import copy
 
 import pytest
-from graphenebase.amount import Amount
-from src.utils import to_date, date_to_str
+from scorum.graphenebase.amount import Amount
+from scorum.utils.time import to_date, date_to_str
 from tests.common import DEFAULT_WITNESS, apply_hardfork, gen_uid
 
 

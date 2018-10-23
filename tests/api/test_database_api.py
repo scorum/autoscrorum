@@ -1,4 +1,4 @@
-from src.wallet import Wallet
+from automation.wallet import Wallet
 from tests.common import DEFAULT_WITNESS, validate_response
 
 

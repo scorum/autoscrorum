@@ -3,12 +3,13 @@ import json
 import time
 from binascii import unhexlify
 
-import src.operations_fabric as operations
-from graphenebase.amount import Amount
-from graphenebase.signedtransactions import SignedTransaction
-from src.account import Account
-from src.rpc_client import RpcClient
-from src.utils import fmt_time_from_now
+import scorum.graphenebase.operations_fabric as operations
+from scorum.graphenebase.amount import Amount
+from scorum.graphenebase.signedtransactions import SignedTransaction
+from scorum.utils.time import fmt_time_from_now
+
+from automation.account import Account
+from automation.rpc_client import RpcClient
 
 
 class Wallet(object):

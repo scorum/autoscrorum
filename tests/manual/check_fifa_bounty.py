@@ -6,9 +6,9 @@ from copy import deepcopy
 
 from sortedcontainers import SortedSet
 
-from src.wallet import Wallet
-from src.utils import to_date
-from graphenebase.amount import Amount
+from automation.wallet import Wallet
+from scorum.utils.time import to_date
+from scorum.graphenebase.amount import Amount
 
 # CHAIN_ID = "d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"  # testnet
 CHAIN_ID = "db4007d45f04c1403a7e66a5c66b5b1cdfc2dde8b5335d1d2f116d592ca3dbb1"  # mainnet

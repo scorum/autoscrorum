@@ -1,8 +1,9 @@
-import pytest
 import time
 
-from graphenebase.amount import Amount
-from src.wallet import Wallet
+import pytest
+from scorum.graphenebase.amount import Amount
+
+from automation.wallet import Wallet
 from tests.common import (
     expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork, validate_response, validate_error_response
 )

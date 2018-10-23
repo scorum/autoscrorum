@@ -1,5 +1,5 @@
-from src.node import Node
-from src.wallet import Wallet
+from automation.node import Node
+from automation.wallet import Wallet
 from tests.common import check_logs_on_errors
 
 
