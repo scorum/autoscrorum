@@ -13,11 +13,10 @@ from automation.rpc_client import RpcClient
 
 
 class Wallet(object):
-    def __init__(self, chain_id, rpc_endpoint, accounts=[]):
+    def __init__(self, chain_id, rpc_endpoint, accounts=None):
         self.chain_id = chain_id
-        self.accounts = accounts
+        self.accounts = accounts if accounts else []
         self.endpoint = rpc_endpoint
-
         self.rpc = RpcClient()
 
     def __enter__(self):
@@ -35,7 +34,6 @@ class Wallet(object):
         for account in self.accounts:
             if account.name == name:
                 return account
-        return None
 
     @staticmethod
     def json_rpc_body(name, *args, api=None, as_json=True, _id=0, kwargs=None):
@@ -68,34 +66,22 @@ class Wallet(object):
 
     def get_dynamic_global_properties(self):
         response = self.rpc.send(self.json_rpc_body('get_dynamic_global_properties', api='database_api'))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_circulating_capital(self):
         return Amount(self.get_dynamic_global_properties()['circulating_capital'])
 
     def login(self, username: str, password: str):
         response = self.rpc.send(self.json_rpc_body('login', username, password, api='login_api'))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_api_by_name(self, api_name: str):
         response = self.rpc.send(self.json_rpc_body('call', 'login_api', 'get_api_by_name', [api_name]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def list_accounts(self, limit: int = 100, start_name: str = ""):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_accounts', [start_name, limit]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def list_all_accounts(self):
         limit = 100
@@ -118,33 +104,23 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body(
             'call', 'database_api', 'lookup_budget_owners', [budget_type, "", limit])
         )
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_config(self):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_config', []))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def list_witnesses(self, limit: int = 100):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'lookup_witness_accounts', ["", limit]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_account_history(self, name: str, _from=4294967295, limit=100):
-        response = self.rpc.send(self.json_rpc_body('call',
-                                                    'account_history_api',
-                                                    'get_account_history', [name, _from, limit]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        response = self.rpc.send(self.json_rpc_body(
+            'call',
+            'account_history_api',
+            'get_account_history', [name, _from, limit]
+        ))
+        return response.get('result', response)
 
     def get_account_transfers(self, name: str, _from="sp", to="scr", starts=-1, limit=100):
         transfer_types = ["sp", "scr"]
@@ -155,17 +131,11 @@ class Wallet(object):
             'get_account_%s_to_%s_transfers' % (_from, to),
             [name, starts, limit]
         ))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_development_committee(self):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_development_committee', []))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_devcommittee_transfers(self, _from="sp", to="scr", starts=-1, limit=100):
         transfer_types = ["sp", "scr"]
@@ -176,20 +146,15 @@ class Wallet(object):
             'get_%s_to_%s_transfers' % (_from, to),
             [starts, limit]
         ))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_last_block_duration_in_microseconds(self):
-        response = self.rpc.send(self.json_rpc_body('call',
-                                                    'node_monitoring_api',
-                                                    'get_last_block_duration_microseconds', []))
-
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        response = self.rpc.send(self.json_rpc_body(
+            'call',
+            'node_monitoring_api',
+            'get_last_block_duration_microseconds', []
+        ))
+        return response.get('result', response)
 
     def get_block(self, num: int, **kwargs):
         def request():
@@ -222,10 +187,7 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body(
             'call', 'blockchain_history_api', 'get_ops_in_block', [num, operation_type]
         ))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_ops_history(self, from_op=-1, limit=100, op_type=0):
         """
@@ -239,17 +201,11 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body(
             'call', 'blockchain_history_api', 'get_ops_history', [from_op, limit, op_type]
         ))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_accounts(self, names: list):
         response = self.rpc.send(self.json_rpc_body('get_accounts', names))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_account(self, name: str):
         return self.get_accounts([name])[0]
@@ -271,38 +227,23 @@ class Wallet(object):
 
     def get_budgets(self, owners: list, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_budgets', [budget_type, owners]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_chain_capital(self):
         response = self.rpc.send(self.json_rpc_body('call', 'chain_api', 'get_chain_capital', [], _id=1))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_witness(self, name: str):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_witness_by_account', [name]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def list_proposals(self):
         response = self.rpc.send(self.json_rpc_body("call", 'database_api', 'lookup_proposals', []))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_account_by_key(self, pub_key: str):
         response = self.rpc.send(self.json_rpc_body("call", 'account_by_key_api', 'get_key_references', [[pub_key]]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_ref_block_params(self):
         props = self.get_dynamic_global_properties()
@@ -315,164 +256,130 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body(
             "call", 'advertising_api', 'get_budget', [uuid, budget_type]
         ))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_auction_coefficients(self, budget_type="post"):
         response = self.rpc.send(self.json_rpc_body(
             "call", 'advertising_api', 'get_auction_coefficients', [budget_type]
         ))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_moderator(self):
         response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_moderator', []))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_user_budgets(self, account):
         response = self.rpc.send(self.json_rpc_body("call", 'advertising_api', 'get_user_budgets', [account]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def create_budget(self, uuid, owner, balance, start, deadline, json_metadata="{}", type="post"):
         op = operations.create_budget_operation(uuid, owner, json_metadata, balance, start, deadline, type)
-
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def close_budget(self, uuid, owner, type):
         op = operations.close_budget_operation(uuid, owner, type)
-
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def close_budget_by_advertising_moderator(self, uuid, moderator: str, type="post"):
         op = operations.close_budget_by_advertising_moderator(uuid, moderator, type)
-
         signing_key = self.account(moderator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def update_budget(self, uuid, owner, json_metadata, type):
         op = operations.update_budget_operation(uuid, owner, json_metadata, type)
-
         signing_key = self.account(owner).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def get_current_winners(self, type='post'):
         response = self.rpc.send(self.json_rpc_body('call', 'advertising_api', 'get_current_winners', [type]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def delegate_scorumpower(self, delegator, delegatee, scorumpower: Amount):
         op = operations.delegate_scorumpower(delegator, delegatee, scorumpower)
-
         signing_key = self.account(delegator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer(self, _from: str, to: str, amount: Amount, memo=""):
         op = operations.transfer_operation(_from, to, amount, memo)
-
         signing_key = self.account(_from).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def withdraw(self, account: str, scorumpower: Amount):
         op = operations.withdraw(account, scorumpower)
-
         signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def devcommittee_withdraw_vesting(self, account: str, scorumpower: Amount, lifetime=86400):
         op = operations.devpool_withdraw_vesting(account, scorumpower, lifetime)
-
         signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def development_committee_empower_advertising_moderator(self, initiator: str, moderator: str, lifetime=86400):
         op = operations.development_committee_empower_advertising_moderator(initiator, moderator, lifetime)
-
         signing_key = self.account(initiator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def development_committee_change_budgets_auction_properties(
-            self, initiator: str, coeffs: list, lifetime=86400, type="post"
+        self, initiator: str, coeffs: list, lifetime=86400, type="post"
     ):
         op = operations.development_committee_change_budgets_auction_properties(
             initiator, lifetime, coeffs, type
         )
-
         signing_key = self.account(initiator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer_to_scorumpower(self, _from: str, to: str, amount: Amount):
         op = operations.transfer_to_scorumpower_operation(_from, to, amount)
         signing_key = self.account(_from).get_active_private()
-
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def proposal_vote(self, account: str, proposal_id: int):
         op = operations.proposal_vote_operation(account, proposal_id)
-
         signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def vote_for_witness(self, account: str, witness: str, approve: bool):
-        op = operations.AccountWitnessVote(
+        op = operations.account_witness_vote_operation(
             **{'account': account,
                'witness': witness,
                'approve': approve}
         )
-
         signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def update_witness(self, owner, signing_key, url='testurl.scorum.com', props=None):
         if not props:
-            props = {'account_creation_fee': '0.0000000025 SCR',
-                     'maximum_block_size': 131072}
+            props = {'account_creation_fee': '0.0000000025 SCR', 'maximum_block_size': 131072}
         op = operations.witness_update_operation(owner, url, signing_key, props)
         return self.broadcast_transaction_synchronous([op])
 
     def invite_member(self, inviter: str, invitee: str, lifetime_sec: int):
         op = operations.invite_new_committee_member(inviter, invitee, lifetime_sec)
-
         signing_key = self.account(inviter).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def vote(self, voter, author, permlink, weight=100):
         op = operations.vote_operation(voter, author, permlink, weight)
-
         signing_key = self.account(voter).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def post_comment(self, author, permlink, parent_author, parent_permlink, title, body, json_metadata):
-
-        op = operations.post_comment_operation(author,
-                                               permlink,
-                                               parent_author,
-                                               parent_permlink,
-                                               title, body,
-                                               json_metadata)
-
+        op = operations.post_comment_operation(
+            author,
+            permlink,
+            parent_author,
+            parent_permlink,
+            title, body,
+            json_metadata
+        )
         signing_key = self.account(author).get_posting_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def get_content(self, author, permlink=""):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_content', [author, permlink]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_contents(self, content_queries: list):
         """
@@ -480,41 +387,26 @@ class Wallet(object):
         :return:
         """
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_contents', [content_queries]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_comments(self, parent_author, parent_permlink, depth):
         response = self.rpc.send(
             self.json_rpc_body('call', 'tags_api', 'get_comments', [parent_author, parent_permlink, str(depth)]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_trending_tags(self, start_tag='', limit=100):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_trending_tags', [start_tag, limit]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_discussions_by(self, by_what, **kwargs):
         response = self.rpc.send(
             self.json_rpc_body('call', 'tags_api', 'get_discussions_by_{}'.format(by_what), [kwargs]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_paid_posts_comments_by_author(self, **kwargs):
         response = self.rpc.send(
             self.json_rpc_body('call', 'tags_api', 'get_paid_posts_comments_by_author', [kwargs]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_parents(self, **content_query):
         """
@@ -522,122 +414,77 @@ class Wallet(object):
         :return:
         """
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_parents', [content_query]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_stats_for_interval(self, time_from: str, time_to: str):  # %Y-%m-%dT%H:%M:%S
         response = self.rpc.send(self.json_rpc_body(
             'call', 'blockchain_statistics_api', 'get_stats_for_interval', [time_from, time_to]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def get_posts_and_comments(self, **discussion_query):
         response = self.rpc.send(self.json_rpc_body('call', 'tags_api', 'get_posts_and_comments', [discussion_query]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def debug_has_hardfork(self, hardfork_id):
         response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_has_hardfork', [hardfork_id]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
     def debug_set_hardfork(self, hardfork_id):
         response = self.rpc.send(self.json_rpc_body('call', 'debug_node_api', 'debug_set_hardfork', [hardfork_id]))
-        try:
-            return response['result']
-        except KeyError:
-            return response
+        return response.get('result', response)
 
-    def create_account(self,
-                       creator: str,
-                       newname: str,
-                       owner: str,
-                       active: str = None,
-                       posting: str = None,
-                       fee: Amount = None,
-                       memo=None,
-                       json_meta={},
-                       additional_owner_keys=[],
-                       additional_active_keys=[],
-                       additional_posting_keys=[],
-                       additional_owner_accounts=[],
-                       additional_active_accounts=[],
-                       additional_posting_accounts=[]):
-
-        op = operations.account_create_operation(creator,
-                                                 fee if fee else Amount('0.000000750 SCR'),
-                                                 newname,
-                                                 owner,
-                                                 active if active else owner,
-                                                 posting if posting else owner,
-                                                 memo if memo else owner,
-                                                 json_meta,
-                                                 additional_owner_accounts,
-                                                 additional_active_accounts,
-                                                 additional_posting_accounts,
-                                                 additional_owner_keys,
-                                                 additional_active_keys,
-                                                 additional_posting_keys)
-
+    def create_account(self, creator: str, newname: str, owner: str, **kwargs):
+        op = operations.account_create_operation(
+            creator,
+            kwargs.get('fee', Amount('0.000000750 SCR')),
+            newname,
+            owner,
+            kwargs.get('active', owner),
+            kwargs.get('posting', owner),
+            kwargs.get('memo', owner),
+            kwargs.get('json_meta', {}),
+            kwargs.get('additional_owner_accounts', []),
+            kwargs.get('additional_active_accounts', []),
+            kwargs.get('additional_posting_accounts', []),
+            kwargs.get('additional_owner_keys', []),
+            kwargs.get('additional_active_keys', []),
+            kwargs.get('additional_posting_keys', []),
+        )
         signing_key = self.account(creator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def create_account_by_committee(self,
-                                    creator: str,
-                                    newname: str,
-                                    owner: str,
-                                    active: str = None,
-                                    posting: str = None,
-                                    memo=None,
-                                    json_meta={},
-                                    additional_owner_keys=[],
-                                    additional_active_keys=[],
-                                    additional_posting_keys=[],
-                                    additional_owner_accounts=[],
-                                    additional_active_accounts=[],
-                                    additional_posting_accounts=[]):
-
-        op = operations.account_create_by_committee_operation(creator,
-                                                              newname,
-                                                              owner,
-                                                              active if active else owner,
-                                                              posting if posting else owner,
-                                                              memo if memo else owner,
-                                                              json_meta,
-                                                              additional_owner_accounts,
-                                                              additional_active_accounts,
-                                                              additional_posting_accounts,
-                                                              additional_owner_keys,
-                                                              additional_active_keys,
-                                                              additional_posting_keys)
-
+    def create_account_by_committee(self,  creator: str, newname: str, owner: str, **kwargs):
+        op = operations.account_create_by_committee_operation(
+            creator,
+            newname,
+            owner,
+            kwargs.get('active', owner),
+            kwargs.get('posting', owner),
+            kwargs.get('memo', owner),
+            kwargs.get('json_meta', {}),
+            kwargs.get('additional_owner_accounts', []),
+            kwargs.get('additional_active_accounts', []),
+            kwargs.get('additional_posting_accounts', []),
+            kwargs.get('additional_owner_keys', []),
+            kwargs.get('additional_active_keys', []),
+            kwargs.get('additional_posting_keys', []),
+        )
         signing_key = self.account(creator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
-    def broadcast_transaction_synchronous(self, ops, keys=[]):
+    def broadcast_transaction_synchronous(self, ops, keys=None):
         ref_block_num, ref_block_prefix = self.get_ref_block_params()
-
-        tx = SignedTransaction(ref_block_num=ref_block_num,
-                               ref_block_prefix=ref_block_prefix,
-                               expiration=fmt_time_from_now(60),
-                               operations=ops)
-
-        tx.sign(keys, self.chain_id)
+        tx = SignedTransaction(
+            ref_block_num=ref_block_num,
+            ref_block_prefix=ref_block_prefix,
+            expiration=fmt_time_from_now(60),
+            operations=ops
+        )
+        tx.sign(keys if keys else [], self.chain_id)
         response = self.rpc.send(
-            self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()]))
-
-        try:
-            return response['result']
-        except KeyError:
-            return response
+            self.json_rpc_body('call', 'network_broadcast_api', "broadcast_transaction_synchronous", [tx.json()])
+        )
+        return response.get('result', response)
 
     def broadcast_multiple_ops(self, op_name: str, data: list, users: set):
         op = getattr(operations, op_name)
