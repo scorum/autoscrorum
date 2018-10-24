@@ -321,6 +321,16 @@ class Wallet(object):
         signing_key = self.account(initiator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
+    def development_committee_empower_betting_moderator(self, initiator: str, moderator: str, lifetime=86400):
+        op = operations.development_committee_empower_betting_moderator(initiator, moderator, lifetime)
+        signing_key = self.account(initiator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def development_committee_change_betting_resolve_delay(self, initiator, delay_sec, lifetime=86400):
+        op = operations.development_committee_change_betting_resolve_delay(initiator, delay_sec, lifetime)
+        signing_key = self.account(initiator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
     def development_committee_change_budgets_auction_properties(
         self, initiator: str, coeffs: list, lifetime=86400, type="post"
     ):
@@ -491,3 +501,77 @@ class Wallet(object):
         ops = [op(**d) for d in data]
         keys = [self.account(u).get_active_private() for u in users]
         return self.broadcast_transaction_synchronous(ops, keys)
+
+    def get_games_by_status(self, game_filter):
+        """
+        :param int game_filter: Enum(created, started, finished, not_finished, not_started, not_created, all)
+        """
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_gamess_by_status', [game_filter]))
+        return response.get('result', response)
+
+    def get_games_by_uuids(self, uuids):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_gamess_by_uuids', [uuids]))
+        return response.get('result', response)
+
+    def lookup_games_by_id(self, start_id, limit):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'lookup_games_by_id', [start_id, limit]))
+        return response.get('result', response)
+
+    def get_game_winners(self, game_uuid):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_game_winners', [game_uuid]))
+        return response.get('result', response)
+
+    def get_matched_bets(self, uuids):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_matched_bets', [uuids]))
+        return response.get('result', response)
+
+    def lookup_matched_bets(self, start_id, limit):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'lookup_matched_bets', [start_id, limit]))
+        return response.get('result', response)
+
+    def get_pending_bets(self, uuids):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_pending_bets', [uuids]))
+        return response.get('result', response)
+
+    def lookup_pending_bets(self, start_id, limit):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'lookup_pending_bets', [start_id, limit]))
+        return response.get('result', response)
+
+    def get_betting_properties(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_betting_properties', []))
+        return response.get('result', response)
+
+    def create_game(self, uuid, moderator, game_name, start_time, resolve_delay, game, markets):
+        op = operations.create_game(uuid, moderator, game_name, start_time, resolve_delay, game, markets)
+        signing_key = self.account(moderator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def cancel_game(self, uuid, moderator):
+        op = operations.cancel_game(uuid, moderator)
+        signing_key = self.account(moderator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def update_game_markets(self, uuid, moderator, markets):
+        op = operations.update_game_markets(uuid, moderator, markets)
+        signing_key = self.account(moderator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def update_game_start_time(self, uuid, moderator, start_time):
+        op = operations.update_game_start_time(uuid, moderator, start_time)
+        signing_key = self.account(moderator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def post_game_results(self, uuid, moderator, wincases):
+        op = operations.post_game_results(uuid, moderator, wincases)
+        signing_key = self.account(moderator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def post_bet(self, uuid, better, game_uuid, wincase, odds, stake, live):
+        op = operations.post_bet(uuid, better, game_uuid, wincase, odds, stake, live)
+        signing_key = self.account(better).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def cancel_pending_bets(self, uuids, better):
+        op = operations.cancel_pending_bets(uuids, better)
+        signing_key = self.account(better).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
