@@ -130,7 +130,8 @@ def config(default_config, genesis):
         'node_monitoring_api',
         'debug_node_api',
         'devcommittee_history_api',
-        'advertising_api'
+        'advertising_api',
+        'betting_api'
     ]
 
     test_plugins = [
