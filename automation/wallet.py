@@ -510,7 +510,7 @@ class Wallet(object):
         return response.get('result', response)
 
     def get_games_by_uuids(self, uuids):
-        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_gamess_by_uuids', [uuids]))
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_games_by_uuids', [uuids]))
         return response.get('result', response)
 
     def lookup_games_by_id(self, start_id, limit):
