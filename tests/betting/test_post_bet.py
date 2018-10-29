@@ -14,7 +14,7 @@ from tests.common import validate_response, gen_uid, DEFAULT_WITNESS, check_virt
 def test_post_bet(wallet: Wallet, better, wincase_type, odds, stake):
     empower_betting_moderator(wallet, DEFAULT_WITNESS)
     balance_before = wallet.get_account_scr_balance(better)
-    game_uuid = create_game(wallet, DEFAULT_WITNESS)
+    game_uuid, _ = create_game(wallet, DEFAULT_WITNESS)
     bet_uuid = gen_uid()
     response = wallet.post_bet(bet_uuid, better, game_uuid, wincase_type, odds, stake, True)
     validate_response(response, wallet.post_bet.__name__)

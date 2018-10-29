@@ -2,23 +2,34 @@ import pytest
 
 from automation.wallet import Wallet
 from tests.betting.conftest import GAME_FILTERS, empower_betting_moderator, create_game
-from tests.common import gen_uid, DEFAULT_WITNESS, validate_response
+from tests.common import gen_uid, DEFAULT_WITNESS, validate_response, validate_error_response, RE_OBJECT_NOT_EXIST
+# from scorum.graphenebase.betting import wincase
 
 
 @pytest.mark.parametrize('uuid', ['e629f9aa-6b2c-46aa-8fa8-36770e7a7a5f'])
 def test_get_game_winners(wallet: Wallet, uuid):
-    assert wallet.get_game_winners(uuid) is None, "Winners shouldn't be set yet."
-    # create game, end game
+    validate_error_response(wallet.get_game_winners(uuid), wallet.get_game_winners.__name__, RE_OBJECT_NOT_EXIST)
+    # create game, create bet, match bet, end game
     # response = wallet.get_game_winners(uuid)
     # validate_response(response, wallet.get_game_winners.__name__)
 
 
-@pytest.mark.parametrize('game_filter', [GAME_FILTERS.index("created")])
-def test_get_games_by_status(wallet: Wallet, game_filter):
-    assert wallet.get_games_by_status(game_filter) is None, "Games shouldn't be created yet."
-    # create game
-    # response = wallet.get_gameS(filter)
-    # validate_response(response, wallet.get_games.__name__)
+def test_get_games_by_status(wallet: Wallet):
+
+    def check(status):
+        response = wallet.get_games_by_status([GAME_FILTERS.index(status)])
+        validate_response(response, wallet.get_games_by_status.__name__)
+        assert len(response) == 1, "Should be '%s' one game." % status
+        assert response[0]['uuid'] == uuid
+
+    assert wallet.get_games_by_status([0]) == [], "Games shouldn't be created yet."
+    empower_betting_moderator(wallet, DEFAULT_WITNESS)
+    uuid, block_num = create_game(wallet, DEFAULT_WITNESS, start=5)
+    check("created")
+    wallet.get_block(block_num + 1, wait_for_block=True)
+    check("started")
+    # print(wallet.post_game_results(uuid, DEFAULT_WITNESS, [wincase.ResultHomeYes()]))
+    # check("finished")
 
 
 def test_get_betting_properties(wallet: Wallet):
@@ -34,7 +45,7 @@ def test_get_games_by_uuids(wallet: Wallet):
     uuid = create_game(wallet, DEFAULT_WITNESS, delay=3600)
     response = wallet.get_games_by_uuids([uuid])
     validate_response(response, wallet.get_games_by_uuids.__name__)
-    assert len(response) == 1, "Should be created one game."
+    assert len(response) == 1, "Should be created %d game(s)." % 1
     assert response[0]['uuid'] == uuid
     assert response[0]['moderator'] == DEFAULT_WITNESS
 

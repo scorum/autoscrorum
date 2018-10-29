@@ -502,11 +502,13 @@ class Wallet(object):
         keys = [self.account(u).get_active_private() for u in users]
         return self.broadcast_transaction_synchronous(ops, keys)
 
-    def get_games_by_status(self, game_filter):
+    def get_games_by_status(self, game_filters: list):
         """
-        :param int game_filter: Enum(created, started, finished, not_finished, not_started, not_created, all)
+        :param int game_filters: Enum(created, started, finished, resolved, expired, cancelled)
+            Statuses 'resolved', 'expired', 'cancelled' returns Null as game should be deleted in such cases.
+            To retrieve all games send ['created', 'started', 'finished']
         """
-        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_gamess_by_status', [game_filter]))
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_games_by_status', [game_filters]))
         return response.get('result', response)
 
     def get_games_by_uuids(self, uuids):
@@ -519,6 +521,7 @@ class Wallet(object):
 
     def get_game_winners(self, game_uuid):
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_game_winners', [game_uuid]))
+        print(response)
         return response.get('result', response)
 
     def get_matched_bets(self, uuids):

@@ -6,7 +6,7 @@ from scorum.graphenebase.amount import Amount
 from automation.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, empower_advertising_moderator, update_budget_balance
 from tests.common import (
-    DEFAULT_WITNESS, validate_response, validate_error_response, RE_BUDGET_NOT_EXIST, check_virt_ops, gen_uid,
+    DEFAULT_WITNESS, validate_response, validate_error_response, RE_OBJECT_NOT_EXIST, check_virt_ops, gen_uid,
     RE_MISSING_AUTHORITY
 )
 
@@ -118,7 +118,7 @@ def test_close_budgets(wallet_3hf: Wallet, moderator, opened_budgets_same_acc):
     validate_error_response(
         wallet_3hf.close_budget_by_advertising_moderator(budgets[0]["uuid"], moderator, budgets[0]["type"]),
         wallet_3hf.close_budget_by_advertising_moderator.__name__,
-        RE_BUDGET_NOT_EXIST
+        RE_OBJECT_NOT_EXIST
     )
 
 
@@ -129,7 +129,7 @@ def test_unknown_uuid(wallet_3hf: Wallet, opened_budgets, uuid, moderator):
     validate_error_response(
         wallet_3hf.close_budget_by_advertising_moderator(uuid(), moderator, opened_budgets[0]["type"]),
         wallet_3hf.close_budget_by_advertising_moderator.__name__,
-        RE_BUDGET_NOT_EXIST
+        RE_OBJECT_NOT_EXIST
     )
 
 

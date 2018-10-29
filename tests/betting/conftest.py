@@ -9,10 +9,9 @@ GAME_FILTERS = [
     "created",
     "started",
     "finished",
-    "not_finished",
-    "not_started",
-    "not_created",
-    "all"
+    "resolved",
+    "expired",
+    "cancelled"
 ]
 
 
@@ -40,9 +39,9 @@ def create_game(wallet, account, **kwargs):
     """
     uuid = gen_uid()
     game_name = "{}{}{}".format(account, "_test_game", kwargs.get("postfix", ""))
-    wallet.create_game(
+    response = wallet.create_game(
         uuid, account, game_name,
         fmt_time_from_now(kwargs.get("start", 3)), kwargs.get("delay", 30),
         kwargs.get("game_type", game.Soccer()), kwargs.get("market_types", [])
     )
-    return uuid
+    return uuid, response['block_num']

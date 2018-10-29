@@ -7,7 +7,7 @@ from scorum.utils.time import fmt_time_from_now
 from automation.wallet import Wallet
 from tests.advertising.conftest import update_budget_time, update_budget_balance, calc_per_block, get_per_blocks_count
 from tests.common import (
-    validate_response, validate_error_response, check_virt_ops, gen_uid, RE_BUDGET_NOT_EXIST,
+    validate_response, validate_error_response, check_virt_ops, gen_uid, RE_OBJECT_NOT_EXIST,
     DEFAULT_WITNESS, RE_MISSING_AUTHORITY
 )
 
@@ -90,7 +90,7 @@ def test_close_budgets(wallet_3hf: Wallet, opened_budgets_same_acc):
     validate_error_response(
         wallet_3hf.close_budget(budgets[0]['uuid'], budgets[0]["owner"], budgets[0]["type"]),
         wallet_3hf.close_budget.__name__,
-        RE_BUDGET_NOT_EXIST
+        RE_OBJECT_NOT_EXIST
     )
 
 
@@ -99,7 +99,7 @@ def test_unknown_uuid(wallet_3hf: Wallet, opened_budgets, uuid):
     validate_error_response(
         wallet_3hf.close_budget(uuid(), opened_budgets[0]["owner"], opened_budgets[0]["type"]),
         wallet_3hf.close_budget.__name__,
-        RE_BUDGET_NOT_EXIST
+        RE_OBJECT_NOT_EXIST
     )
 
 
