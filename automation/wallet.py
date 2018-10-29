@@ -521,7 +521,6 @@ class Wallet(object):
 
     def get_game_winners(self, game_uuid):
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_game_winners', [game_uuid]))
-        print(response)
         return response.get('result', response)
 
     def get_matched_bets(self, uuids):
