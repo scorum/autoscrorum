@@ -21,8 +21,9 @@ RE_COMMON_ERROR = r"Assert Exception"
 RE_POSITIVE_BALANCE = r"Assert Exception\nbalance > asset\(0, SCORUM_SYMBOL\): Balance must be positive"
 RE_DEADLINE_TIME = r"Assert Exception\n.* Deadline time must be greater or equal then start time"
 RE_MISSING_AUTHORITY = r"Missing Active Authority"
-RE_START_TIME = r"Assert Exception\n.* Start time must be greater than head block time"
+RE_START_TIME = r"Assert Exception\n.* (Start time must be greater than|should start after) head block time"
 RE_INVALID_UUID = r"invalid uuid string"
+RE_NOT_MODERATOR = r" Assert Exception\n.* User .* isn\'t an? (advertising|betting) moderator\n"
 MAX_INT_64 = 9223372036854775807
 
 
