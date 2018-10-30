@@ -31,16 +31,16 @@ def create_game(wallet, account=DEFAULT_WITNESS, **kwargs):
     """
     'Additional_argument' default_value:
     ---
-    'postfix' ""
+    'json_metadata' "{}"
     'start' 3
     'delay' 30
     'game_type' game.Soccer()
     'market_types' []
     """
     uuid = gen_uid()
-    game_name = "{}{}{}".format(account, "_test_game", kwargs.get("postfix", ""))
     response = wallet.create_game(
-        uuid, account, game_name,
+        uuid, account,
+        kwargs.get('json_metadata', "{}"),
         fmt_time_from_now(kwargs.get("start", 3)), kwargs.get("delay", 30),
         kwargs.get("game_type", game.Soccer()), kwargs.get("market_types", [])
     )

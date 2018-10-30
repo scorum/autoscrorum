@@ -543,8 +543,8 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_betting_properties', []))
         return response.get('result', response)
 
-    def create_game(self, uuid, moderator, game_name, start_time, resolve_delay, game, markets):
-        op = operations.create_game(uuid, moderator, game_name, start_time, resolve_delay, game, markets)
+    def create_game(self, uuid, moderator, json_metadata, start_time, resolve_delay, game, markets):
+        op = operations.create_game(uuid, moderator, json_metadata, start_time, resolve_delay, game, markets)
         signing_key = self.account(moderator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 

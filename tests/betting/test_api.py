@@ -53,7 +53,7 @@ def test_get_games_by_uuids(wallet: Wallet):
 def test_lookup_games_by_id(wallet: Wallet):
     assert wallet.lookup_games_by_id(10001, 100) == [], "Games shouldn't be created yet."
     empower_betting_moderator(wallet, DEFAULT_WITNESS)
-    uuid, _  = create_game(wallet, DEFAULT_WITNESS, delay=3600)
+    uuid, _ = create_game(wallet, DEFAULT_WITNESS, delay=3600)
     response = wallet.lookup_games_by_id(-1, 100)
     validate_response(response, wallet.get_games_by_uuids.__name__)
     assert len(response) == 1, "Should be created one game."

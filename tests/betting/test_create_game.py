@@ -19,7 +19,7 @@ from tests.common import (
 def test_create_game(wallet: Wallet, game_type, market_types, moderator, start, delay):
     empower_betting_moderator(wallet, moderator)
     response = wallet.create_game(
-        gen_uid(), moderator, "game_name", fmt_time_from_now(start), delay, game_type, market_types)
+        gen_uid(), moderator, "{}", fmt_time_from_now(start), delay, game_type, market_types)
     validate_response(response, wallet.create_game.__name__)
     check_virt_ops(wallet, response['block_num'], response['block_num'], ["create_game"])
 
@@ -31,5 +31,5 @@ def test_create_game(wallet: Wallet, game_type, market_types, moderator, start, 
 def test_create_game_invalid_params(wallet: Wallet, moderator, start, expected_error):
     empower_betting_moderator(wallet, "alice")
     response = wallet.create_game(
-        gen_uid(), moderator, "game_name", fmt_time_from_now(start), 30, game.Soccer(), [market.RoundHome()])
+        gen_uid(), moderator, "{}", fmt_time_from_now(start), 30, game.Soccer(), [market.RoundHome()])
     validate_error_response(response, wallet.create_game.__name__, expected_error)
