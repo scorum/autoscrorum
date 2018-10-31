@@ -65,3 +65,35 @@ def post_bet(wallet, better, game_uuid, **kwargs):
         kwargs.get("live", True)
     )
     return uuid, response['block_num']
+
+
+class Bet:
+    def __init__(self, account, wincase, odds):
+        self.account = account
+        self.wincase = wincase
+        self.odds = odds
+
+
+def create_game_with_bets(wallet, game_start, bets):
+    empower_betting_moderator(wallet)
+    game_uuid, _ = create_game(wallet, start=game_start, market_types=[market.RoundHome(), market.Handicap(500)])
+    bet_uuids = []
+    for bet in bets:
+        uuid, _ = post_bet(wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds)
+        bet_uuids.append(uuid)
+    return game_uuid, bet_uuids
+
+
+@pytest.fixture(scope="function")
+def matched_bets():
+    return [Bet("alice", wincase.RoundHomeYes(), [3, 2]), Bet("bob", wincase.RoundHomeNo(), [3, 1])]
+
+
+@pytest.fixture(scope="function")
+def pending_bets():  # unmatched bets
+    return [Bet("alice", wincase.RoundHomeYes(), [3, 2]), Bet("bob", wincase.HandicapOver(500), [5, 1])]
+
+
+@pytest.fixture(params=['matched_bets', 'pending_bets'])
+def bets(request):
+    return request.getfixturevalue(request.param)

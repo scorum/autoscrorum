@@ -4,7 +4,7 @@ import pytest
 from scorum.graphenebase.betting import market, Market, wincase
 
 from automation.wallet import Wallet
-from tests.betting.conftest import empower_betting_moderator, create_game
+from tests.betting.conftest import empower_betting_moderator, create_game, create_game_with_bets
 from tests.common import (
     validate_response, check_virt_ops, DEFAULT_WITNESS, RE_OBJECT_NOT_EXIST, validate_error_response, gen_uid,
     RE_NOT_MODERATOR, RE_MISSING_AUTHORITY
@@ -68,3 +68,13 @@ def test_update_game_markets_invalid_signing(wallet: Wallet):
     g = {"uuid": uuid, "moderator": "alice", "markets": []}
     response = wallet.broadcast_multiple_ops("update_game_markets", [g], ["bob"])
     validate_error_response(response, "update_game_markets", RE_MISSING_AUTHORITY)
+
+
+def test_update_game_markets_cancel_bets(wallet: Wallet, bets):
+    accounts_before = {a["name"]: a for a in wallet.get_accounts(["alice", "bob"])}
+    game_uuid, bet_uuids = create_game_with_bets(wallet, 30, bets)
+    wallet.update_game_markets(game_uuid, DEFAULT_WITNESS, [])
+    accounts_after = {a["name"]: a for a in wallet.get_accounts(["alice", "bob"])}
+    assert 0 == len(wallet.get_matched_bets(bet_uuids)), "Matched bets should be cancelled."
+    assert 0 == len(wallet.get_pending_bets(bet_uuids)), "Pending bets should be cancelled."
+    assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in ["alice", "bob"])
