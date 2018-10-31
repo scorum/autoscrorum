@@ -1,7 +1,8 @@
+from scorum.graphenebase.betting import wincase
+
 from automation.wallet import Wallet
 from tests.betting.conftest import GAME_FILTERS, empower_betting_moderator, create_game, post_bet
 from tests.common import gen_uid, DEFAULT_WITNESS, validate_response, validate_error_response, RE_OBJECT_NOT_EXIST
-from scorum.graphenebase.betting import wincase
 
 
 def test_get_game_winners(wallet: Wallet):
