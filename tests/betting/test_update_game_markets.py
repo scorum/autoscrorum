@@ -70,11 +70,13 @@ def test_update_game_markets_invalid_signing(wallet: Wallet):
     validate_error_response(response, "update_game_markets", RE_MISSING_AUTHORITY)
 
 
-def test_update_game_markets_cancel_bets(wallet: Wallet, bets):
-    accounts_before = {a["name"]: a for a in wallet.get_accounts(["alice", "bob"])}
+def test_update_game_markets_with_bets(wallet: Wallet, bets):
+    names = [b.account for b in bets]
+    accounts_before = {a["name"]: a for a in wallet.get_accounts(names)}
     game_uuid, bet_uuids = create_game_with_bets(wallet, 30, bets)
     wallet.update_game_markets(game_uuid, DEFAULT_WITNESS, [])
-    accounts_after = {a["name"]: a for a in wallet.get_accounts(["alice", "bob"])}
+    accounts_after = {a["name"]: a for a in wallet.get_accounts(names)}
     assert 0 == len(wallet.get_matched_bets(bet_uuids)), "Matched bets should be cancelled."
     assert 0 == len(wallet.get_pending_bets(bet_uuids)), "Pending bets should be cancelled."
-    assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in ["alice", "bob"])
+    assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in names), \
+        "All accounts should receive back their stakes."

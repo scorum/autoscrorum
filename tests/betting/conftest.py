@@ -76,7 +76,7 @@ class Bet:
 
 def create_game_with_bets(wallet, game_start, bets):
     empower_betting_moderator(wallet)
-    game_uuid, _ = create_game(wallet, start=game_start, market_types=[market.RoundHome(), market.Handicap(500)])
+    game_uuid, _ = create_game(wallet, start=game_start, delay=3600, market_types=[market.RoundHome(), market.Handicap(500)])
     bet_uuids = []
     for bet in bets:
         uuid, _ = post_bet(wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds)
