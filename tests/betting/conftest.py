@@ -1,9 +1,8 @@
 import pytest
-
-from scorum.utils.time import fmt_time_from_now
 from scorum.graphenebase.betting import game, market, wincase
-from tests.common import apply_hardfork, DEFAULT_WITNESS, gen_uid
+from scorum.utils.time import fmt_time_from_now
 
+from tests.common import apply_hardfork, DEFAULT_WITNESS, gen_uid
 
 GAME_FILTERS = [
     "created",

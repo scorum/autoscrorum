@@ -1,8 +1,9 @@
 import pytest
+from scorum.graphenebase.betting import wincase, market
 from scorum.utils.time import to_date, date_to_str, fmt_time_from_now
-from scorum.graphenebase.betting import wincase
+
 from automation.wallet import Wallet
-from tests.betting.conftest import empower_betting_moderator, create_game, create_game_with_bets
+from tests.betting.conftest import empower_betting_moderator, create_game, create_game_with_bets, post_bet
 from tests.common import (
     validate_response, check_virt_ops, DEFAULT_WITNESS, validate_error_response, gen_uid,
     RE_OBJECT_NOT_EXIST, RE_NOT_MODERATOR, RE_MISSING_AUTHORITY, RE_START_TIME
@@ -96,3 +97,15 @@ def test_update_start_time_of_game_with_bets_added_after_start(wallet: Wallet, b
     assert len(response) == 0, "Bets added after start time should be cancelled."
     assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in names), \
         "All accounts should receive back their stakes."
+
+
+def test_update_game_start_time_with_bets_few_games(wallet: Wallet):
+    empower_betting_moderator(wallet)
+    game1, _ = create_game(wallet, delay=3600, market_types=[market.RoundHome()])
+    game2, _ = create_game(wallet, delay=3600, market_types=[market.RoundHome()])
+    bet1, _ = post_bet(wallet, "alice", game1, wincase_type=wincase.RoundHomeYes())
+    bet2, _ = post_bet(wallet, "bob", game2, wincase_type=wincase.RoundHomeNo())
+    wallet.update_game_start_time(game1, DEFAULT_WITNESS, fmt_time_from_now(30))
+    bets = wallet.get_pending_bets([bet1, bet2])
+    assert len(bets) == 1 and bets[0]['data']['uuid'] == bet2, \
+        "Should remain only pending bet in not changed game."

@@ -4,7 +4,7 @@ import pytest
 from scorum.graphenebase.betting import market, Market, wincase
 
 from automation.wallet import Wallet
-from tests.betting.conftest import empower_betting_moderator, create_game, create_game_with_bets
+from tests.betting.conftest import empower_betting_moderator, create_game, create_game_with_bets, post_bet
 from tests.common import (
     validate_response, check_virt_ops, DEFAULT_WITNESS, RE_OBJECT_NOT_EXIST, validate_error_response, gen_uid,
     RE_NOT_MODERATOR, RE_MISSING_AUTHORITY
@@ -80,3 +80,17 @@ def test_update_game_markets_with_bets(wallet: Wallet, bets):
     assert 0 == len(wallet.get_pending_bets(bet_uuids)), "Pending bets should be cancelled."
     assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in names), \
         "All accounts should receive back their stakes."
+
+
+def test_update_game_markets_with_bets_few_games(wallet: Wallet):
+    empower_betting_moderator(wallet)
+    game1, _ = create_game(wallet, start=30, delay=3600, market_types=[market.RoundHome()])
+    game2, _ = create_game(wallet, start=30, delay=3600, market_types=[market.RoundHome()])
+    bet1, _ = post_bet(wallet, "alice", game1, wincase_type=wincase.RoundHomeYes())
+    bet2, _ = post_bet(wallet, "bob", game2, wincase_type=wincase.RoundHomeNo())
+    wallet.update_game_markets(game1, DEFAULT_WITNESS, [market.Total(100)])
+    games = wallet.get_games_by_uuids([game1, game2])
+    assert games[0]["uuid"] == game1 and games[0]["markets"][0][0] == "total"
+    assert games[1]["uuid"] == game2 and games[1]["markets"][0][0] == "round_home"
+    bets = wallet.get_pending_bets([bet1, bet2])
+    assert len(bets) == 1 and bets[0]['data']['uuid'] == bet2
