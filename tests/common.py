@@ -156,6 +156,7 @@ def validate_response(response, op, required_params=None):
             (key, op, response[key], value, response)
         )
     assert_expectations()
+    return True
 
 
 def validate_error_response(response, op: str, pattern=RE_COMMON_ERROR):
@@ -163,6 +164,7 @@ def validate_error_response(response, op: str, pattern=RE_COMMON_ERROR):
     m = re.search(pattern, err.get("message", ""), re.IGNORECASE)
     assert err and m is not None, \
         "%s operation should fail but passed with result: %s" % (op, err)
+    return True
 
 
 def apply_hardfork(wallet: Wallet, hf_id: int):

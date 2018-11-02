@@ -17,12 +17,12 @@ from tests.common import (
 ])
 @pytest.mark.parametrize('moderator', ['alice'])
 @pytest.mark.parametrize('start,delay', [(1, 30), (30, 60)])
-def test_create_game(wallet: Wallet, game_type, market_types, moderator, start, delay):
-    empower_betting_moderator(wallet, moderator)
-    response = wallet.create_game(
+def test_create_game(wallet_4hf: Wallet, game_type, market_types, moderator, start, delay):
+    empower_betting_moderator(wallet_4hf, moderator)
+    response = wallet_4hf.create_game(
         gen_uid(), moderator, "{}", fmt_time_from_now(start), delay, game_type, market_types)
-    validate_response(response, wallet.create_game.__name__)
-    check_virt_ops(wallet, response['block_num'], response['block_num'], ["create_game"])
+    validate_response(response, wallet_4hf.create_game.__name__)
+    check_virt_ops(wallet_4hf, response['block_num'], response['block_num'], ["create_game"])
 
 
 @pytest.mark.parametrize('moderator,start,markets,expected_error', [
@@ -30,37 +30,37 @@ def test_create_game(wallet: Wallet, game_type, market_types, moderator, start, 
     ["bob", 3, [], RE_NOT_MODERATOR],
     ["alice", 0, [market.RoundHome(), market.RoundHome()], "You provided duplicates in market list"]
 ])
-def test_create_game_invalid_params(wallet: Wallet, moderator, start, markets, expected_error):
-    empower_betting_moderator(wallet, "alice")
-    response = wallet.create_game(
+def test_create_game_invalid_params(wallet_4hf: Wallet, moderator, start, markets, expected_error):
+    empower_betting_moderator(wallet_4hf, "alice")
+    response = wallet_4hf.create_game(
         gen_uid(), moderator, "{}", fmt_time_from_now(start), 30, game.Soccer(), markets)
-    validate_error_response(response, wallet.create_game.__name__, expected_error)
+    validate_error_response(response, wallet_4hf.create_game.__name__, expected_error)
 
 
-def test_create_game_invalid_signing(wallet: Wallet):
-    empower_betting_moderator(wallet, "alice")
+def test_create_game_invalid_signing(wallet_4hf: Wallet):
+    empower_betting_moderator(wallet_4hf, "alice")
     g = {
         "uuid": gen_uid(), "moderator": "alice", "start_time": fmt_time_from_now(3), "json_metadata": "{}",
         "auto_resolve_delay_sec": 30, "game": game.Soccer(), "markets": []
     }
-    response = wallet.broadcast_multiple_ops("create_game", [g], ["bob"])
+    response = wallet_4hf.broadcast_multiple_ops("create_game", [g], ["bob"])
     validate_error_response(response, "create_game", RE_MISSING_AUTHORITY)
 
 
 @pytest.mark.parametrize('moderator', ['alice'])
-def test_create_game_same_uuid(wallet: Wallet, moderator):
-    empower_betting_moderator(wallet, moderator)
+def test_create_game_same_uuid(wallet_4hf: Wallet, moderator):
+    empower_betting_moderator(wallet_4hf, moderator)
     uuid = gen_uid()
-    wallet.create_game(uuid, moderator, "{}", fmt_time_from_now(3), 30, game.Soccer(), [])
-    response = wallet.create_game(uuid, moderator, "{}", fmt_time_from_now(3), 30, game.Soccer(), [])
-    validate_error_response(response, wallet.create_game.__name__, RE_OBJECT_EXIST)
+    wallet_4hf.create_game(uuid, moderator, "{}", fmt_time_from_now(3), 30, game.Soccer(), [])
+    response = wallet_4hf.create_game(uuid, moderator, "{}", fmt_time_from_now(3), 30, game.Soccer(), [])
+    validate_error_response(response, wallet_4hf.create_game.__name__, RE_OBJECT_EXIST)
 
 
 @pytest.mark.parametrize('moderator', ['alice'])
-def test_create_game_same_after_cancel(wallet: Wallet, moderator):
-    empower_betting_moderator(wallet, moderator)
+def test_create_game_same_after_cancel(wallet_4hf: Wallet, moderator):
+    empower_betting_moderator(wallet_4hf, moderator)
     uuid = gen_uid()
-    wallet.create_game(uuid, moderator, "{}", fmt_time_from_now(10), 30, game.Soccer(), [])
-    wallet.cancel_game(uuid, moderator)
-    response = wallet.create_game(uuid, moderator, "{}", fmt_time_from_now(10), 30, game.Soccer(), [])
-    validate_error_response(response, wallet.create_game.__name__, RE_OBJECT_EXIST)
+    wallet_4hf.create_game(uuid, moderator, "{}", fmt_time_from_now(10), 30, game.Soccer(), [])
+    wallet_4hf.cancel_game(uuid, moderator)
+    response = wallet_4hf.create_game(uuid, moderator, "{}", fmt_time_from_now(10), 30, game.Soccer(), [])
+    validate_error_response(response, wallet_4hf.create_game.__name__, RE_OBJECT_EXIST)
