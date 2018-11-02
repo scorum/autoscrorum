@@ -1,18 +1,17 @@
-from scorum.graphenebase.betting import wincase
+from scorum.graphenebase.betting import wincase, market
 
 from automation.wallet import Wallet
-from tests.betting.conftest import GAME_FILTERS, empower_betting_moderator, create_game, post_bet
+from tests.betting.conftest import GAME_FILTERS, empower_betting_moderator, create_game, post_bet, create_game_with_bets
 from tests.common import gen_uid, DEFAULT_WITNESS, validate_response, validate_error_response, RE_OBJECT_NOT_EXIST
 
 
-def test_get_game_winners(wallet: Wallet):
+def test_get_game_winners(wallet: Wallet, matched_bets):
     validate_error_response(wallet.get_game_winners(gen_uid()), wallet.get_game_winners.__name__, RE_OBJECT_NOT_EXIST)
-    empower_betting_moderator(wallet)
-    game_uuid, _ = create_game(wallet, delay=3600)
-    post_bet(wallet, "alice", game_uuid, wincase_type=wincase.RoundHomeYes(), odds=[3, 2])
-    post_bet(wallet, "bob", game_uuid, wincase_type=wincase.RoundHomeNo(), odds=[3, 1])
+    game_uuid, bets_uuid = create_game_with_bets(wallet, matched_bets, 1)
+    wallet.post_game_results(game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
     response = wallet.get_game_winners(game_uuid)
     validate_response(response, wallet.get_matched_bets.__name__)
+    assert response, "At least one winner should present in response"
 
 
 def test_get_games_by_status(wallet: Wallet):
@@ -25,7 +24,7 @@ def test_get_games_by_status(wallet: Wallet):
 
     assert wallet.get_games_by_status([0]) == [], "Games shouldn't be created yet."
     empower_betting_moderator(wallet, DEFAULT_WITNESS)
-    uuid, block_num = create_game(wallet, DEFAULT_WITNESS, start=5)
+    uuid, block_num = create_game(wallet, DEFAULT_WITNESS, start=5, market_types=[market.ResultHome()])
     check("created")
     wallet.get_block(block_num + 1, wait_for_block=True)
     check("started")
@@ -66,7 +65,7 @@ def test_lookup_games_by_id(wallet: Wallet):
 def test_get_matched_bets(wallet: Wallet):
     assert wallet.get_matched_bets([gen_uid()]) == [], "Bets shouldn't be created yet."
     empower_betting_moderator(wallet)
-    game_uuid, _ = create_game(wallet, delay=3600)
+    game_uuid, _ = create_game(wallet, delay=3600, market_types=[market.RoundHome()])
     alice_bet, _ = post_bet(wallet, "alice", game_uuid, wincase_type=wincase.RoundHomeYes(), odds=[3, 2])
     bob_bet, _ = post_bet(wallet, "bob", game_uuid, wincase_type=wincase.RoundHomeNo(), odds=[3, 1])
     response = wallet.get_matched_bets([alice_bet, bob_bet])
@@ -79,7 +78,7 @@ def test_get_matched_bets(wallet: Wallet):
 def test_lookup_matched_bets(wallet: Wallet):
     assert wallet.lookup_matched_bets(0, 100) == [], "Bets shouldn't be created yet."
     empower_betting_moderator(wallet)
-    game_uuid, _ = create_game(wallet, delay=3600)
+    game_uuid, _ = create_game(wallet, delay=3600, market_types=[market.RoundHome()])
     alice_bet, _ = post_bet(wallet, "alice", game_uuid, wincase_type=wincase.RoundHomeYes(), odds=[3, 2])
     bob_bet, _ = post_bet(wallet, "bob", game_uuid, wincase_type=wincase.RoundHomeNo(), odds=[3, 1])
     response = wallet.lookup_matched_bets(-1, 100)
@@ -92,8 +91,8 @@ def test_lookup_matched_bets(wallet: Wallet):
 def test_get_pending_bets(wallet: Wallet):
     assert wallet.get_pending_bets([gen_uid()]) == [], "Bets shouldn't be created yet."
     empower_betting_moderator(wallet)
-    game_uuid, _ = create_game(wallet)
-    bet_uuid, _ = post_bet(wallet, "alice", game_uuid)
+    game_uuid, _ = create_game(wallet, market_types=[market.RoundHome()])
+    bet_uuid, _ = post_bet(wallet, "alice", game_uuid, wincase=wincase.RoundHomeYes())
     response = wallet.get_pending_bets([bet_uuid])
     validate_response(response, wallet.get_pending_bets.__name__)
     assert len(response) == 1
@@ -103,8 +102,8 @@ def test_get_pending_bets(wallet: Wallet):
 def test_lookup_pending_bets(wallet: Wallet):
     assert wallet.lookup_pending_bets(0, 100) == [], "Bets shouldn't be created yet."
     empower_betting_moderator(wallet)
-    game_uuid, _ = create_game(wallet)
-    bet_uuid, _ = post_bet(wallet, "alice", game_uuid)
+    game_uuid, _ = create_game(wallet, market_types=[market.RoundHome()])
+    bet_uuid, _ = post_bet(wallet, "alice", game_uuid, wincase=wincase.RoundHomeYes())
     response = wallet.lookup_pending_bets(-1, 100)
     validate_response(response, wallet.lookup_pending_bets.__name__)
     assert len(response) == 1

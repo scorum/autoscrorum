@@ -171,7 +171,7 @@ def apply_hardfork(wallet: Wallet, hf_id: int):
         wallet.get_block(i + 1, wait_for_block=True)
         wallet.debug_set_hardfork(i)
         wallet.get_block(i + 2, wait_for_block=True)
-        assert wallet.debug_has_hardfork(i)
+        assert wallet.debug_has_hardfork(i), "Expected %d hardfork was set." % i
 
 
 def gen_uid(unique: str=None):

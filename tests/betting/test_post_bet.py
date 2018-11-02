@@ -33,6 +33,14 @@ def test_post_bet(wallet: Wallet, better, market_type, wincase_type, odds, stake
         "Wincase .* dont belongs to game markets"
     ),
     (
+        market.Handicap(100), wincase.HandicapOver(10), [2, 1], "5.000000000 SCR", True,
+        "Wincase .* is invalid"
+    ),
+    (
+        market.CorrectScore(3, 3), wincase.CorrectScoreYes(17, 23), [2, 1], "5.000000000 SCR", True,
+        "Wincase .* is invalid"
+    ),
+    (
         market.RoundHome(), wincase.RoundHomeYes(), [2, 1], "5.000000000 SP", True,
         "Stake must be SCR"
     ),
