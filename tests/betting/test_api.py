@@ -34,9 +34,10 @@ def test_get_games_by_status(wallet: Wallet):
 
 
 def test_get_betting_properties(wallet: Wallet):
+    default_delay = wallet.get_config()["SCORUM_BETTING_RESOLVE_DELAY_SEC"]
     validate_response(
         wallet.get_betting_properties(), wallet.get_betting_properties.__name__,
-        [('moderator', ''), ('resolve_delay_sec', 86400)]
+        [('moderator', ''), ('resolve_delay_sec', default_delay)]
     )
 
 

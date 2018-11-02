@@ -3,7 +3,9 @@ from scorum.graphenebase.amount import Amount
 from scorum.graphenebase.betting import wincase, market
 
 from automation.wallet import Wallet
-from tests.betting.conftest import empower_betting_moderator, create_game, post_bet
+from tests.betting.conftest import (
+    empower_betting_moderator, create_game, post_bet, create_game_with_bets, change_resolve_delay
+)
 from tests.common import (
     validate_response, gen_uid, DEFAULT_WITNESS, check_virt_ops, validate_error_response, RE_OBJECT_EXIST
 )
@@ -78,3 +80,27 @@ def test_post_bet_same_uuid_few_games(wallet: Wallet):
     bet_uuid, _ = post_bet(wallet, "alice", game1, wincase=wincase.RoundHomeYes())
     response = wallet.post_bet(bet_uuid, "alice", game2, wincase.RoundHomeYes(), [3, 2], "1.000000000 SCR", True)
     validate_error_response(response, wallet.post_bet.__name__, RE_OBJECT_EXIST)
+
+
+def test_post_bet_auto_resolve(wallet: Wallet, bets):
+    names = [b.account for b in bets]
+    accounts_before = {a["name"]: a for a in wallet.get_accounts(names)}
+    game_uuid, bets_uuid = create_game_with_bets(wallet, bets, 1, 9)
+    accounts_after = {a["name"]: a for a in wallet.get_accounts(names)}
+    assert wallet.get_pending_bets(bets_uuid) == []
+    assert wallet.get_matched_bets(bets_uuid) == []
+    assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in names), \
+        "All accounts should receive back their stakes."
+
+
+def test_post_bet_finished_game_resolve(wallet: Wallet, bets):
+    change_resolve_delay(wallet, 3)  # resolve game next block after it will be finished
+    names = [b.account for b in bets]
+    accounts_before = {a["name"]: a for a in wallet.get_accounts(names)}
+    game_uuid, bets_uuid = create_game_with_bets(wallet, bets, 1)
+    response = wallet.post_game_results(game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
+    wallet.get_block(response["block_num"], wait_for_block=True)
+    accounts_after = {a["name"]: a for a in wallet.get_accounts(names)}
+    assert wallet.get_pending_bets(bets_uuid) == []
+    assert wallet.get_matched_bets(bets_uuid) == []
+    # check rewards distribution

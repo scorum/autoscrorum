@@ -53,11 +53,11 @@ def test_cancel_game_invalid_signing(wallet: Wallet):
 def test_cancel_game_with_bets(wallet: Wallet, start, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet.get_accounts(names)}
-    game_uuid, bet_uuids = create_game_with_bets(wallet, start, bets)
+    game_uuid, bets_uuid = create_game_with_bets(wallet, bets, start)
     wallet.cancel_game(game_uuid, DEFAULT_WITNESS)
     accounts_after = {a["name"]: a for a in wallet.get_accounts(names)}
-    assert 0 == len(wallet.get_matched_bets(bet_uuids)), "Matched bets should be cancelled."
-    assert 0 == len(wallet.get_pending_bets(bet_uuids)), "Pending bets should be cancelled."
+    assert 0 == len(wallet.get_matched_bets(bets_uuid)), "Matched bets should be cancelled."
+    assert 0 == len(wallet.get_pending_bets(bets_uuid)), "Pending bets should be cancelled."
     assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in names), \
         "All accounts should receive back their stakes."
 
@@ -85,10 +85,10 @@ def test_cancel_finished_game(wallet: Wallet, moderator):
 
 
 def test_cancel_finished_game_with_matched_bets(wallet: Wallet, matched_bets):
-    game_uuid, bet_uuids = create_game_with_bets(wallet, 1, matched_bets)
+    game_uuid, bets_uuid = create_game_with_bets(wallet, matched_bets, 1)
     wallet.post_game_results(game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
     wallet.cancel_game(game_uuid, DEFAULT_WITNESS)
-    response = wallet.get_matched_bets(bet_uuids)
+    response = wallet.get_matched_bets(bets_uuid)
     assert len(response) == 1, "Matched bets shouldn't be cancelled."
-    assert set(bet_uuids) == {response[0]["bet1_data"]["uuid"], response[0]["bet2_data"]["uuid"]}, \
+    assert set(bets_uuid) == {response[0]["bet1_data"]["uuid"], response[0]["bet2_data"]["uuid"]}, \
         "Matched bets uuids has unexpectedly changed"

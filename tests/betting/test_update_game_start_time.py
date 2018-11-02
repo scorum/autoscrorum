@@ -71,29 +71,29 @@ def test_update_game_start_time_invalid_signing(wallet: Wallet):
 
 
 def test_update_start_time_of_game_with_matched_bets_before_start(wallet: Wallet, matched_bets):
-    game_uuid, bet_uuids = create_game_with_bets(wallet, 30, matched_bets)
+    game_uuid, bets_uuid = create_game_with_bets(wallet, matched_bets)
     wallet.update_game_start_time(game_uuid, DEFAULT_WITNESS, fmt_time_from_now(30))
-    response = wallet.get_matched_bets(bet_uuids)
+    response = wallet.get_matched_bets(bets_uuid)
     assert len(response) == 1, "Bets matched before start time shouldn't be cancelled."
-    assert set(bet_uuids) == {response[0]["bet1_data"]["uuid"], response[0]["bet2_data"]["uuid"]}, \
+    assert set(bets_uuid) == {response[0]["bet1_data"]["uuid"], response[0]["bet2_data"]["uuid"]}, \
         "Matched bets uuids has unexpectedly changed"
 
 
 def test_update_start_time_of_game_with_pending_bets_before_start(wallet: Wallet, pending_bets):
-    game_uuid, bet_uuids = create_game_with_bets(wallet, 30, pending_bets)
+    game_uuid, bets_uuid = create_game_with_bets(wallet, pending_bets)
     wallet.update_game_start_time(game_uuid, DEFAULT_WITNESS, fmt_time_from_now(30))
-    response = wallet.get_pending_bets(bet_uuids)
+    response = wallet.get_pending_bets(bets_uuid)
     assert len(response) == 2, "Bets added before start time shouldn't be cancelled."
-    assert set(bet_uuids) == set(r["data"]["uuid"] for r in response), "Pending bets uuids has unexpectedly changed"
+    assert set(bets_uuid) == set(r["data"]["uuid"] for r in response), "Pending bets uuids has unexpectedly changed"
 
 
 def test_update_start_time_of_game_with_bets_added_after_start(wallet: Wallet, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet.get_accounts(names)}
-    game_uuid, bet_uuids = create_game_with_bets(wallet, 1, bets)
+    game_uuid, bets_uuid = create_game_with_bets(wallet, bets, 1)
     wallet.update_game_start_time(game_uuid, DEFAULT_WITNESS, fmt_time_from_now(30))
     accounts_after = {a["name"]: a for a in wallet.get_accounts(names)}
-    response = wallet.get_matched_bets(bet_uuids)
+    response = wallet.get_matched_bets(bets_uuid)
     assert len(response) == 0, "Bets added after start time should be cancelled."
     assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in names), \
         "All accounts should receive back their stakes."

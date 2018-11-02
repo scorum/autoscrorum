@@ -23,7 +23,13 @@ def wallet_4hf(wallet):
 def empower_betting_moderator(wallet, account=DEFAULT_WITNESS):
     wallet.development_committee_empower_betting_moderator(DEFAULT_WITNESS, account)
     proposals = wallet.list_proposals()
-    wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"])
+    wallet.proposal_vote(DEFAULT_WITNESS, proposals[-1]["id"])
+
+
+def change_resolve_delay(wallet, delay=60):
+    wallet.development_committee_change_betting_resolve_delay(DEFAULT_WITNESS, delay)
+    proposals = wallet.list_proposals()
+    wallet.proposal_vote(DEFAULT_WITNESS, proposals[-1]["id"])
 
 
 def create_game(wallet, account=DEFAULT_WITNESS, **kwargs):
@@ -73,13 +79,14 @@ class Bet:
         self.odds = odds
 
 
-def create_game_with_bets(wallet, game_start, bets):
+def create_game_with_bets(wallet, bets, game_start=30, delay=3600):
     empower_betting_moderator(wallet)
-    game_uuid, _ = create_game(wallet, start=game_start, delay=3600, market_types=[market.RoundHome(), market.Handicap(500)])
+    game_uuid, block = create_game(wallet, start=game_start, delay=delay, market_types=[market.RoundHome(), market.Handicap(500)])
     bet_uuids = []
     for bet in bets:
-        uuid, _ = post_bet(wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds)
+        uuid, block = post_bet(wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds)
         bet_uuids.append(uuid)
+    wallet.get_block(block + 1, wait_for_block=True)
     return game_uuid, bet_uuids
 
 
