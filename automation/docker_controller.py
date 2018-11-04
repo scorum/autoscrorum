@@ -16,6 +16,8 @@ CONFIG_DIR = '/var/lib/scorumd'
 DOCKERFILE = '''FROM phusion/baseimage:0.9.19
 ADD ./scorumd /usr/local/bin
 
+RUN apt-get update
+RUN apt-get install -y libicu-dev
 
 ENV HOME '{CONFIG_DIR}'
 WORKDIR {CONFIG_DIR}
@@ -79,6 +81,11 @@ class DockerController:
         )
 
         yield container
+
+        print("=============== LOGS ===============")
+        print(container.logs().decode("utf-8"))
+        print("=============== LOGS ===============")
+
         self.stop(container)
 
     def set_image(self, image: str):
