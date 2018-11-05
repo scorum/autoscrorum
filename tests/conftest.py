@@ -71,7 +71,7 @@ def temp_dir():
     create_dir(TEST_TEMP_DIR)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def genesis(request):
 
     accounts = {
