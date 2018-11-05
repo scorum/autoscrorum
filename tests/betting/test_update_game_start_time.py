@@ -41,7 +41,7 @@ def test_update_game_start_time_invalid_time(wallet_4hf: Wallet, start, shift, e
 
 def test_update_finished_game_start_time(wallet_4hf: Wallet):
     empower_betting_moderator(wallet_4hf)
-    uuid, _ = create_game(wallet_4hf, start=1)
+    uuid, _ = create_game(wallet_4hf, start=1, market_types=[market.RoundHome()])
     wallet_4hf.post_game_results(uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes()])
     response = wallet_4hf.update_game_start_time(uuid, DEFAULT_WITNESS, fmt_time_from_now(30))
     validate_error_response(

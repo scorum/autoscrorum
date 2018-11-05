@@ -41,9 +41,9 @@ def test_update_started_game_markets(wallet_4hf: Wallet):
 
 def test_update_finished_game_markets(wallet_4hf: Wallet):
     empower_betting_moderator(wallet_4hf)
-    uuid, _ = create_game(wallet_4hf, start=1)
+    uuid, _ = create_game(wallet_4hf, start=1, market_types=[market.RoundHome()])
     wallet_4hf.post_game_results(uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes()])
-    response = wallet_4hf.update_game_markets(uuid, DEFAULT_WITNESS, [market.RoundHome()])
+    response = wallet_4hf.update_game_markets(uuid, DEFAULT_WITNESS, [market.ResultHome()])
     validate_error_response(
         response, wallet_4hf.update_game_markets.__name__, "Cannot change the markets when game is finished"
     )
