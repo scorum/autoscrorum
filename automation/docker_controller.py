@@ -81,11 +81,6 @@ class DockerController:
         )
 
         yield container
-
-        print("=============== LOGS ===============")
-        print(container.logs().decode("utf-8"))
-        print("=============== LOGS ===============")
-
         self.stop(container)
 
     def set_image(self, image: str):

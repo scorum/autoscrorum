@@ -3,11 +3,9 @@ from os.path import join, isfile
 from scorum.utils.files import which, remove_dir_tree, create_dir
 
 from automation.config import Config
-from automation.docker_controller import DEFAULT_IMAGE_NAME
-from automation.docker_controller import DockerController
+from automation.docker_controller import DEFAULT_IMAGE_NAME, DockerController
 from automation.genesis import Genesis
-from automation.node import Node
-from automation.node import TEST_TEMP_DIR
+from automation.node import Node, TEST_TEMP_DIR
 from automation.wallet import Wallet
 from tests.common import check_file_creation
 from tests.data import *
@@ -23,6 +21,7 @@ def pytest_addoption(parser):
         '--long-term', action='store_true',
         help='Include long-term tests. Could take significantly long time.'
     )
+    parser.addoption('--logging', action='store_true', default=False, help='print out node logs')
 
 
 @pytest.fixture(autouse=True)
@@ -35,6 +34,11 @@ def skip_long_term(request):
 @pytest.fixture(scope='session')
 def rebuild_image(request):
     return request.config.getoption('--use-local-image')
+
+
+@pytest.fixture(scope='session')
+def logging(request):
+    return request.config.getoption('--logging')
 
 
 @pytest.fixture(scope='session')
@@ -158,14 +162,14 @@ def config(default_config, genesis):
 
 
 @pytest.fixture(scope='function')
-def node(config, genesis, docker):
+def node(config, genesis, docker, logging):
 
-    n = Node(config=config, genesis=genesis, logging=False)
+    n = Node(config=config, genesis=genesis, logging=logging)
     n.generate_configs()
     with docker.run_node(n):
         yield n
 
-    if n.logging:
+    if logging:
         n.read_logs()
         print(n.logs)
 
