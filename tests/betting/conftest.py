@@ -1,5 +1,6 @@
 import pytest
 from scorum.graphenebase.betting import game, market, wincase
+from scorum.graphenebase.amount import Amount
 from scorum.utils.time import fmt_time_from_now
 
 from tests.common import apply_hardfork, DEFAULT_WITNESS, gen_uid
@@ -73,21 +74,28 @@ def post_bet(wallet, better, game_uuid, **kwargs):
 
 
 class Bet:
-    def __init__(self, account, wincase, odds):
+    def __init__(self, account, wincase, odds, stake="1.000000000 SCR"):
         self.account = account
         self.wincase = wincase
         self.odds = odds
+        self.stake = Amount(stake)
+        self.potential_reward = self.stake * odds[0] / odds[1]
+        self.profit = self.potential_reward - self.stake
+        self.uuid = None
+        self.block_creation_num = None
 
 
 def create_game_with_bets(wallet, bets, game_start=30, delay=3600):
     empower_betting_moderator(wallet)
-    game_uuid, block = create_game(wallet, start=game_start, delay=delay, market_types=[market.RoundHome(), market.Handicap(500)])
-    bet_uuids = []
+    game_uuid, block = create_game(
+        wallet, start=game_start, delay=delay, market_types=[market.RoundHome(), market.Handicap(500)])
     for bet in bets:
-        uuid, block = post_bet(wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds)
-        bet_uuids.append(uuid)
-    wallet.get_block(block + 1, wait_for_block=True)
-    return game_uuid, bet_uuids
+        uuid, block = post_bet(
+            wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds, stake=str(bet.stake)
+        )
+        bet.uuid = uuid
+        bet.block_creation_num = block
+    return game_uuid
 
 
 @pytest.fixture(scope="function")

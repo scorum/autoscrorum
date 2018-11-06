@@ -7,7 +7,7 @@ from tests.common import gen_uid, DEFAULT_WITNESS, validate_response, validate_e
 
 def test_get_game_winners(wallet_4hf: Wallet, matched_bets):
     validate_error_response(wallet_4hf.get_game_winners(gen_uid()), wallet_4hf.get_game_winners.__name__, RE_OBJECT_NOT_EXIST)
-    game_uuid, bets_uuid = create_game_with_bets(wallet_4hf, matched_bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, matched_bets, 1)
     wallet_4hf.post_game_results(game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
     response = wallet_4hf.get_game_winners(game_uuid)
     validate_response(response, wallet_4hf.get_matched_bets.__name__)

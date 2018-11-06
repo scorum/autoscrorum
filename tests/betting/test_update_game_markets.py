@@ -73,11 +73,11 @@ def test_update_game_markets_invalid_signing(wallet_4hf: Wallet):
 def test_update_game_markets_with_bets(wallet_4hf: Wallet, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
-    game_uuid, bets_uuid = create_game_with_bets(wallet_4hf, bets)
+    game_uuid = create_game_with_bets(wallet_4hf, bets)
     wallet_4hf.update_game_markets(game_uuid, DEFAULT_WITNESS, [])
     accounts_after = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
-    assert 0 == len(wallet_4hf.get_matched_bets(bets_uuid)), "Matched bets should be cancelled."
-    assert 0 == len(wallet_4hf.get_pending_bets(bets_uuid)), "Pending bets should be cancelled."
+    assert 0 == len(wallet_4hf.get_matched_bets([b.uuid for b in bets])), "Matched bets should be cancelled."
+    assert 0 == len(wallet_4hf.get_pending_bets([b.uuid for b in bets])), "Pending bets should be cancelled."
     assert all(accounts_after[name]["balance"] == accounts_before[name]["balance"] for name in names), \
         "All accounts should receive back their stakes."
 

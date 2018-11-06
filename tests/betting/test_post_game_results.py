@@ -9,7 +9,7 @@ from tests.common import (
 
 
 def test_post_game_results(wallet_4hf: Wallet, bets):
-    game_uuid, _ = create_game_with_bets(wallet_4hf, bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)]
     )
@@ -19,7 +19,7 @@ def test_post_game_results(wallet_4hf: Wallet, bets):
 
 def test_post_game_results_game_resolve(wallet_4hf: Wallet, bets):
     change_resolve_delay(wallet_4hf, 3)
-    game_uuid, _ = create_game_with_bets(wallet_4hf, bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)]
     )
@@ -40,6 +40,6 @@ def test_post_game_results_game_resolve(wallet_4hf: Wallet, bets):
     (DEFAULT_WITNESS, 1, [wincase.RoundHomeYes()], "Wincase winners list do not contain neither .* nor")
 ])
 def test_post_game_results_invalid_params(wallet_4hf: Wallet, bets, start, wincases, moderator, expected_error):
-    game_uuid, _ = create_game_with_bets(wallet_4hf, bets, start)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, start)
     response = wallet_4hf.post_game_results(game_uuid, moderator, wincases)
     validate_error_response(response, wallet_4hf.post_game_results.__name__, expected_error)
