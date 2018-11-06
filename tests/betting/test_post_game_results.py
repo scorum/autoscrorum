@@ -32,7 +32,7 @@ def test_post_game_results_game_resolve(wallet_4hf: Wallet, bets):
     (DEFAULT_WITNESS, 1, [wincase.RoundHomeYes(), wincase.HandicapOver(10)], "Wincase .* is invalid"),
     ('alice', 1, [wincase.RoundHomeYes(), wincase.HandicapOver(500)], RE_NOT_MODERATOR),
     (DEFAULT_WITNESS, 30, [wincase.RoundHomeYes(), wincase.HandicapOver(500)], "The game is not started yet"),
-    (DEFAULT_WITNESS, 1, [wincase.TotalOver(1000)], "Wincase .* dont belongs to game markets"),
+    (DEFAULT_WITNESS, 1, [wincase.TotalOver(1000)], "Wincase .* doesn\'t belong to game markets"),
     (
         DEFAULT_WITNESS, 1, [wincase.RoundHomeYes(), wincase.RoundHomeNo()],
         "Wincase winners list do not contain neither .* nor"
