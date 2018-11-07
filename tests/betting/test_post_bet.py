@@ -23,7 +23,7 @@ def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, s
     bet_uuid = gen_uid()
     response = wallet_4hf.post_bet(bet_uuid, better, game_uuid, wincase_type, odds, stake, live)
     validate_response(response, wallet_4hf.post_bet.__name__)
-    check_virt_ops(wallet_4hf, response['block_num'], response['block_num'], ["post_bet"])
+    check_virt_ops(wallet_4hf, response['block_num'], expected_ops=["post_bet"])
     balance_after = wallet_4hf.get_account_scr_balance(better)
     assert balance_before - Amount(stake) == balance_after
 
@@ -137,7 +137,7 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
     empower_betting_moderator(wallet_4hf)
     create_game_with_bets(wallet_4hf, bets, game_start=1)
     block = max(b.block_creation_num for b in bets)
-    check_virt_ops(wallet_4hf, block, block, ["bets_matched", "bet_cancelled", "bet_updated"])
+    check_virt_ops(wallet_4hf, block, expected_ops=["bets_matched", "bet_cancelled", "bet_updated"])
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
     if not full_match:
         assert len(pending_bets) == 0, "There shouldn't be matched bets."

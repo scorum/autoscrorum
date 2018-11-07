@@ -16,7 +16,7 @@ def test_cancel_pending_bets(wallet_4hf: Wallet, better, start, market_type, win
     bet_uuid, _ = post_bet(wallet_4hf, better, game_uuid, wincase=wincase_type)
     response = wallet_4hf.cancel_pending_bets([bet_uuid], better)
     validate_response(response, wallet_4hf.cancel_pending_bets.__name__)
-    check_virt_ops(wallet_4hf, response['block_num'], response['block_num'], ["cancel_pending_bets"])
+    check_virt_ops(wallet_4hf, response['block_num'], expected_ops=["cancel_pending_bets"])
 
 
 @pytest.mark.parametrize('better, start, live, expected_error', [

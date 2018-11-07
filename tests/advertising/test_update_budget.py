@@ -18,7 +18,7 @@ def test_update_budget(wallet_3hf: Wallet, budget, json_metadata):
     update_budget_balance(wallet_3hf, budget)
     response = wallet_3hf.update_budget(budget['uuid'], budget['owner'], json_metadata, budget['type'])
     validate_response(response, wallet_3hf.update_budget.__name__, [('block_num', int)])
-    check_virt_ops(wallet_3hf, response["block_num"], response["block_num"], {'update_budget'})
+    check_virt_ops(wallet_3hf, response["block_num"], expected_ops={'update_budget'})
     budget_obj = wallet_3hf.get_budget(budget['uuid'], budget['type'])
     assert budget_obj['json_metadata'] == json_metadata
     assert Amount(budget_obj['balance']) == Amount(budget['balance']) - Amount(budget['per_block'])

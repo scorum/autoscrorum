@@ -31,7 +31,7 @@ def test_create_budget(wallet_3hf: Wallet, node, budget, start, deadline):
     balance_before = wallet_3hf.get_account_scr_balance(budget["owner"])
     response = wallet_3hf.create_budget(**budget)
     validate_response(response, wallet_3hf.create_budget.__name__)
-    check_virt_ops(wallet_3hf, response["block_num"], response["block_num"], {'create_budget'})
+    check_virt_ops(wallet_3hf, response["block_num"], expected_ops={'create_budget'})
     balance_after = wallet_3hf.get_account_scr_balance(budget["owner"])
     assert balance_before == balance_after + budget_balance
 

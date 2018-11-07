@@ -15,7 +15,7 @@ def test_cancel_game(wallet_4hf: Wallet, moderator):
     uuid, _ = create_game(wallet_4hf, moderator, delay=3600)
     response = wallet_4hf.cancel_game(uuid, moderator)
     validate_response(response, wallet_4hf.cancel_game.__name__)
-    check_virt_ops(wallet_4hf, response['block_num'], response['block_num'], ["cancel_game"])
+    check_virt_ops(wallet_4hf, response['block_num'], expected_ops=["cancel_game"])
     assert wallet_4hf.get_games_by_uuids([uuid]) == [], "All games should be closed"
 
 

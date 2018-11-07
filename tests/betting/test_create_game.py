@@ -22,7 +22,7 @@ def test_create_game(wallet_4hf: Wallet, game_type, market_types, moderator, sta
     response = wallet_4hf.create_game(
         gen_uid(), moderator, "{}", fmt_time_from_now(start), delay, game_type, market_types)
     validate_response(response, wallet_4hf.create_game.__name__)
-    check_virt_ops(wallet_4hf, response['block_num'], response['block_num'], ["create_game"])
+    check_virt_ops(wallet_4hf, response['block_num'], expected_ops=["create_game"])
 
 
 @pytest.mark.parametrize('moderator,start,markets,expected_error', [

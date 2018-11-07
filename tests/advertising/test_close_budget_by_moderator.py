@@ -32,8 +32,8 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget, moderator):
     assert balance_after_close == balance_after_create + budget_balance
 
     check_virt_ops(
-        wallet_3hf, response['block_num'], response['block_num'],
-        {'close_budget_by_advertising_moderator', 'budget_closing', 'budget_owner_income'}
+        wallet_3hf, response['block_num'],
+        expected_ops={'close_budget_by_advertising_moderator', 'budget_closing', 'budget_owner_income'}
     )
     assert len(wallet_3hf.get_budgets([budget['owner']], budget['type'])) == 0
     assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
@@ -63,8 +63,8 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget, moderator):
     assert balance_after_close == balance_after_create + budget_balance - per_block * (close_block - create_block)
 
     check_virt_ops(
-        wallet_3hf, close_block, close_block,
-        {
+        wallet_3hf, close_block,
+        expected_ops={
             'close_budget_by_advertising_moderator', 'budget_closing', 'budget_owner_income',
             'budget_outgo'
         }

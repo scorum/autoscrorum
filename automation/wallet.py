@@ -176,6 +176,10 @@ class Wallet(object):
                 block = request()['result']
         return block
 
+    def get_blocks(self, start, limit=100):
+        response = self.rpc.send(self.json_rpc_body('call', 'blockchain_history_api', 'get_blocks', [start, limit]))
+        return response.get('result', response)
+
     def get_ops_in_block(self, num, operation_type=0):
         """
         Returns sequence of operations included/generated in a specified block

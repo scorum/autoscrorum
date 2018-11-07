@@ -22,8 +22,8 @@ def test_close_before_starttime(wallet_3hf: Wallet, budget):
     balance_after = wallet_3hf.get_account_scr_balance(budget["owner"])
     assert balance_after == balance_before
     check_virt_ops(
-        wallet_3hf, response['block_num'], response['block_num'],
-        {'close_budget', 'budget_closing', 'budget_owner_income'}
+        wallet_3hf, response['block_num'],
+        expected_ops={'close_budget', 'budget_closing', 'budget_owner_income'}
     )
     assert len(wallet_3hf.get_budgets([budget['owner']], budget['type'])) == 0
     assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
@@ -43,8 +43,8 @@ def test_close_after_starttime(wallet_3hf: Wallet, budget):
     balance_after = wallet_3hf.get_account_scr_balance(budget["owner"])
     assert balance_before == balance_after + per_block * (close_block - create_block)
     check_virt_ops(
-        wallet_3hf, close_block, close_block,
-        {'close_budget', 'budget_closing', 'budget_outgo', 'budget_owner_income'}
+        wallet_3hf, close_block,
+        expected_ops={'close_budget', 'budget_closing', 'budget_outgo', 'budget_owner_income'}
     )
     assert len(wallet_3hf.get_budgets([budget['owner']], budget['type'])) == 0
     assert len(wallet_3hf.list_buddget_owners(budget_type=budget['type'])) == 0
@@ -137,7 +137,7 @@ def test_deadline_close_budget(wallet_3hf: Wallet, budget, start, deadline, node
     virt_ops = {'budget_closing', 'budget_outgo'}
     if reminder.amount:
         virt_ops.add('budget_owner_income')
-    check_virt_ops(wallet_3hf, blocks_wait - 1, blocks_wait + 1, virt_ops)
+    check_virt_ops(wallet_3hf, blocks_wait + 1, limit=3, expected_ops=virt_ops)
 
     acc_balance_after = wallet_3hf.get_account_scr_balance(budget['owner'])
     assert acc_balance_before - Amount(balance) + reminder == acc_balance_after

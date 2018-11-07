@@ -23,7 +23,7 @@ def test_update_game_markets(wallet_4hf: Wallet, default_markets, new_markets):
     uuid, _ = create_game(wallet_4hf, DEFAULT_WITNESS, start=30, delay=3600, market_types=default_markets)
     response = wallet_4hf.update_game_markets(uuid, DEFAULT_WITNESS, new_markets)
     validate_response(response, wallet_4hf.update_game_markets.__name__)
-    check_virt_ops(wallet_4hf, response['block_num'], response['block_num'], ["update_game_markets"])
+    check_virt_ops(wallet_4hf, response['block_num'], expected_ops=["update_game_markets"])
     games = wallet_4hf.get_games_by_uuids([uuid])
     assert games[0]['markets'] == [json.loads(str(Market(m))) for m in new_markets]
     assert games[0]['markets'] != [json.loads(str(Market(m))) for m in default_markets]

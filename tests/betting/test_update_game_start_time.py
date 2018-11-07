@@ -21,7 +21,7 @@ def test_update_game_start_time(wallet_4hf: Wallet, start, time_shift):
     start_time = date_to_str(to_date(game_before['start_time'], tmdelta={'seconds': time_shift}))
     response = wallet_4hf.update_game_start_time(uuid, DEFAULT_WITNESS, start_time)
     validate_response(response, wallet_4hf.update_game_start_time.__name__)
-    check_virt_ops(wallet_4hf, response['block_num'], response['block_num'], ["update_game_start_time"])
+    check_virt_ops(wallet_4hf, response['block_num'], expected_ops=["update_game_start_time"])
     game_after = wallet_4hf.get_games_by_uuids([uuid])[0]
     assert game_before['start_time'] != game_after['start_time']
     assert game_after['start_time'] == start_time

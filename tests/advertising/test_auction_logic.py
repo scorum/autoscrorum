@@ -192,7 +192,7 @@ def test_cashout_scr_rewards(wallet_3hf: Wallet, budget, post):
     ]
     for cashout_block, op in blocks_ops:
         wallet_3hf.get_block(cashout_block, wait_for_block=True)
-        ops = check_virt_ops(wallet_3hf, cashout_block, cashout_block, {op})
+        ops = check_virt_ops(wallet_3hf, cashout_block, expected_ops={op})
         assert any(Amount(data['reward']) > 0 and 'SCR' in data['reward'] for name, data in ops if name == op)
 
 

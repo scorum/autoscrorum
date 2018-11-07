@@ -53,15 +53,13 @@ def check_file_creation(filepath, sec=5):
         "File wasn't created after %d seconds. Path %s" % (sec, filepath)
 
 
-def check_virt_ops(wallet, start, stop, expected_ops):
-    expected_ops = set(expected_ops)
+def check_virt_ops(wallet, start, limit=1, expected_ops=None):
+    expected_ops = set(expected_ops) if expected_ops else {}
     ops = set()
     data = []
-    for i in range(start, stop + 1):
-        response = wallet.get_ops_in_block(i)
-        if response and 'error' not in response:
-            ops.update(set(d['op'][0] for _, d in response))
-            data += [d['op'] for _, d in response]
+    blocks = wallet.get_blocks(start, limit)
+    ops.update(set(o['op'][0] for b in blocks for o in b['operations']))
+    data += [o['op'][1] for b in blocks for o in b['operations']]
     assert len(ops.intersection(expected_ops)) == len(expected_ops), \
         "Some expected virtual operations are misssing:\nActual: %s\nExpected: %s" % (ops, expected_ops)
     return data
