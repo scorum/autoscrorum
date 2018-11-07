@@ -5,7 +5,8 @@ from scorum.graphenebase.amount import Amount
 
 from automation.wallet import Wallet
 from tests.common import (
-    expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork, validate_response, validate_error_response
+    expect, assert_expectations, DEFAULT_WITNESS, apply_hardfork, validate_response, validate_error_response,
+    RE_OP_IS_LOCKED
 )
 
 
@@ -264,3 +265,21 @@ def test_devcommittee_withdraw_gt_pool(wallet: Wallet):
     expect(len(proposals) == 1, "Was created %d proposals, expected only one: %s" % (len(proposals), proposals))
 
     validate_error_response(wallet.proposal_vote(DEFAULT_WITNESS, proposals[0]["id"]), wallet.proposal_vote.__name__)
+
+
+def test_delegate_sp_from_reg_pool_locked(wallet: Wallet):
+    response = wallet.delegate_sp_from_reg_pool(DEFAULT_WITNESS, 'alice', Amount('10.000000000 SP'))
+    validate_error_response(response, wallet.delegate_sp_from_reg_pool.__name__, RE_OP_IS_LOCKED)
+
+
+@pytest.mark.parametrize('account, delta', [('alice', '10.000000000 SP')])
+def test_delegate_sp_from_reg_pool(wallet: Wallet, account, delta):
+    apply_hardfork(wallet, 4)
+    acc_sp_before = wallet.get_account_sp_balance(account)
+    reg_pool_before = Amount(wallet.get_chain_capital()['registration_pool_balance'])
+    response = wallet.delegate_sp_from_reg_pool(DEFAULT_WITNESS, account, delta)
+    validate_response(response, wallet.delegate_sp_from_reg_pool.__name__)
+    acc_sp_after = wallet.get_account_sp_balance(account)
+    reg_pool_after = Amount(wallet.get_chain_capital()['registration_pool_balance'])
+    assert acc_sp_before + delta == acc_sp_after, "Account sp balance should increase."
+    assert reg_pool_before - delta == reg_pool_after, "Reg pool balance should increase."

@@ -233,6 +233,10 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('call', 'chain_api', 'get_chain_capital', [], _id=1))
         return response.get('result', response)
 
+    def get_chain_properties(self):
+        response = self.rpc.send(self.json_rpc_body('call', 'chain_api', 'get_chain_properties', [], _id=0))
+        return response.get('result', response)
+
     def get_witness(self, name: str):
         response = self.rpc.send(self.json_rpc_body('call', 'database_api', 'get_witness_by_account', [name]))
         return response.get('result', response)
@@ -299,6 +303,11 @@ class Wallet(object):
     def delegate_scorumpower(self, delegator, delegatee, scorumpower: Amount):
         op = operations.delegate_scorumpower(delegator, delegatee, scorumpower)
         signing_key = self.account(delegator).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
+    def delegate_sp_from_reg_pool(self, reg_committee_member, delegatee, scorumpower: Amount):
+        op = operations.delegate_sp_from_reg_pool(reg_committee_member, delegatee, scorumpower)
+        signing_key = self.account(reg_committee_member).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
     def transfer(self, _from: str, to: str, amount: Amount, memo=""):
