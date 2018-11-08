@@ -46,7 +46,7 @@ def create_game(wallet, account=DEFAULT_WITNESS, **kwargs):
     uuid = gen_uid()
     response = wallet.create_game(
         uuid, account,
-        kwargs.get('json_metadata', "{}"),
+        kwargs.get('json_metadata', kwargs.get("json_metadata", "{}")),
         fmt_time_from_now(kwargs.get("start", 3)), kwargs.get("delay", 30),
         kwargs.get("game_type", game.Soccer()), kwargs.get("market_types", [])
     )
