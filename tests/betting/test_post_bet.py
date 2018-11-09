@@ -139,8 +139,8 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
     block = max(b.block_creation_num for b in bets)
     check_virt_ops(wallet_4hf, block, expected_ops=["bets_matched", "bet_cancelled", "bet_updated"])
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
-    if not full_match:
-        assert len(pending_bets) == 0, "There shouldn't be matched bets."
+    if full_match:
+        assert len(pending_bets) == 0, "There shouldn't be pending bets."
     else:
         assert len(pending_bets) == 1, "Fully matched bet should be removed from pending bets"
         assert pending_bets[0]["data"]["stake"] == str(bets[1].stake - bets[0].profit), \
@@ -150,3 +150,31 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
         "Better with lesser potential reward should bet whole stake"
     assert matched_bets[0]["bet2_data"]["stake"] == str(bets[0].profit), \
         "Better with greater potential reward should bet stake == profit of opponent"
+
+
+@pytest.mark.skip_long_term  # test time ~164 sec
+def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
+    balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
+    empower_betting_moderator(wallet_4hf, DEFAULT_WITNESS)
+    change_resolve_delay(wallet_4hf, 3)
+    game_uuid, _ = create_game(wallet_4hf, start=3, delay=3600, market_types=real_game_data['markets'])
+    for bet in real_game_data['bets']:
+        post_bet(
+            wallet_4hf, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds, stake=str(bet.stake)
+        )
+    pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
+    assert len(pending_bets) == 6, "Expected 6 pending bets remain."
+    matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
+    assert len(matched_bets) == 28, "Expected 28 matched bets."
+    balances_after_betting = wallet_4hf.get_accounts_balances(real_game_data['betters'])
+    assert all(
+        balances_after_betting[n] == balances_before[n] - real_game_data['expected_outgo'][n]
+        for n in real_game_data['betters']
+    )
+    response = wallet_4hf.post_game_results(game_uuid, DEFAULT_WITNESS, real_game_data['wincases'])
+    wallet_4hf.get_block(response['block_num'] + 1, wait_for_block=True)
+    balances_after_finish = wallet_4hf.get_accounts_balances(real_game_data['betters'])
+    assert all(
+        balances_after_finish[n] == balances_after_betting[n] + real_game_data['expected_income'][n]
+        for n in real_game_data['betters']
+    )

@@ -220,6 +220,12 @@ class Wallet(object):
     def get_account_sp_balance(self, name: str):
         return Amount(self.get_account(name)['scorumpower'])
 
+    def get_accounts_balances(self, names):
+        return {a['name']: Amount(a['balance']) for a in self.get_accounts(names)}
+
+    def get_accounts_scorumpower(self, names):
+        return {a['name']: Amount(a['scorumpower']) for a in self.get_accounts(names)}
+
     def get_account_keys_auths(self, name: str):
         result = {}
         account = self.get_account(name)
