@@ -11,9 +11,16 @@ from tests.common import (
 )
 
 
+ODDS_MAX = [1001, 1]
+ODDS_MIN = [1001, 1000]
+STAKE_MIN = "0.001000000 SCR"
+
+
 @pytest.mark.parametrize('better, market_type, wincase_type, odds, stake, live', [
     ('alice', market.RoundHome(), wincase.RoundHomeNo(), [2, 1], "5.000000000 SCR", True),
-    ('bob', market.Total(1000), wincase.TotalOver(1000), [99000, 1000], "1.000000000 SCR", True),
+    ('alice', market.CorrectScore(1, 1), wincase.CorrectScoreYes(1, 1), [2, 1], STAKE_MIN, True),
+    ('alice', market.CorrectScoreAway(), wincase.CorrectScoreAwayNo(), ODDS_MIN, "5.000000000 SCR", True),
+    ('bob', market.Total(1000), wincase.TotalOver(1000), ODDS_MAX, "1.000000000 SCR", True),
     ('bob', market.Handicap(-500), wincase.HandicapOver(-500), [3, 2], "3.000000000 SCR", True)
 ])
 def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, stake, live):
@@ -46,7 +53,7 @@ def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, s
         "Stake must be SCR"
     ),
     (
-        market.RoundHome(), wincase.RoundHomeYes(), [2, 1], "0.000000005 SCR", True,
+        market.RoundHome(), wincase.RoundHomeYes(), [2, 1], str(Amount(STAKE_MIN) - 1), True,
         "Stake must be greater  or equal then"
     ),
     (
@@ -64,6 +71,14 @@ def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, s
     (
         market.RoundHome(), wincase.RoundHomeYes(), [2, 1], "5.000000000 SCR", False,
         "Cannot create non-live bet after game was started"
+    ),
+    (
+        market.RoundHome(), wincase.RoundHomeYes(), [1002, 1], "5.000000000 SCR", False,
+        "Invalid odds value"  # > MAX_ODDS
+    ),
+    (
+        market.RoundHome(), wincase.RoundHomeYes(), [10009, 10000], "5.000000000 SCR", False,
+        "Invalid odds value"  # < MIN_ODDS
     ),
 ])
 def test_post_bet_invalid_params(wallet_4hf: Wallet, market_type, wincase_type, odds, stake, live, expected_error):
