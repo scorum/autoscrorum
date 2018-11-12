@@ -26,12 +26,12 @@ def test_create_game(wallet_4hf: Wallet, game_type, market_types, moderator, sta
 
 
 @pytest.mark.parametrize('moderator,start,markets,expected_error', [
-    ["alice", 0, [], RE_START_TIME],
-    ["bob", 3, [], RE_NOT_MODERATOR],
+    ["alice", 0, [], RE_START_TIME],  # start_time <= head_block_time
+    ["bob", 3, [], RE_NOT_MODERATOR],  # create game by non-moderator
     ["alice", 0, [market.RoundHome(), market.RoundHome()], "You provided duplicates in market list"],
-    ["alice", 0, [market.Total()], "You've provided invalid market type"],
-    ["alice", 0, [market.Handicap(-1200)], "You've provided invalid market type"],
-    ["alice", 0, [market.TotalGoalsHome(650)], "You've provided invalid market type"],
+    ["alice", 0, [market.Total()], "Wincase .* is invalid"],
+    ["alice", 0, [market.Handicap(-1200)], "Wincase .* is invalid"],
+    ["alice", 0, [market.TotalGoalsHome(650)], "Wincase .* is invalid"],
 ])
 def test_create_game_invalid_params(wallet_4hf: Wallet, moderator, start, markets, expected_error):
     empower_betting_moderator(wallet_4hf, "alice")

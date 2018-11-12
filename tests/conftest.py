@@ -77,7 +77,8 @@ def genesis(request):
     accounts = {
         (DEFAULT_WITNESS, "80.000000000 SCR"),
         ('alice', "10.000000000 SCR"),
-        ('bob', "10.000000000 SCR")
+        ('bob', "10.000000000 SCR"),
+        ('boss', "40000000.000000000 SCR")
     }.union(
         ("test.test{}".format(i + 1), "20.000000000 SCR") for i in range(20)
     )

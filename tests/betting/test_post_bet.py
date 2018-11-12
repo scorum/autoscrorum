@@ -46,7 +46,7 @@ def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, s
         "Stake must be SCR"
     ),
     (
-        market.RoundHome(), wincase.RoundHomeYes(), [2, 1], "-5.000000000 SCR", True,
+        market.RoundHome(), wincase.RoundHomeYes(), [2, 1], "0.000000005 SCR", True,
         "Stake must be greater  or equal then"
     ),
     (
@@ -107,16 +107,12 @@ def test_post_bet_auto_resolve(wallet_4hf: Wallet, bets):
 
 def test_post_bet_finished_game_resolve(wallet_4hf: Wallet, bets):
     change_resolve_delay(wallet_4hf, 3)  # resolve game next block after it will be finished
-    # names = [b.account for b in bets]
-    # accounts_before = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
     game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
     wallet_4hf.get_block(response["block_num"], wait_for_block=True)
-    # accounts_after = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
     assert wallet_4hf.get_pending_bets([b.uuid for b in bets]) == []
     assert wallet_4hf.get_matched_bets([b.uuid for b in bets]) == []
-    # check rewards distribution
 
 
 @pytest.mark.parametrize('bets, full_match', [
@@ -131,7 +127,19 @@ def test_post_bet_finished_game_resolve(wallet_4hf: Wallet, bets):
     ([
         Bet("alice", wincase.RoundHomeYes(), [2, 1], "1.000000000 SCR"),
         Bet("bob", wincase.RoundHomeNo(), [2, 1], "1.000000000 SCR")
-    ], True)
+    ], True),
+    ([
+        Bet("alice", wincase.RoundHomeYes(), [3, 2], "0.000000013 SCR"),
+        Bet("bob", wincase.RoundHomeNo(), [3, 1], "0.000000013 SCR")
+    ], False),
+    # ([
+    #     Bet("alice", wincase.RoundHomeYes(), [999999, 998999], "0.000000013 SCR"),
+    #     Bet("bob", wincase.RoundHomeNo(), [999999, 1000], "1.000000000 SCR")
+    # ], False),
+    # ([
+    #     Bet("boss", wincase.RoundHomeNo(), [999999, 1000], "9500000.000000000 SCR"),
+    #     Bet("alice", wincase.RoundHomeYes(), [999999, 998999], "1.000000000 SCR"),
+    # ], False)
 ])
 def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
     empower_betting_moderator(wallet_4hf)
@@ -142,7 +150,7 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
     if full_match:
         assert len(pending_bets) == 0, "There shouldn't be pending bets."
     else:
-        assert len(pending_bets) == 1, "Fully matched bet should be removed from pending bets"
+        assert len(pending_bets) == 1, "There should be left removed from pending bets"
         assert pending_bets[0]["data"]["stake"] == str(bets[1].stake - bets[0].profit), \
             "Partially matched bet should remain with rest of initial stake/"
     matched_bets = wallet_4hf.get_matched_bets([b.uuid for b in bets])
