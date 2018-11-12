@@ -3,7 +3,7 @@ from scorum.graphenebase.betting import wincase, market
 from scorum.utils.time import to_date, date_to_str, fmt_time_from_now
 
 from automation.wallet import Wallet
-from tests.betting.conftest import empower_betting_moderator, create_game, create_game_with_bets, post_bet
+from tests.betting.conftest import empower_betting_moderator, create_game, create_game_with_bets, post_bet, Bet
 from tests.common import (
     validate_response, check_virt_ops, DEFAULT_WITNESS, validate_error_response, gen_uid,
     RE_OBJECT_NOT_EXIST, RE_NOT_MODERATOR, RE_MISSING_AUTHORITY, RE_START_TIME
@@ -110,3 +110,26 @@ def test_update_game_start_time_with_bets_few_games(wallet_4hf: Wallet):
     bets = wallet_4hf.get_pending_bets([bet1, bet2])
     assert len(bets) == 1 and bets[0]['data']['uuid'] == bet2, \
         "Should remain only pending bet in not changed game."
+
+
+@pytest.mark.parametrize('bets, expected_ops', [
+    (
+        [Bet("alice", wincase.HandicapOver(500), [2, 1]), Bet("bob", wincase.HandicapUnder(500), [2, 1])],
+        ["bet_restored", "bet_cancelled"]  # fully matched bet should be restored
+    ),
+    (
+        [Bet("alice", wincase.HandicapOver(500), [3, 1]), Bet("bob", wincase.HandicapUnder(500), [3, 2])],
+        ["bet_updated", "bet_cancelled"]  # partially matched bet shouldn't be re-created
+    )
+])
+def test_update_start_time_restore_bets(wallet_4hf: Wallet, bets, expected_ops):
+    game_uuid = create_game_with_bets(wallet_4hf, game_start=5, delay=3600, bets=bets)
+    response = wallet_4hf.update_game_start_time(game_uuid, DEFAULT_WITNESS, fmt_time_from_now(30))
+    check_virt_ops(wallet_4hf, response['block_num'], expected_ops=expected_ops)
+    assert wallet_4hf.lookup_matched_bets(-1, 100) == [], "Matched bets should be cancelled."
+    pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
+    assert len(pending_bets) == 1, "Should exist only bet created before game has started."
+    assert pending_bets[0]["data"]["uuid"] == bets[0].uuid
+
+
+
