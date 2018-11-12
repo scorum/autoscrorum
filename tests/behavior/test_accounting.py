@@ -5,7 +5,7 @@ from automation.account import Account
 from automation.errors import Errors
 from automation.genesis import Genesis
 from automation.wallet import Wallet
-from tests.common import DEFAULT_WITNESS
+from tests.common import DEFAULT_WITNESS, apply_hardfork
 
 test_account_memo_key = 'SCR52jUWZchsz6hVD13PzZrQP94mcbJL5seYxnm46Uk6D9tmJdGJh'
 test_account_owner_pub_key = 'SCR695t7HG9WMA2HnZkPGnjQkBDXza1WQLKhztdhrN9VwqMJr3WK4'
@@ -75,6 +75,7 @@ def test_create_account_with_invalid_name(wallet: Wallet, name_and_error):
 
 @pytest.mark.parametrize('valid_name', ['joe', 'aaaaaaaaaaaaaaa1'])
 def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_name):
+    apply_hardfork(wallet, 3)
     accounts_before = wallet.list_accounts()
     creator_balance_before = wallet.get_account_scr_balance(DEFAULT_WITNESS)
     print(wallet.create_account_by_committee(DEFAULT_WITNESS,
@@ -103,9 +104,8 @@ def test_create_account_by_committee(wallet: Wallet, genesis: Genesis, valid_nam
     account_by_memo_key = wallet.get_account_by_key(test_account_memo_key)[0]
     assert account_by_memo_key == []
 
-    new_account_sp_balance_amount = str(wallet.get_account_sp_balance(valid_name)).split()[0]
-    registration_bonus_amount = genesis['registration_bonus'].split()[0]
-    assert new_account_sp_balance_amount == registration_bonus_amount
+    new_account_sp_balance_amount = wallet.get_account_sp_balance(valid_name)
+    assert new_account_sp_balance_amount == Amount("0 SP")
 
     # TODO add assert to check registration_supply delta
 
