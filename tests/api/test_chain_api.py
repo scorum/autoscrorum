@@ -11,5 +11,5 @@ def test_get_chain_capital(wallet: Wallet):
         "content_reward_fund_sp_balance", "current_witness", "dev_pool_scr_balance", "dev_pool_sp_balance",
         "fund_budget_balance", "head_block_id", ("head_block_number", int), "head_block_time",
         "registration_pool_balance", "total_scorumpower", "total_scr", "total_supply", "total_witness_reward_scr",
-        "total_witness_reward_sp", "witness_reward_in_sp_migration_fund"
+        "total_witness_reward_sp", "witness_reward_in_sp_migration_fund", ("advertising", dict), ("betting_stats", dict)
     ])

@@ -165,6 +165,7 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
     block = max(b.block_creation_num for b in bets)
     check_virt_ops(wallet_4hf, block, expected_ops=["bets_matched", "bet_cancelled", "bet_updated"])
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
+    pending_stake_sum = sum([Amount(b['data']['stake']) for b in pending_bets], Amount())
     if full_match:
         assert len(pending_bets) == 0, "There shouldn't be pending bets."
     else:
@@ -172,10 +173,16 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
         assert pending_bets[0]["data"]["stake"] == str(bets[1].stake - bets[0].profit), \
             "Partially matched bet should remain with rest of initial stake/"
     matched_bets = wallet_4hf.get_matched_bets([b.uuid for b in bets])
+    matched_stake_sum = sum([
+        Amount(b['bet1_data']['stake']) + Amount(b['bet2_data']['stake']) for b in matched_bets], Amount()
+    )
     assert matched_bets[0]["bet1_data"]["stake"] == str(bets[0].stake), \
         "Better with lesser potential reward should bet whole stake"
     assert matched_bets[0]["bet2_data"]["stake"] == str(bets[0].profit), \
         "Better with greater potential reward should bet stake == profit of opponent"
+    betting_stats = wallet_4hf.get_chain_capital()['betting_stats']
+    assert Amount(betting_stats['pending_bets_volume']) == pending_stake_sum
+    assert Amount(betting_stats['matched_bets_volume']) == matched_stake_sum
 
 
 @pytest.mark.skip_long_term  # test time ~164 sec
@@ -190,8 +197,15 @@ def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
         )
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
     assert len(pending_bets) == 6, "Expected 6 pending bets remain."
+    pending_stake_sum = sum([Amount(b['data']['stake']) for b in pending_bets], Amount())
     matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
     assert len(matched_bets) == 28, "Expected 28 matched bets."
+    matched_stake_sum = sum([
+        Amount(b['bet1_data']['stake']) + Amount(b['bet2_data']['stake']) for b in matched_bets], Amount()
+    )
+    betting_stats = wallet_4hf.get_chain_capital()['betting_stats']
+    assert Amount(betting_stats['pending_bets_volume']) == pending_stake_sum
+    assert Amount(betting_stats['matched_bets_volume']) == matched_stake_sum
     balances_after_betting = wallet_4hf.get_accounts_balances(real_game_data['betters'])
     assert all(
         balances_after_betting[n] == balances_before[n] - real_game_data['expected_outgo'][n]
