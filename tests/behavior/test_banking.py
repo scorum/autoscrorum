@@ -272,14 +272,14 @@ def test_delegate_sp_from_reg_pool_locked(wallet: Wallet):
     validate_error_response(response, wallet.delegate_sp_from_reg_pool.__name__, RE_OP_IS_LOCKED)
 
 
-@pytest.mark.parametrize('account, delta', [('alice', '10.000000000 SP')])
+@pytest.mark.parametrize('account, delta', [('alice', Amount('10.000000000 SP'))])
 def test_delegate_sp_from_reg_pool(wallet: Wallet, account, delta):
     apply_hardfork(wallet, 4)
-    acc_sp_before = wallet.get_account_sp_balance(account)
+    acc_received_sp_before = Amount(wallet.get_account(account)["received_scorumpower"])
     reg_pool_before = Amount(wallet.get_chain_capital()['registration_pool_balance'])
     response = wallet.delegate_sp_from_reg_pool(DEFAULT_WITNESS, account, delta)
     validate_response(response, wallet.delegate_sp_from_reg_pool.__name__)
-    acc_sp_after = wallet.get_account_sp_balance(account)
+    acc_received_sp_after = Amount(wallet.get_account(account)["received_scorumpower"])
     reg_pool_after = Amount(wallet.get_chain_capital()['registration_pool_balance'])
-    assert acc_sp_before + delta == acc_sp_after, "Account sp balance should increase."
+    assert acc_received_sp_before + delta == acc_received_sp_after, "Account sp balance should increase."
     assert reg_pool_before - delta == reg_pool_after, "Reg pool balance should increase."

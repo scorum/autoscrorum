@@ -12,10 +12,10 @@ from tests.common import (
 
 
 @pytest.mark.parametrize('default_markets,new_markets', [
-    ([market.RoundHome()], [market.Handicap(-100)]),
-    ([market.RoundHome(), market.TotalGoalsAway(10)], [market.TotalGoalsHome(100)]),
-    ([market.Handicap(500)], [market.Handicap(-100)]),
-    ([], [market.Handicap(-100)]),
+    ([market.RoundHome()], [market.Handicap(-1000)]),
+    ([market.RoundHome(), market.TotalGoalsAway(500)], [market.TotalGoalsHome(1500)]),
+    ([market.Handicap(500)], [market.Handicap(-500)]),
+    ([], [market.Handicap(-500)]),
     ([market.Handicap(500)], [])
 ])
 def test_update_game_markets(wallet_4hf: Wallet, default_markets, new_markets):
@@ -88,7 +88,7 @@ def test_update_game_markets_with_bets_few_games(wallet_4hf: Wallet):
     game2, _ = create_game(wallet_4hf, start=30, delay=3600, market_types=[market.RoundHome()])
     bet1, _ = post_bet(wallet_4hf, "alice", game1, wincase_type=wincase.RoundHomeYes())
     bet2, _ = post_bet(wallet_4hf, "bob", game2, wincase_type=wincase.RoundHomeNo())
-    wallet_4hf.update_game_markets(game1, DEFAULT_WITNESS, [market.Total(100)])
+    wallet_4hf.update_game_markets(game1, DEFAULT_WITNESS, [market.Total(1000)])
     games = wallet_4hf.get_games_by_uuids([game1, game2])
     assert games[0]["uuid"] == game1 and games[0]["markets"][0][0] == "total"
     assert games[1]["uuid"] == game2 and games[1]["markets"][0][0] == "round_home"

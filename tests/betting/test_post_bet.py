@@ -34,8 +34,8 @@ def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, s
         "Wincase .* doesn\'t belong to game markets"
     ),
     (
-        market.Handicap(100), wincase.HandicapOver(10), [2, 1], "5.000000000 SCR", True,
-        "Wincase .* is invalid"
+        market.Handicap(1000), wincase.HandicapOver(500), [2, 1], "5.000000000 SCR", True,
+        "Wincase .* doesn\'t belong to game markets"
     ),
     (
         market.CorrectScore(3, 3), wincase.CorrectScoreYes(17, 23), [2, 1], "5.000000000 SCR", True,
