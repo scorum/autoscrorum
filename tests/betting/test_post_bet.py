@@ -121,14 +121,18 @@ def test_post_bet_auto_resolve(wallet_4hf: Wallet, bets):
 
 
 def test_post_bet_finished_game_resolve(wallet_4hf: Wallet, bets):
-    change_resolve_delay(wallet_4hf, 3)  # resolve game next block after it will be finished
+    change_resolve_delay(wallet_4hf, 4)  # resolve game next block after it will be finished
     game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
     matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
-    wallet_4hf.get_block(response["block_num"], wait_for_block=True)
+    winners = wallet_4hf.get_game_winners(game_uuid)
+    wallet_4hf.get_block(response["block_num"] + 1, wait_for_block=True)
     if matched_bets:
-        check_virt_ops(wallet_4hf, response['block_num'], expected_ops=["bet_resolved"])
+        check_virt_ops(wallet_4hf, response['block_num'] + 1, expected_ops=["bet_resolved"])
+        for w in winners:
+            history = wallet_4hf.get_account_history(w['winner']['name'], -1, 1)
+            assert history[0][1]['op'][0] == "bet_resolved"
     assert wallet_4hf.get_pending_bets([b.uuid for b in bets]) == []
     assert wallet_4hf.get_matched_bets([b.uuid for b in bets]) == []
 
