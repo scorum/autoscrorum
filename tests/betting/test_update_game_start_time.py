@@ -130,6 +130,3 @@ def test_update_start_time_restore_bets(wallet_4hf: Wallet, bets, expected_ops):
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
     assert len(pending_bets) == 1, "Should exist only bet created before game has started."
     assert pending_bets[0]["data"]["uuid"] == bets[0].uuid
-
-
-

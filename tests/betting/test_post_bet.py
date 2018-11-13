@@ -151,16 +151,13 @@ def test_post_bet_finished_game_resolve(wallet_4hf: Wallet, bets):
         Bet("bob", wincase.RoundHomeNo(), [2, 1], "1.000000000 SCR")
     ], True),
     ([
-        Bet("alice", wincase.RoundHomeYes(), [3, 2], "0.000000013 SCR"),
-        Bet("bob", wincase.RoundHomeNo(), [3, 1], "0.000000013 SCR")
+        Bet("alice", wincase.RoundHomeYes(), ODDS_MIN, STAKE_MIN),
+        Bet("bob", wincase.RoundHomeNo(), ODDS_MAX, "1.000000000 SCR")
     ], False),
+    # TODO: Uncomment when integer overflow bug will be fixed
     # ([
-    #     Bet("alice", wincase.RoundHomeYes(), [999999, 998999], "0.000000013 SCR"),
-    #     Bet("bob", wincase.RoundHomeNo(), [999999, 1000], "1.000000000 SCR")
-    # ], False),
-    # ([
-    #     Bet("boss", wincase.RoundHomeNo(), [999999, 1000], "9500000.000000000 SCR"),
-    #     Bet("alice", wincase.RoundHomeYes(), [999999, 998999], "1.000000000 SCR"),
+    #     Bet("boss", wincase.RoundHomeNo(), ODDS_MAX, "9500000.000000000 SCR"),
+    #     Bet("alice", wincase.RoundHomeYes(), ODDS_MIN, "1.000000000 SCR"),
     # ], False)
 ])
 def test_bets_matching(wallet_4hf: Wallet, bets, full_match):

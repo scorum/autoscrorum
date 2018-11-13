@@ -354,7 +354,7 @@
         "scorum": {
             "editable": true,
             "git": "https://github.com/scorum/scorum-py.git",
-            "ref": "ee8c9b8d73e4cc551a1dcbc6bea7ab532a6da59d"
+            "ref": "bc99e8db215cff6140ca2593f9b20d0af4451ee4"
         },
         "scrypt": {
             "hashes": [
