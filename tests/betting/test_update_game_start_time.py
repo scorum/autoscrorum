@@ -91,7 +91,7 @@ def test_update_start_time_of_game_with_pending_bets_before_start(wallet_4hf: Wa
 def test_update_start_time_of_game_with_bets_added_after_start(wallet_4hf: Wallet, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
-    game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, game_start=1)
     wallet_4hf.update_game_start_time(game_uuid, DEFAULT_WITNESS, fmt_time_from_now(30))
     accounts_after = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
     response = wallet_4hf.get_matched_bets([b.uuid for b in bets])

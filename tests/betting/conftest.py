@@ -87,10 +87,11 @@ class Bet:
         self.block_creation_num = None
 
 
-def create_game_with_bets(wallet, bets, game_start=30, delay=3600):
+def create_game_with_bets(wallet, bets, **kwargs):
     empower_betting_moderator(wallet)
     game_uuid, block = create_game(
-        wallet, start=game_start, delay=delay, market_types=[market.RoundHome(), market.Handicap(500)])
+        wallet, start=kwargs.get('game_start', 30), delay=kwargs.get('delay', 3600),
+        market_types=kwargs.get('market_types', [market.RoundHome(), market.Handicap(500)]))
     for bet in bets:
         uuid, block = post_bet(
             wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds, stake=str(bet.stake)

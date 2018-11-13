@@ -110,7 +110,7 @@ def test_post_bet_same_uuid_few_games(wallet_4hf: Wallet):
 def test_post_bet_auto_resolve(wallet_4hf: Wallet, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
-    create_game_with_bets(wallet_4hf, bets, 1, 9)
+    create_game_with_bets(wallet_4hf, bets, game_start=1, delay=9)
     block = max(b.block_creation_num for b in bets)
     wallet_4hf.get_block(block + 1, wait_for_block=True)
     accounts_after = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
@@ -122,7 +122,7 @@ def test_post_bet_auto_resolve(wallet_4hf: Wallet, bets):
 
 def test_post_bet_finished_game_resolve(wallet_4hf: Wallet, bets):
     change_resolve_delay(wallet_4hf, 4)  # resolve game next block after it will be finished
-    game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, game_start=1)
     matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])

@@ -1,15 +1,15 @@
 import pytest
 
 from automation.wallet import Wallet
-from tests.betting.conftest import create_game_with_bets, change_resolve_delay
-from scorum.graphenebase.betting import wincase
+from tests.betting.conftest import create_game_with_bets, change_resolve_delay, Bet
+from scorum.graphenebase.betting import wincase, market
 from tests.common import (
     validate_response, DEFAULT_WITNESS, check_virt_ops, validate_error_response, RE_NOT_MODERATOR
 )
 
 
 def test_post_game_results(wallet_4hf: Wallet, bets):
-    game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, game_start=1)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)]
     )
@@ -19,7 +19,7 @@ def test_post_game_results(wallet_4hf: Wallet, bets):
 
 def test_post_game_results_game_resolve(wallet_4hf: Wallet, bets):
     change_resolve_delay(wallet_4hf, 3)
-    game_uuid = create_game_with_bets(wallet_4hf, bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, game_start=1)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)]
     )
@@ -40,6 +40,32 @@ def test_post_game_results_game_resolve(wallet_4hf: Wallet, bets):
     (DEFAULT_WITNESS, 1, [wincase.RoundHomeYes()], "Wincase winners list do not contain neither .* nor")
 ])
 def test_post_game_results_invalid_params(wallet_4hf: Wallet, bets, start, wincases, moderator, expected_error):
-    game_uuid = create_game_with_bets(wallet_4hf, bets, start)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, game_start=start)
     response = wallet_4hf.post_game_results(game_uuid, moderator, wincases)
     validate_error_response(response, wallet_4hf.post_game_results.__name__, expected_error)
+
+
+@pytest.mark.parametrize('bets, markets', [
+    (
+        [Bet('alice', wincase.TotalOver(1000), [2, 1])],
+        [market.Total(1000)]
+    ),
+    (
+        [Bet('alice', wincase.TotalOver(5000), [2, 1]), Bet('bob', wincase.TotalUnder(5000), [2, 1])],
+        [market.Total(5000)]
+    ),
+    (
+        [Bet('alice', wincase.HandicapOver(5000), [3, 1]), Bet('bob', wincase.HandicapUnder(5000), [3, 2])],
+        [market.Handicap(5000)]
+    ),
+])
+def test_post_game_payback_case(wallet_4hf: Wallet, markets, bets):
+    change_resolve_delay(wallet_4hf, 3)
+    names = [b.account for b in bets]
+    balances_before = wallet_4hf.get_accounts_balances(names)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, market_types=markets, game_start=1)
+    response = wallet_4hf.post_game_results(game_uuid, DEFAULT_WITNESS, [])
+    validate_response(response, wallet_4hf.post_game_results.__name__)
+    balances_after = wallet_4hf.get_accounts_balances(names)
+    assert all(balances_after[name] == balances_before[name] for name in names), \
+        "All accounts should receive back their stakes."

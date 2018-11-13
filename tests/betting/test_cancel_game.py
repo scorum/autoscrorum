@@ -53,7 +53,7 @@ def test_cancel_game_invalid_signing(wallet_4hf: Wallet):
 def test_cancel_game_with_bets(wallet_4hf: Wallet, start, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
-    game_uuid = create_game_with_bets(wallet_4hf, bets, start)
+    game_uuid = create_game_with_bets(wallet_4hf, bets, game_start=start)
     wallet_4hf.cancel_game(game_uuid, DEFAULT_WITNESS)
     accounts_after = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
     assert 0 == len(wallet_4hf.get_matched_bets([b.uuid for b in bets])), "Matched bets should be cancelled."
@@ -85,7 +85,7 @@ def test_cancel_finished_game(wallet_4hf: Wallet, moderator):
 
 
 def test_cancel_finished_game_with_matched_bets(wallet_4hf: Wallet, matched_bets):
-    game_uuid = create_game_with_bets(wallet_4hf, matched_bets, 1)
+    game_uuid = create_game_with_bets(wallet_4hf, matched_bets, game_start=1)
     wallet_4hf.post_game_results(game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
     wallet_4hf.cancel_game(game_uuid, DEFAULT_WITNESS)
     response = wallet_4hf.get_matched_bets([b.uuid for b in matched_bets])
