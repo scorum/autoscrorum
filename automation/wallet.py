@@ -12,6 +12,11 @@ from automation.account import Account
 from automation.rpc_client import RpcClient
 
 
+def is_list(arg):
+    if not isinstance(arg, list):
+        raise TypeError("expected list type")
+
+
 class Wallet(object):
     def __init__(self, chain_id, rpc_endpoint, accounts=None):
         self.chain_id = chain_id
@@ -531,6 +536,8 @@ class Wallet(object):
         return response.get('result', response)
 
     def get_games_by_uuids(self, uuids):
+        is_list(uuids)
+
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_games_by_uuids', [uuids]))
         return response.get('result', response)
 
@@ -543,6 +550,8 @@ class Wallet(object):
         return response.get('result', response)
 
     def get_matched_bets(self, uuids):
+        is_list(uuids)
+
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_matched_bets', [uuids]))
         return response.get('result', response)
 
@@ -551,6 +560,8 @@ class Wallet(object):
         return response.get('result', response)
 
     def get_pending_bets(self, uuids):
+        is_list(uuids)
+
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_pending_bets', [uuids]))
         return response.get('result', response)
 
