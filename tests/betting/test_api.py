@@ -110,3 +110,16 @@ def test_lookup_pending_bets(wallet_4hf: Wallet):
     validate_response(response, wallet_4hf.lookup_pending_bets.__name__)
     assert len(response) == 1
     assert response[0]['data']['uuid'] == bet_uuid
+
+
+def test_get_game_returns(wallet_4hf: Wallet, matched_bets):
+    validate_error_response(
+        wallet_4hf.get_game_returns(gen_uid()), wallet_4hf.get_game_returns.__name__, RE_OBJECT_NOT_EXIST
+    )
+    matched_bets[0].wincase = wincase.HandicapOver()
+    matched_bets[1].wincase = wincase.HandicapUnder()
+    game_uuid = create_game_with_bets(wallet_4hf, matched_bets, market_types=[market.Handicap()], game_start=1)
+    wallet_4hf.post_game_results(game_uuid, DEFAULT_WITNESS, [])
+    response = wallet_4hf.get_game_returns(game_uuid)
+    validate_response(response, wallet_4hf.get_game_returns.__name__)
+    assert response, "Expected non-empty returns list."

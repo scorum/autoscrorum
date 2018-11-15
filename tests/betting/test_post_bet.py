@@ -186,11 +186,11 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
     assert Amount(betting_stats['matched_bets_volume']) == matched_stake_sum
 
 
-@pytest.mark.skip_long_term  # test time ~164 sec
+@pytest.mark.skip_long_term  # test time ~175 sec
 def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
     balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
     empower_betting_moderator(wallet_4hf, DEFAULT_WITNESS)
-    change_resolve_delay(wallet_4hf, 3)
+    change_resolve_delay(wallet_4hf, 4)
     game_uuid, _ = create_game(wallet_4hf, start=3, delay=3600, market_types=real_game_data['markets'])
     for bet in real_game_data['bets']:
         post_bet(
@@ -200,7 +200,7 @@ def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
     assert len(pending_bets) == 6, "Expected 6 pending bets remain."
     pending_stake_sum = sum([Amount(b['data']['stake']) for b in pending_bets], Amount())
     matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
-    assert len(matched_bets) == 28, "Expected 28 matched bets."
+    assert len(matched_bets) == 30, "Expected 30 matched bets."
     matched_stake_sum = sum([
         Amount(b['bet1_data']['stake']) + Amount(b['bet2_data']['stake']) for b in matched_bets], Amount()
     )
@@ -213,6 +213,11 @@ def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
         for n in real_game_data['betters']
     )
     response = wallet_4hf.post_game_results(game_uuid, DEFAULT_WITNESS, real_game_data['wincases'])
+    game_returns = wallet_4hf.get_game_returns(game_uuid)
+    assert len(real_game_data["expected_paybacks"]) == len(game_returns), "Unexpected amount of game returns."
+    game_winners = wallet_4hf.get_game_winners(game_uuid)
+    assert len(matched_bets) - len(game_returns) == len(game_winners), \
+        "Unexpected amount of game winners."
     wallet_4hf.get_block(response['block_num'] + 1, wait_for_block=True)
     balances_after_finish = wallet_4hf.get_accounts_balances(real_game_data['betters'])
     assert all(

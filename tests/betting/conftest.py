@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import pytest
 from scorum.graphenebase.amount import Amount
-from scorum.graphenebase.betting import game, market, wincase
+from scorum.graphenebase.betting import game, market, wincase, Market
 from scorum.utils.time import fmt_time_from_now
 
 from tests.common import apply_hardfork, DEFAULT_WITNESS, gen_uid
@@ -124,11 +124,12 @@ def sum_amount(amounts, start="0 SCR"):
 def real_game_data():
     markets = [
         market.RoundHome(), market.ResultHome(),  market.Total(1000), market.Handicap(500),
-        market.CorrectScore(3, 3), market.GoalAway()
+        market.CorrectScore(3, 3), market.GoalAway(), market.Handicap(), market.Total(2000)
     ]
     wincases = [
         wincase.RoundHomeYes(), wincase.ResultHomeYes(), wincase.TotalOver(1000), wincase.HandicapUnder(500),
         wincase.GoalAwayNo(), wincase.CorrectScoreYes(3, 3)
+        # Handicap() and Total(2000) are not included to test payback
     ]
 
     bets = [
@@ -184,6 +185,14 @@ def real_game_data():
         Bet("test.test2", wincase.CorrectScoreNo(3, 3), [5, 2], "0.500000000 SCR"),  # looser
         Bet("test.test3", wincase.CorrectScoreNo(3, 3), [5, 2], "0.500000000 SCR"),  # looser
         Bet("test.test4", wincase.CorrectScoreYes(3, 3), [5, 3], "4.500000000 SCR"),  # winner, remain pending 2.25 SCR
+
+        # returns / paybacks
+        Bet("alice", wincase.HandicapOver(), [3, 2], "1.000000000 SCR"),  # payback
+        Bet("bob", wincase.HandicapUnder(), [3, 1], "0.500000000 SCR"),  # payback
+
+        Bet("alice", wincase.TotalOver(2000), [2, 1], "1.000000000 SCR"),  # payback
+        Bet("bob", wincase.TotalUnder(2000), [2, 1], "1.000000000 SCR"),  # payback
+
     ]
 
     betters = [b.account for b in bets]
@@ -191,6 +200,17 @@ def real_game_data():
     expected_balances_outgo = defaultdict(Amount)
     for b in bets:
         expected_balances_outgo[b.account] += b.stake
+
+    expected_paybacks = {
+        str(Market(markets[6])): {
+            "alice": "1.000000000 SCR",
+            "bob": "0.500000000 SCR"
+        },
+        str(Market(markets[7])): {
+            "alice": "1.000000000 SCR",
+            "bob": "1.000000000 SCR"
+        }
+    }
 
     expected_balances_income = {
         "alice": sum_amount(["1.500000000 SCR", "1.500000000 SCR", "0.333333334 SCR"]),
@@ -205,7 +225,12 @@ def real_game_data():
         ])
     }
 
+    for v in expected_paybacks.values():
+        for acc, amount in v.items():
+            expected_balances_income[acc] += Amount(amount)
+
     return {
         "bets": bets, "wincases": wincases, "betters": betters, "markets": markets,
-        "expected_outgo": expected_balances_outgo, "expected_income": expected_balances_income
+        "expected_paybacks": expected_paybacks,  "expected_outgo": expected_balances_outgo,
+        "expected_income": expected_balances_income
     }
