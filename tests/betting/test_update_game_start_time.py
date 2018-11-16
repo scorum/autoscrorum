@@ -123,7 +123,7 @@ def test_update_game_start_time_with_bets_few_games(wallet_4hf: Wallet):
     )
 ])
 def test_update_start_time_restore_bets(wallet_4hf: Wallet, bets, expected_ops):
-    game_uuid = create_game_with_bets(wallet_4hf, game_start=5, delay=3600, bets=bets)
+    game_uuid = create_game_with_bets(wallet_4hf, game_start=5, delay=3600, bets=bets, single_block=False)
     response = wallet_4hf.update_game_start_time(game_uuid, DEFAULT_WITNESS, fmt_time_from_now(30))
     check_virt_ops(wallet_4hf, response['block_num'], expected_ops=expected_ops)
     assert wallet_4hf.lookup_matched_bets(-1, 100) == [], "Matched bets should be cancelled."

@@ -2,6 +2,8 @@ import pytest
 from scorum.graphenebase.amount import Amount
 from scorum.graphenebase.betting import wincase, market
 
+from copy import deepcopy
+
 from automation.wallet import Wallet
 from tests.betting.conftest import (
     empower_betting_moderator, create_game, post_bet, create_game_with_bets, change_resolve_delay, Bet
@@ -110,7 +112,7 @@ def test_post_bet_same_uuid_few_games(wallet_4hf: Wallet):
 def test_post_bet_auto_resolve(wallet_4hf: Wallet, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
-    create_game_with_bets(wallet_4hf, bets, game_start=1, delay=9)
+    create_game_with_bets(wallet_4hf, bets, game_start=1, delay=6)
     block = max(b.block_creation_num for b in bets)
     wallet_4hf.get_block(block + 1, wait_for_block=True)
     accounts_after = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
@@ -186,16 +188,13 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
     assert Amount(betting_stats['matched_bets_volume']) == matched_stake_sum
 
 
-@pytest.mark.skip_long_term  # test time ~175 sec
+# @pytest.mark.skip_long_term  # test time ~46 sec
 def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
     balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
-    empower_betting_moderator(wallet_4hf, DEFAULT_WITNESS)
     change_resolve_delay(wallet_4hf, 4)
-    game_uuid, _ = create_game(wallet_4hf, start=3, delay=3600, market_types=real_game_data['markets'])
-    for bet in real_game_data['bets']:
-        post_bet(
-            wallet_4hf, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds, stake=str(bet.stake)
-        )
+    game_uuid = create_game_with_bets(
+        wallet_4hf, real_game_data['bets'], game_start=3, market_types=real_game_data['markets']
+    )
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
     assert len(pending_bets) == 6, "Expected 6 pending bets remain."
     pending_stake_sum = sum([Amount(b['data']['stake']) for b in pending_bets], Amount())
@@ -222,5 +221,58 @@ def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
     balances_after_finish = wallet_4hf.get_accounts_balances(real_game_data['betters'])
     assert all(
         balances_after_finish[n] == balances_after_betting[n] + real_game_data['expected_income'][n]
+        for n in real_game_data['betters']
+    )
+
+
+# @pytest.mark.skip_long_term  # test time ~61 sec
+def test_betting_flow_close_to_real_few_games(wallet_4hf: Wallet, real_game_data):
+    game1 = real_game_data
+    game2 = deepcopy(real_game_data)
+    balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
+    change_resolve_delay(wallet_4hf, 4)
+    game1_uuid = create_game_with_bets(
+        wallet_4hf, game1['bets'], game_start=3, market_types=game1['markets']
+    )
+    game2_uuid = create_game_with_bets(
+        wallet_4hf, game2['bets'], game_start=3, market_types=game2['markets']
+    )
+
+    pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
+    assert len(pending_bets) == 12, "Expected 12 pending bets remain."
+    pending_stake_sum = sum([Amount(b['data']['stake']) for b in pending_bets], Amount())
+    matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
+    assert len(matched_bets) == 60, "Expected 60 matched bets."
+    matched_stake_sum = sum([
+        Amount(b['bet1_data']['stake']) + Amount(b['bet2_data']['stake']) for b in matched_bets], Amount()
+    )
+    betting_stats = wallet_4hf.get_chain_capital()['betting_stats']
+    assert Amount(betting_stats['pending_bets_volume']) == pending_stake_sum
+    assert Amount(betting_stats['matched_bets_volume']) == matched_stake_sum
+
+    balances_after_betting = wallet_4hf.get_accounts_balances(real_game_data['betters'])
+    assert all(
+        balances_after_betting[n] == balances_before[n] - game1['expected_outgo'][n] - game2['expected_outgo'][n]
+        for n in real_game_data['betters']
+    )
+
+    wallet_4hf.post_game_results(game1_uuid, DEFAULT_WITNESS, game1['wincases'])
+    game1_returns = wallet_4hf.get_game_returns(game1_uuid)
+    assert len(game1["expected_paybacks"]) == len(game1_returns), "Unexpected amount of game returns."
+    game1_winners = wallet_4hf.get_game_winners(game1_uuid)
+
+    response = wallet_4hf.post_game_results(game2_uuid, DEFAULT_WITNESS, game2['wincases'])
+    game2_returns = wallet_4hf.get_game_returns(game2_uuid)
+    assert len(game2["expected_paybacks"]) == len(game2_returns), "Unexpected amount of game returns."
+    game2_winners = wallet_4hf.get_game_winners(game2_uuid)
+
+    assert len(matched_bets) - len(game1_returns) - len(game2_returns) == len(game1_winners) + len(game2_winners), \
+        "Unexpected amount of game winners."
+
+    wallet_4hf.get_block(response['block_num'] + 1, wait_for_block=True)
+    balances_after_finish = wallet_4hf.get_accounts_balances(real_game_data['betters'])
+    assert all(
+        balances_after_finish[n] == balances_after_betting[n] +
+        game1['expected_income'][n] + game2['expected_income'][n]
         for n in real_game_data['betters']
     )

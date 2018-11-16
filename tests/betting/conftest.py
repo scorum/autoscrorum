@@ -87,17 +87,36 @@ class Bet:
         self.block_creation_num = None
 
 
-def create_game_with_bets(wallet, bets, **kwargs):
-    empower_betting_moderator(wallet)
-    game_uuid, block = create_game(
-        wallet, start=kwargs.get('game_start', 30), delay=kwargs.get('delay', 3600),
-        market_types=kwargs.get('market_types', [market.RoundHome(), market.Handicap(500)]))
+def post_bets_single_block(wallet, game_uuid, bets):
+    for b in bets:
+        b.uuid = gen_uid()
+    data = [{
+        "uuid": b.uuid, "better": b.account, "game_uuid": game_uuid, "wincase": b.wincase,
+        "odds": b.odds, "stake": str(b.stake), "live": True
+    } for b in bets]
+    response = wallet.broadcast_multiple_ops("post_bet", data, set(b.account for b in bets))
+    for bet in bets:
+        bet.block_creation_num = response['block_num']
+
+
+def post_bets_sequentially(wallet, game_uuid, bets):
     for bet in bets:
         uuid, block = post_bet(
             wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds, stake=str(bet.stake)
         )
         bet.uuid = uuid
         bet.block_creation_num = block
+
+
+def create_game_with_bets(wallet, bets, **kwargs):
+    empower_betting_moderator(wallet)
+    game_uuid, block = create_game(
+        wallet, start=kwargs.get('game_start', 30), delay=kwargs.get('delay', 3600),
+        market_types=kwargs.get('market_types', [market.RoundHome(), market.Handicap(500)]))
+    if kwargs.get("single_block", True):
+        post_bets_single_block(wallet, game_uuid, bets)
+    else:
+        post_bets_sequentially(wallet, game_uuid, bets)
     return game_uuid
 
 
