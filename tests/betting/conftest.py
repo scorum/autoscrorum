@@ -2,10 +2,10 @@ from collections import defaultdict
 
 import pytest
 from scorum.graphenebase.amount import Amount
-from scorum.graphenebase.betting import game, market, wincase, Market
-from scorum.utils.time import fmt_time_from_now
+from scorum.graphenebase.betting import market, wincase, Market
 
-from tests.common import apply_hardfork, DEFAULT_WITNESS, gen_uid
+from tests.common import apply_hardfork
+from tests.betting.betting import Bet, Betting
 
 GAME_FILTERS = [
     "created",
@@ -23,101 +23,11 @@ def wallet_4hf(wallet):
     return wallet
 
 
-def empower_betting_moderator(wallet, account=DEFAULT_WITNESS):
-    wallet.development_committee_empower_betting_moderator(DEFAULT_WITNESS, account)
-    proposals = wallet.list_proposals()
-    wallet.proposal_vote(DEFAULT_WITNESS, proposals[-1]["id"])
-
-
-def change_resolve_delay(wallet, delay=60):
-    wallet.development_committee_change_betting_resolve_delay(DEFAULT_WITNESS, delay)
-    proposals = wallet.list_proposals()
-    wallet.proposal_vote(DEFAULT_WITNESS, proposals[-1]["id"])
-
-
-def create_game(wallet, account=DEFAULT_WITNESS, **kwargs):
-    """
-    'Additional_argument' default_value:
-    ---
-    'json_metadata' "{}"
-    'start' 3
-    'delay' 30
-    'game_type' game.Soccer()
-    'market_types' []
-    """
-    uuid = gen_uid()
-    response = wallet.create_game(
-        uuid, account,
-        kwargs.get('json_metadata', "{}"),
-        fmt_time_from_now(kwargs.get("start", 3)), kwargs.get("delay", 30),
-        kwargs.get("game_type", game.Soccer()), kwargs.get("market_types", [])
-    )
-    return uuid, response['block_num']
-
-
-def post_bet(wallet, better, game_uuid, **kwargs):
-    """
-    'Additional_argument' default_value:
-    ---
-    'wincase_type' wincase.RoundHomeYes()
-    'sodds' [3, 2]
-    'stake' "1.000000000 SCR"
-    'live' True
-    """
-    uuid = gen_uid()
-    response = wallet.post_bet(
-        uuid, better, game_uuid,
-        kwargs.get("wincase_type", wincase.RoundHomeYes()),
-        kwargs.get("odds", [3, 2]),
-        kwargs.get("stake", "1.000000000 SCR"),
-        kwargs.get("live", True)
-    )
-    return uuid, response['block_num']
-
-
-class Bet:
-    def __init__(self, account, wincase, odds, stake="1.000000000 SCR"):
-        self.account = account
-        self.wincase = wincase
-        self.odds = odds
-        self.stake = Amount(stake)
-        self.potential_reward = self.stake * odds[0] / odds[1]
-        self.profit = self.potential_reward - self.stake
-        self.uuid = None
-        self.block_creation_num = None
-
-
-def post_bets_single_block(wallet, game_uuid, bets):
-    for b in bets:
-        b.uuid = gen_uid()
-    data = [{
-        "uuid": b.uuid, "better": b.account, "game_uuid": game_uuid, "wincase": b.wincase,
-        "odds": b.odds, "stake": str(b.stake), "live": True
-    } for b in bets]
-    response = wallet.broadcast_multiple_ops("post_bet", data, set(b.account for b in bets))
-    for bet in bets:
-        bet.block_creation_num = response['block_num']
-
-
-def post_bets_sequentially(wallet, game_uuid, bets):
-    for bet in bets:
-        uuid, block = post_bet(
-            wallet, bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds, stake=str(bet.stake)
-        )
-        bet.uuid = uuid
-        bet.block_creation_num = block
-
-
-def create_game_with_bets(wallet, bets, **kwargs):
-    empower_betting_moderator(wallet)
-    game_uuid, block = create_game(
-        wallet, start=kwargs.get('game_start', 30), delay=kwargs.get('delay', 3600),
-        market_types=kwargs.get('market_types', [market.RoundHome(), market.Handicap(500)]))
-    if kwargs.get("single_block", True):
-        post_bets_single_block(wallet, game_uuid, bets)
-    else:
-        post_bets_sequentially(wallet, game_uuid, bets)
-    return game_uuid
+@pytest.fixture(scope="function")
+def betting(wallet_4hf):
+    betting = Betting(wallet_4hf)
+    betting.empower_betting_moderator()
+    return betting
 
 
 @pytest.fixture(scope="function")

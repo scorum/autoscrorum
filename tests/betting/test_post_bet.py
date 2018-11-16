@@ -4,10 +4,7 @@ from scorum.graphenebase.betting import wincase, market
 
 from copy import deepcopy
 
-from automation.wallet import Wallet
-from tests.betting.conftest import (
-    empower_betting_moderator, create_game, post_bet, create_game_with_bets, change_resolve_delay, Bet
-)
+from tests.betting.betting import Bet
 from tests.common import (
     validate_response, gen_uid, DEFAULT_WITNESS, check_virt_ops, validate_error_response, RE_OBJECT_EXIST
 )
@@ -25,10 +22,9 @@ STAKE_MIN = "0.001000000 SCR"
     ('bob', market.Total(1000), wincase.TotalOver(1000), ODDS_MAX, "1.000000000 SCR", True),
     ('bob', market.Handicap(-500), wincase.HandicapOver(-500), [3, 2], "3.000000000 SCR", True)
 ])
-def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, stake, live):
-    empower_betting_moderator(wallet_4hf, DEFAULT_WITNESS)
+def test_post_bet(wallet_4hf, betting, better, market_type, wincase_type, odds, stake, live):
     balance_before = wallet_4hf.get_account_scr_balance(better)
-    game_uuid, _ = create_game(wallet_4hf, DEFAULT_WITNESS, market_types=[market_type])
+    game_uuid, _ = betting.create_game(DEFAULT_WITNESS, market_types=[market_type])
     bet_uuid = gen_uid()
     response = wallet_4hf.post_bet(bet_uuid, better, game_uuid, wincase_type, odds, stake, live)
     validate_response(response, wallet_4hf.post_bet.__name__)
@@ -83,36 +79,35 @@ def test_post_bet(wallet_4hf: Wallet, better, market_type, wincase_type, odds, s
         "Invalid odds value"  # < MIN_ODDS
     ),
 ])
-def test_post_bet_invalid_params(wallet_4hf: Wallet, market_type, wincase_type, odds, stake, live, expected_error):
-    empower_betting_moderator(wallet_4hf)
-    game_uuid, _ = create_game(wallet_4hf, start=1, market_types=[market_type])
+def test_post_bet_invalid_params(wallet_4hf, betting, market_type, wincase_type, odds, stake, live, expected_error):
+    game_uuid, _ = betting.create_game(start=1, market_types=[market_type])
     response = wallet_4hf.post_bet(gen_uid(), "alice", game_uuid, wincase_type, odds, stake, live)
     validate_error_response(response, wallet_4hf.post_bet.__name__, expected_error)
 
 
-def test_post_bet_same_uuid(wallet_4hf: Wallet):
-    empower_betting_moderator(wallet_4hf)
-    game_uuid, _ = create_game(wallet_4hf, start=1, market_types=[market.RoundHome()])
-    bet_uuid, _ = post_bet(wallet_4hf, "alice", game_uuid, wincase=wincase.RoundHomeYes())
+def test_post_bet_same_uuid(wallet_4hf, betting):
+    game_uuid, _ = betting.create_game(wstart=1, market_types=[market.RoundHome()])
+    bet_uuid, _ = betting.post_bet("alice", game_uuid, wincase=wincase.RoundHomeYes())
     wallet_4hf.cancel_pending_bets([bet_uuid], "alice")
     response = wallet_4hf.post_bet(
         bet_uuid, "alice", game_uuid, wincase.RoundHomeYes(), [3, 2], "1.000000000 SCR", True)
     validate_error_response(response, wallet_4hf.post_bet.__name__, RE_OBJECT_EXIST)
 
 
-def test_post_bet_same_uuid_few_games(wallet_4hf: Wallet):
-    empower_betting_moderator(wallet_4hf)
-    game1, _ = create_game(wallet_4hf, delay=3600, market_types=[market.RoundHome()])
-    game2, _ = create_game(wallet_4hf, delay=3600, market_types=[market.RoundHome()])
-    bet_uuid, _ = post_bet(wallet_4hf, "alice", game1, wincase=wincase.RoundHomeYes())
-    response = wallet_4hf.post_bet(bet_uuid, "alice", game2, wincase.RoundHomeYes(), [3, 2], "1.000000000 SCR", True)
+def test_post_bet_same_uuid_few_games(wallet_4hf, betting):
+    game1, _ = betting.create_game(delay=3600, market_types=[market.RoundHome()])
+    game2, _ = betting.create_game(delay=3600, market_types=[market.RoundHome()])
+    bet_uuid, _ = betting.post_bet("alice", game1, wincase=wincase.RoundHomeYes())
+    response = wallet_4hf.post_bet(
+        bet_uuid, "alice", game2, wincase.RoundHomeYes(), [3, 2], "1.000000000 SCR", True
+    )
     validate_error_response(response, wallet_4hf.post_bet.__name__, RE_OBJECT_EXIST)
 
 
-def test_post_bet_auto_resolve(wallet_4hf: Wallet, bets):
+def test_post_bet_auto_resolve(wallet_4hf, betting, bets):
     names = [b.account for b in bets]
     accounts_before = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
-    create_game_with_bets(wallet_4hf, bets, game_start=1, delay=6)
+    betting.create_game_with_bets(bets, game_start=1, delay=6)
     block = max(b.block_creation_num for b in bets)
     wallet_4hf.get_block(block + 1, wait_for_block=True)
     accounts_after = {a["name"]: a for a in wallet_4hf.get_accounts(names)}
@@ -122,9 +117,9 @@ def test_post_bet_auto_resolve(wallet_4hf: Wallet, bets):
         "All accounts should receive back their stakes."
 
 
-def test_post_bet_finished_game_resolve(wallet_4hf: Wallet, bets):
-    change_resolve_delay(wallet_4hf, 4)  # resolve game next block after it will be finished
-    game_uuid = create_game_with_bets(wallet_4hf, bets, game_start=1)
+def test_post_bet_finished_game_resolve(wallet_4hf, betting, bets):
+    betting.change_resolve_delay(4)  # resolve game next block after it will be finished
+    game_uuid = betting.create_game_with_bets(bets, game_start=1)
     matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)])
@@ -162,9 +157,8 @@ def test_post_bet_finished_game_resolve(wallet_4hf: Wallet, bets):
     #     Bet("alice", wincase.RoundHomeYes(), ODDS_MIN, "1.000000000 SCR"),
     # ], False)
 ])
-def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
-    empower_betting_moderator(wallet_4hf)
-    create_game_with_bets(wallet_4hf, bets, game_start=1)
+def test_bets_matching(wallet_4hf, betting, bets, full_match):
+    betting.create_game_with_bets(bets, game_start=1)
     block = max(b.block_creation_num for b in bets)
     check_virt_ops(wallet_4hf, block, expected_ops=["bets_matched", "bet_cancelled", "bet_updated"])
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
@@ -189,11 +183,11 @@ def test_bets_matching(wallet_4hf: Wallet, bets, full_match):
 
 
 # @pytest.mark.skip_long_term  # test time ~46 sec
-def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
+def test_betting_flow_close_to_real_game(wallet_4hf, betting, real_game_data):
     balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
-    change_resolve_delay(wallet_4hf, 4)
-    game_uuid = create_game_with_bets(
-        wallet_4hf, real_game_data['bets'], game_start=3, market_types=real_game_data['markets']
+    betting.change_resolve_delay(4)
+    game_uuid = betting.create_game_with_bets(
+        real_game_data['bets'], game_start=3, market_types=real_game_data['markets']
     )
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
     assert len(pending_bets) == 6, "Expected 6 pending bets remain."
@@ -226,16 +220,16 @@ def test_betting_flow_close_to_real_game(wallet_4hf: Wallet, real_game_data):
 
 
 # @pytest.mark.skip_long_term  # test time ~61 sec
-def test_betting_flow_close_to_real_few_games(wallet_4hf: Wallet, real_game_data):
+def test_betting_flow_close_to_real_few_games(wallet_4hf, betting, real_game_data):
     game1 = real_game_data
     game2 = deepcopy(real_game_data)
     balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
-    change_resolve_delay(wallet_4hf, 4)
-    game1_uuid = create_game_with_bets(
-        wallet_4hf, game1['bets'], game_start=3, market_types=game1['markets']
+    betting.change_resolve_delay(4)
+    game1_uuid = betting.create_game_with_bets(
+        game1['bets'], game_start=3, market_types=game1['markets']
     )
-    game2_uuid = create_game_with_bets(
-        wallet_4hf, game2['bets'], game_start=3, market_types=game2['markets']
+    game2_uuid = betting.create_game_with_bets(
+        game2['bets'], game_start=3, market_types=game2['markets']
     )
 
     pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
