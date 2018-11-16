@@ -77,6 +77,19 @@ def test_get_matched_bets(wallet_4hf: Wallet):
     assert response[0]["bet2_data"]["uuid"] == bob_bet
 
 
+def test_get_game_matched_bets(wallet_4hf: Wallet):
+    assert wallet_4hf.get_game_matched_bets(gen_uid()) == [], "Game and bets shouldn't be created yet."
+    empower_betting_moderator(wallet_4hf)
+    game_uuid, _ = create_game(wallet_4hf, delay=3600, market_types=[market.RoundHome()])
+    alice_bet, _ = post_bet(wallet_4hf, "alice", game_uuid, wincase_type=wincase.RoundHomeYes(), odds=[3, 2])
+    bob_bet, _ = post_bet(wallet_4hf, "bob", game_uuid, wincase_type=wincase.RoundHomeNo(), odds=[3, 1])
+    response = wallet_4hf.get_game_matched_bets(game_uuid)
+    validate_response(response, wallet_4hf.get_game_matched_bets.__name__)
+    assert response[0]["market"][0] == "round_home"
+    assert response[0]["bet1_data"]["uuid"] == alice_bet
+    assert response[0]["bet2_data"]["uuid"] == bob_bet
+
+
 def test_lookup_matched_bets(wallet_4hf: Wallet):
     assert wallet_4hf.lookup_matched_bets(0, 100) == [], "Bets shouldn't be created yet."
     empower_betting_moderator(wallet_4hf)
@@ -97,6 +110,17 @@ def test_get_pending_bets(wallet_4hf: Wallet):
     bet_uuid, _ = post_bet(wallet_4hf, "alice", game_uuid, wincase=wincase.RoundHomeYes())
     response = wallet_4hf.get_pending_bets([bet_uuid])
     validate_response(response, wallet_4hf.get_pending_bets.__name__)
+    assert len(response) == 1
+    assert response[0]['data']['uuid'] == bet_uuid
+
+
+def test_get_game_pending_bets(wallet_4hf: Wallet):
+    assert wallet_4hf.get_game_pending_bets(gen_uid()) == [], "Game and bets shouldn't be created yet."
+    empower_betting_moderator(wallet_4hf)
+    game_uuid, _ = create_game(wallet_4hf, market_types=[market.RoundHome()])
+    bet_uuid, _ = post_bet(wallet_4hf, "alice", game_uuid, wincase=wincase.RoundHomeYes())
+    response = wallet_4hf.get_game_pending_bets(game_uuid)
+    validate_response(response, wallet_4hf.get_game_pending_bets.__name__)
     assert len(response) == 1
     assert response[0]['data']['uuid'] == bet_uuid
 

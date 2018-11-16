@@ -546,12 +546,20 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_matched_bets', [uuids]))
         return response.get('result', response)
 
+    def get_game_matched_bets(self, game_uuid):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_game_matched_bets', [game_uuid]))
+        return response.get('result', response)
+
     def lookup_matched_bets(self, start_id, limit):
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'lookup_matched_bets', [start_id, limit]))
         return response.get('result', response)
 
     def get_pending_bets(self, uuids):
         response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_pending_bets', [uuids]))
+        return response.get('result', response)
+
+    def get_game_pending_bets(self, game_uuid):
+        response = self.rpc.send(self.json_rpc_body('call', 'betting_api', 'get_game_pending_bets', [game_uuid]))
         return response.get('result', response)
 
     def lookup_pending_bets(self, start_id, limit):
