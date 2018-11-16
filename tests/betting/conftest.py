@@ -126,6 +126,8 @@ def real_game_data():
 
     betters = [b.account for b in bets]
 
+    expected_resolved_ops = 24  # bets winners + paybacks
+
     expected_balances_outgo = defaultdict(Amount)
     for b in bets:
         expected_balances_outgo[b.account] += b.stake
@@ -161,5 +163,5 @@ def real_game_data():
     return {
         "bets": bets, "wincases": wincases, "betters": betters, "markets": markets,
         "expected_paybacks": expected_paybacks,  "expected_outgo": expected_balances_outgo,
-        "expected_income": expected_balances_income
+        "expected_income": expected_balances_income, "expected_resolved_ops": expected_resolved_ops
     }

@@ -212,6 +212,8 @@ def test_betting_flow_close_to_real_game(wallet_4hf, betting, real_game_data):
     assert len(matched_bets) - len(game_returns) == len(game_winners), \
         "Unexpected amount of game winners."
     wallet_4hf.get_block(response['block_num'] + 1, wait_for_block=True)
+    resolved = check_virt_ops(wallet_4hf, response["block_num"] + 1, expected_ops=["bet_resolved"])
+    assert real_game_data['expected_resolved_ops'] == len(resolved), "Unexpected amount of 'bet_resolved' operations."
     balances_after_finish = wallet_4hf.get_accounts_balances(real_game_data['betters'])
     assert all(
         balances_after_finish[n] == balances_after_betting[n] + real_game_data['expected_income'][n]
@@ -250,10 +252,13 @@ def test_betting_flow_close_to_real_few_games(wallet_4hf, betting, real_game_dat
         for n in real_game_data['betters']
     )
 
-    wallet_4hf.post_game_results(game1_uuid, DEFAULT_WITNESS, game1['wincases'])
+    response = wallet_4hf.post_game_results(game1_uuid, DEFAULT_WITNESS, game1['wincases'])
     game1_returns = wallet_4hf.get_game_returns(game1_uuid)
     assert len(game1["expected_paybacks"]) == len(game1_returns), "Unexpected amount of game returns."
     game1_winners = wallet_4hf.get_game_winners(game1_uuid)
+    wallet_4hf.get_block(response['block_num'] + 1, wait_for_block=True)
+    resolved = check_virt_ops(wallet_4hf, response["block_num"] + 1, expected_ops=["bet_resolved"])
+    assert game1['expected_resolved_ops'] == len(resolved), "Unexpected amount of 'bet_resolved' operations."
 
     response = wallet_4hf.post_game_results(game2_uuid, DEFAULT_WITNESS, game2['wincases'])
     game2_returns = wallet_4hf.get_game_returns(game2_uuid)
@@ -264,6 +269,8 @@ def test_betting_flow_close_to_real_few_games(wallet_4hf, betting, real_game_dat
         "Unexpected amount of game winners."
 
     wallet_4hf.get_block(response['block_num'] + 1, wait_for_block=True)
+    resolved = check_virt_ops(wallet_4hf, response["block_num"] + 1, expected_ops=["bet_resolved"])
+    assert game2["expected_resolved_ops"] == len(resolved), "Unexpected amount of 'bet_resolved' operations."
     balances_after_finish = wallet_4hf.get_accounts_balances(real_game_data['betters'])
     assert all(
         balances_after_finish[n] == balances_after_betting[n] +
