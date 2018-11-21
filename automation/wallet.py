@@ -482,6 +482,18 @@ class Wallet(object):
         signing_key = self.account(creator).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])
 
+    def update_account(self, account: str, owner: str, **kwargs):
+        op = operations.account_update_operation(
+            account,
+            owner,
+            kwargs.get('active', owner),
+            kwargs.get('posting', owner),
+            kwargs.get('memo', owner),
+            kwargs.get('json_meta', {})
+        )
+        signing_key = self.account(account).get_active_private()
+        return self.broadcast_transaction_synchronous([op], [signing_key])
+
     def create_account_by_committee(self,  creator: str, newname: str, owner: str, **kwargs):
         op = operations.account_create_by_committee_operation(
             creator,

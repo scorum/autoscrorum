@@ -159,3 +159,17 @@ def test_create_account_with_invalid_name_by_committee(wallet: Wallet, name_and_
     response = wallet.create_account_by_committee(DEFAULT_WITNESS, invalid_name, test_account_owner_pub_key)
     print(response)
     assert error.value == response['error']['data']['code']
+
+
+def test_update_account(wallet: Wallet):
+    key = "SCR52jUWZchsz6hVD13PzZrQP94mcbJL5seYxnm46Uk6D9tmJdGJh"
+    acc_before = wallet.get_account("alice")
+    response = wallet.update_account(
+        "alice", key, posting=acc_before['posting']['key_auths'][0][0], memo=acc_before["memo_key"]
+    )
+    assert "error" not in response
+    acc_after = wallet.get_account("alice")
+    assert acc_before['posting']['key_auths'][0][0] == acc_after['posting']['key_auths'][0][0]
+    assert acc_before['memo_key'] == acc_after['memo_key']
+    assert acc_after['owner']['key_auths'][0][0] == key
+    assert acc_after['active']['key_auths'][0][0] == key
