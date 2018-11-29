@@ -489,7 +489,7 @@ class Wallet(object):
             kwargs.get('active', owner),
             kwargs.get('posting', owner),
             kwargs.get('memo', owner),
-            kwargs.get('json_meta', {})
+            kwargs.get('json_meta', "{}")
         )
         signing_key = self.account(account).get_active_private()
         return self.broadcast_transaction_synchronous([op], [signing_key])

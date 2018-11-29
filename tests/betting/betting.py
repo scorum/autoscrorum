@@ -6,7 +6,7 @@ from tests.common import DEFAULT_WITNESS, gen_uid
 
 
 class Bet:
-    def __init__(self, account, wincase, odds, stake="1.000000000 SCR"):
+    def __init__(self, account, wincase, odds, stake="1.000000000 SCR", live=True):
         self.account = account
         self.wincase = wincase
         self.odds = odds
@@ -15,6 +15,7 @@ class Bet:
         self.profit = self.potential_reward - self.stake
         self.uuid = None
         self.block_creation_num = None
+        self.live = live
 
 
 class Betting:
@@ -75,7 +76,7 @@ class Betting:
             b.uuid = gen_uid()
         data = [{
             "uuid": b.uuid, "better": b.account, "game_uuid": game_uuid, "wincase": b.wincase,
-            "odds": b.odds, "stake": str(b.stake), "live": True
+            "odds": b.odds, "stake": str(b.stake), "live": b.live
         } for b in bets]
         response = self.wallet.broadcast_multiple_ops("post_bet", data, set(b.account for b in bets))
         for bet in bets:
@@ -84,7 +85,9 @@ class Betting:
     def post_bets_sequentially(self, game_uuid, bets):
         for bet in bets:
             uuid, block = self.post_bet(
-                bet.account, game_uuid, wincase_type=bet.wincase, odds=bet.odds, stake=str(bet.stake)
+                bet.account, game_uuid,
+                wincase_type=bet.wincase, odds=bet.odds,
+                stake=str(bet.stake), live=bet.live
             )
             bet.uuid = uuid
             bet.block_creation_num = block

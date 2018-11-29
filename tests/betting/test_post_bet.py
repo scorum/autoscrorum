@@ -182,6 +182,46 @@ def test_bets_matching(wallet_4hf, betting, bets, full_match):
     assert Amount(betting_stats['matched_bets_volume']) == matched_stake_sum
 
 
+@pytest.mark.parametrize('bets, remain, matched, game_start', [
+    ([
+        Bet("alice", wincase.ResultDrawYes(), [2, 1], "2.000000000 SCR"),
+        Bet("alice", wincase.ResultDrawYes(), [2, 1], "2.000000000 SCR"),
+        Bet("alice", wincase.ResultDrawYes(), [2, 1], "5.000000000 SCR"),
+        Bet("bob", wincase.ResultDrawNo(), [2, 1], "5.000000000 SCR")
+    ], 1, 3, 1),
+    ([
+        Bet("alice", wincase.ResultDrawYes(), [2, 1], "5.000000000 SCR"),
+        Bet("alice", wincase.ResultDrawYes(), [2, 1], "2.000000000 SCR"),
+        Bet("alice", wincase.ResultDrawYes(), [2, 1], "2.000000000 SCR"),
+        Bet("bob", wincase.ResultDrawNo(), [2, 1], "5.000000000 SCR")
+     ], 2, 1, 1),
+    ([
+        Bet("test.test1", wincase.ResultDrawYes(), [3, 1], "0.010000000 SCR", False),  # deleted due to game start
+        Bet("test.test1", wincase.ResultDrawNo(), [2, 1], "0.100000000 SCR", False),  # 1
+        Bet("test.test1", wincase.ResultDrawYes(), [2, 1], "0.100000000 SCR", False),  # 1
+        Bet("test.test2", wincase.ResultDrawNo(), [1450, 1000], "3.700000000 SCR", False),  # 2, 3, 4
+        Bet("test.test1", wincase.ResultDrawYes(), [1450, 450], "1.600000000 SCR", False),  # 2
+        Bet("test.test1", wincase.ResultDrawYes(), [1450, 450], "0.060000000 SCR", False),  # 3
+        Bet("test.test1", wincase.ResultDrawYes(), [1450, 450], "1.000000000 SCR", False),  # 4
+
+        Bet("test.test3", wincase.ResultDrawNo(), [1450, 1000], "2.200000000 SCR", True),  # 5
+        Bet("test.test4", wincase.ResultDrawYes(), [1450, 450], "0.990000000 SCR", True),  # 5
+        Bet("test.test3", wincase.ResultDrawYes(), [5, 1], "0.100000000 SCR", True),  # remain as pending
+        Bet("test.test5", wincase.ResultDrawNo(), [2, 1], "5.000000000 SCR", True),  # 6
+        Bet("test.test5", wincase.ResultDrawNo(), [2, 1], "2.000000000 SCR", True),  # remain as pending
+        Bet("test.test5", wincase.ResultDrawNo(), [2, 1], "2.000000000 SCR", True),  # remain as pending
+        Bet("test.test4", wincase.ResultDrawYes(), [2, 1], "5.000000000 SCR", True),  # 6
+
+     ], 3, 6, 22),  # pending 2 and matched 7 in invalid case
+])
+def test_bets_matching_order(wallet_4hf, betting, bets, remain, matched, game_start):
+    betting.create_game_with_bets(bets, game_start=game_start, single_block=False, market_types=[market.ResultDraw()])
+    pending_bets = wallet_4hf.lookup_pending_bets(-1, 100)
+    assert remain == len(pending_bets)
+    matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
+    assert matched == len(matched_bets)
+
+
 # @pytest.mark.skip_long_term  # test time ~46 sec
 def test_betting_flow_close_to_real_game(wallet_4hf, betting, real_game_data):
     balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
