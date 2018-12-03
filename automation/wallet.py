@@ -180,6 +180,22 @@ class Wallet(object):
         response = self.rpc.send(self.json_rpc_body('call', 'blockchain_history_api', 'get_blocks', [start, limit]))
         return response.get('result', response)
 
+    def collect_blocks(self, start, stop):
+        """
+        Collect blocks with any operation other then 'producer_reward' in descending order
+        :param int start: Header block number to start. Example: max(block_nums)
+        :param int stop: Any block number lesser then start. Example min(block_nums)
+        :return: List of collected blocks objects with transactions and virtual operations
+        """
+        blocks = []
+        while start > stop:
+            blocks += [
+                b for b in self.get_blocks(start)
+                if any(o['op'][0] != 'producer_reward' for o in b['operations'])
+            ]
+            start -= 100
+        return blocks
+
     def get_ops_in_block(self, num, operation_type=0):
         """
         Returns sequence of operations included/generated in a specified block

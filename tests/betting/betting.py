@@ -23,15 +23,15 @@ class Betting:
         self.wallet = wallet
         self.moderator = moderator
 
-    def empower_betting_moderator(self):
-        self.wallet.development_committee_empower_betting_moderator(DEFAULT_WITNESS, self.moderator)
+    def empower_betting_moderator(self, committee=DEFAULT_WITNESS):
+        self.wallet.development_committee_empower_betting_moderator(committee, self.moderator)
         proposals = self.wallet.list_proposals()
-        self.wallet.proposal_vote(DEFAULT_WITNESS, proposals[-1]["id"])
+        self.wallet.proposal_vote(committee, proposals[-1]["id"])
 
-    def change_resolve_delay(self, delay=60):
-        self.wallet.development_committee_change_betting_resolve_delay(DEFAULT_WITNESS, delay)
+    def change_resolve_delay(self, committee=DEFAULT_WITNESS, delay=60):
+        self.wallet.development_committee_change_betting_resolve_delay(committee, delay)
         proposals = self.wallet.list_proposals()
-        self.wallet.proposal_vote(DEFAULT_WITNESS, proposals[-1]["id"])
+        self.wallet.proposal_vote(committee, proposals[-1]["id"])
 
     def create_game(self, account=DEFAULT_WITNESS, **kwargs):
         """
