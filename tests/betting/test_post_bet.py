@@ -118,7 +118,7 @@ def test_post_bet_auto_resolve(wallet_4hf, betting, bets):
 
 
 def test_post_bet_finished_game_resolve(wallet_4hf, betting, bets):
-    betting.change_resolve_delay(4)  # resolve game next block after it will be finished
+    betting.change_resolve_delay(delay=4)  # resolve game next block after it will be finished
     game_uuid = betting.create_game_with_bets(bets, game_start=1)
     matched_bets = wallet_4hf.lookup_matched_bets(-1, 100)
     response = wallet_4hf.post_game_results(
@@ -225,7 +225,7 @@ def test_bets_matching_order(wallet_4hf, betting, bets, remain, matched, game_st
 # @pytest.mark.skip_long_term  # test time ~46 sec
 def test_betting_flow_close_to_real_game(wallet_4hf, betting, real_game_data):
     balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
-    betting.change_resolve_delay(4)
+    betting.change_resolve_delay(delay=4)
     game_uuid = betting.create_game_with_bets(
         real_game_data['bets'], game_start=3, market_types=real_game_data['markets']
     )
@@ -266,7 +266,7 @@ def test_betting_flow_close_to_real_few_games(wallet_4hf, betting, real_game_dat
     game1 = real_game_data
     game2 = deepcopy(real_game_data)
     balances_before = wallet_4hf.get_accounts_balances(real_game_data['betters'])
-    betting.change_resolve_delay(4)
+    betting.change_resolve_delay(delay=4)
     game1_uuid = betting.create_game_with_bets(
         game1['bets'], game_start=3, market_types=game1['markets']
     )

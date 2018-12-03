@@ -17,7 +17,7 @@ def test_post_game_results(wallet_4hf, betting, bets):
 
 
 def test_post_game_results_game_resolve(wallet_4hf, betting, bets):
-    betting.change_resolve_delay(3)
+    betting.change_resolve_delay(delay=3)
     game_uuid = betting.create_game_with_bets(bets, game_start=1)
     response = wallet_4hf.post_game_results(
         game_uuid, DEFAULT_WITNESS, [wincase.RoundHomeYes(), wincase.HandicapOver(500)]
@@ -59,7 +59,7 @@ def test_post_game_results_invalid_params(wallet_4hf, betting, bets, start, winc
     ),
 ])
 def test_post_game_payback_case(wallet_4hf, betting, markets, bets):
-    betting.change_resolve_delay(3)
+    betting.change_resolve_delay(delay=3)
     names = [b.account for b in bets]
     balances_before = wallet_4hf.get_accounts_balances(names)
     game_uuid = betting.create_game_with_bets(bets, market_types=markets, game_start=1)
