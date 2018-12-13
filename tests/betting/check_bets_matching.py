@@ -1,5 +1,5 @@
 import json
-
+import argparse
 from scorum.graphenebase.betting import wincase
 
 from automation.wallet import Wallet
@@ -43,9 +43,9 @@ class BetMatchingChecker(object):
             ))
 
     def run(self):
+
+        skipped = 0
         for block in self.blocks:
-            if block['block_num'] < 6857122:
-                continue
             for o in block['operations']:
                 if o['op'][0] == "post_bet":
                     bet = o['op'][1]
@@ -53,32 +53,55 @@ class BetMatchingChecker(object):
                     self.bets.append(bet)
                 if o['op'][0] == "bet_cancelled":
                     self.remove_bet(o['op'][1]['bet_uuid'])
+                if o['op'][0] == "bet_updated":
+                    bet = self.get_bet(o['op'][1]['bet_uuid'])
+                    if bet:
+                        bet['stake'] = o['op'][1]['new_stake']
                 if o['op'][0] == "bets_matched":
                     bet1 = self.get_bet(o['op'][1]['bet1_uuid'])
                     bet2 = self.get_bet(o['op'][1]['bet2_uuid'])
+                    if not bet1 or not bet2:
+                        skipped += 1
+                        continue
                     self.check_matching_order(bet1, bet2)
                     self.check_matching_order(bet2, bet1)
+                    if bet1['stake'] == "0.000000000 SCR":
+                        self.remove_bet(bet1['uuid'])
+                    if bet2['stake'] == "0.000000000 SCR":
+                        self.remove_bet(bet2['uuid'])
+        print("Skipped match ops: %d" % skipped)
 
 
 if __name__ == "__main__":
-    # chain_id = "db4007d45f04c1403a7e66a5c66b5b1cdfc2dde8b5335d1d2f116d592ca3dbb1"
-    # address = "rpc-up-white-mnet-fra1-2.scorum.work:8001"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(dest="start", type=int)
+    parser.add_argument(dest="stop", type=int)
+    parser.add_argument(
+        "--chain-id", dest="chain_id", type=str,
+        default="d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"
+    )
+    parser.add_argument(
+        "--address", dest="address", type=str,
+        default="rpc-aqua-tnet-ams3-1.scorum.work:8001"
+    )
+    parser.add_argument("-r", "--read", dest="read_file", type=str, default=None)
+    parser.add_argument("-w", "--write", dest="write_file", type=str, default=None)
+    args = parser.parse_args()
 
-    chain_id = "d3c1f19a4947c296446583f988c43fd1a83818fabaf3454a0020198cb361ebd2"
-    address = "rpc-pink-tnet-ams3-1.scorum.work:8001"
+    assert args.start > args.stop, "Descending order for blocks"
 
-    dump_file = "testnet_blocks.json"
-    start = 114153
-    stop = 35060
+    print("Checker has started.")
+    with Wallet(args.chain_id, args.address) as wallet:
+        blocks = wallet.collect_blocks(args.start, args.stop)
 
-    with Wallet(chain_id, address) as wallet:
-        blocks = wallet.collect_blocks(start, stop)
+    if args.write_file:
+        with open(args.write_file, 'w') as f:
+            f.write(json.dumps(sorted(blocks, key=lambda x: x['block_num'])))
 
-    with open(dump_file, 'w') as f:
-        f.write(json.dumps(sorted(blocks, key=lambda x: x['block_num'])))
-
-    with open(dump_file, "r") as f:
-        blocks = sorted(json.loads(f.read()), key=lambda x: x['block_num'])
+    if args.read_file:
+        with open(args.read_file, "r") as f:
+            blocks = sorted(json.loads(f.read()), key=lambda x: x['block_num'])
 
     checker = BetMatchingChecker(blocks)
     checker.run()
+    print("Finished.")
